@@ -261,7 +261,7 @@ def scrape_arxiv_abstract_page(url: str) -> dict:
         logging.error(f"Error scraping {url}: {e}")
         return {}
 
-def scrape_arxiv_details_from_json_threaded(json_file: str, max_workers: int = 10) -> list:
+def scrape_arxiv_details_from_json_threaded(json_file: str, max_workers: int = 3) -> list:
     """Scrape arXiv abstract pages concurrently using threads."""
     if not os.path.exists(json_file):
         logging.error(f"JSON file not found: {json_file}")
@@ -342,7 +342,7 @@ def download_pdf(arxiv_id: str, save_dir: str = "data/pdfs/arxiv") -> None:
     except Exception as e:
         logging.error(f"Failed to download {pdf_url}: {e}")
 
-def safe_pdf_arxiv(cleaned_json: str = "clean/arxiv_clean.json") -> None:
+def get_pdf_arxiv(cleaned_json: str = "clean/arxiv_clean.json", save_dir: str = "data/pdfs/arxiv") -> None:
     """
     Description:
         Retrieves each paper's url from the cleaned json file
@@ -351,11 +351,16 @@ def safe_pdf_arxiv(cleaned_json: str = "clean/arxiv_clean.json") -> None:
     
     Argument: cleaned_json file path.
 
+    Dependencies:
+        download_pdf function
+
     >>> safe_pdf_arxiv()
 
     """
+
+    os.makedirs(save_dir, exist_ok=True)
+
     logging.debug("Threadsafe pdf arxiv")
-    save_dir = "data/pdfs/arxiv"
     logging.info(f"Saving to {save_dir}")
     os.makedirs(save_dir, exist_ok=True)
 
