@@ -201,6 +201,12 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Claude
+# Claude is an AI assistant by Anthropic. `.claudeignore` specifies files/directories to
+# exclude from AI features. Recommended for sensitive data refer to https://claude.ai/docs/ignore-files
+.claudeignore
+CLAUDE.md
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

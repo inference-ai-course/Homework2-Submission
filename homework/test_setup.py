@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
+test_setup.py
 Quick test script to verify all dependencies are installed correctly.
+Christine Zhao
+2025-11-02
 """
 
 import sys

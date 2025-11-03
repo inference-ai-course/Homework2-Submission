@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
+youtube_transcriber.py
 Module 3: Automatic Speech Recognition (ASR)
 Transcribes YouTube videos using Whisper.
+Christine Zhao
+2025-11-02
 """
 
 import os

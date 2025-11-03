@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
+arxiv_scraper.py
 Module 1: arXiv Paper Abstract Scraper
 Scrapes latest papers from arXiv, extracts abstracts using Trafilatura,
 and saves results as JSON.
+Christine Zhao
+2025-11-02
 """
 
 import json

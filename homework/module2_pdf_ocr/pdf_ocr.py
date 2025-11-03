@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
+pdf_ocr.py
 Module 2: Batch PDF to Text OCR
 Converts PDF files to text using Tesseract OCR.
+Christine Zhao
+2025-11-02
 """
 
 import os

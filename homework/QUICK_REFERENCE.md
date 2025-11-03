@@ -28,19 +28,19 @@ make run
 ### Individual Modules
 ```bash
 # Module 1: arXiv Scraper
-cd homework/module1_scraper && python arxiv_scraper.py
+cd module1_scraper && python arxiv_scraper.py
 # OR: make module1
 
 # Module 2: PDF OCR
-cd homework/module2_pdf_ocr && python pdf_ocr.py
+cd module2_pdf_ocr && python pdf_ocr.py
 # OR: make module2
 
 # Module 3: YouTube ASR
-cd homework/module3_asr && python youtube_transcriber.py
+cd module3_asr && python youtube_transcriber.py
 # OR: make module3
 
 # Module 4: Data Cleaning
-cd homework/module4_cleaning && python data_cleaner.py
+cd module4_cleaning && python data_cleaner.py
 # OR: make module4
 ```
 
@@ -48,33 +48,33 @@ cd homework/module4_cleaning && python data_cleaner.py
 
 | Module | Output File(s) | Location |
 |--------|---------------|----------|
-| 1 | arxiv_clean.json | homework/module1_scraper/ |
-| 2 | *.txt files | homework/module2_pdf_ocr/pdf_ocr/ |
-| 3 | talks_transcripts.jsonl | homework/module3_asr/ |
-| 4 | clean_corpus.txt, stats.md | homework/module4_cleaning/ |
+| 1 | arxiv_clean.json | module1_scraper/ |
+| 2 | *.txt files | module2_pdf_ocr/pdf_ocr/ |
+| 3 | talks_transcripts.jsonl | module3_asr/ |
+| 4 | clean_corpus.txt, stats.md | module4_cleaning/ |
 
 ## Common Customizations
 
 ### Change arXiv Category
-Edit `homework/module1_scraper/arxiv_scraper.py`, line ~185:
+Edit `module1_scraper/arxiv_scraper.py`, line ~185:
 ```python
 scraper = ArxivScraper(category="cs.AI", max_papers=200)
 ```
 
 ### Process More PDFs
-Edit `homework/module2_pdf_ocr/pdf_ocr.py`, line ~171:
+Edit `module2_pdf_ocr/pdf_ocr.py`, line ~171:
 ```python
 converter.process_papers(max_papers=20)  # Default: 10
 ```
 
 ### Change Whisper Model
-Edit `homework/module3_asr/youtube_transcriber.py`, line ~26:
+Edit `module3_asr/youtube_transcriber.py`, line ~26:
 ```python
 self.load_whisper_model(model_size="small")  # Options: tiny, base, small, medium, large
 ```
 
 ### Adjust Deduplication
-Edit `homework/module4_cleaning/data_cleaner.py`, line ~333:
+Edit `module4_cleaning/data_cleaner.py`, line ~333:
 ```python
 cleaner = DataCleaner(similarity_threshold=0.8)  # Default: 0.7
 ```

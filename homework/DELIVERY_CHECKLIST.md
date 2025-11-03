@@ -3,21 +3,21 @@
 ## ✅ Required Deliverables
 
 ### Module 1: arXiv Paper Scraper
-- [x] Script: `homework/module1_scraper/arxiv_scraper.py`
+- [x] Script: `module1_scraper/arxiv_scraper.py`
 - [x] Functionality: Scrapes 200 papers from arXiv
 - [x] Uses Trafilatura for HTML cleaning
 - [x] Output: `arxiv_clean.json` (≤1MB requirement met)
 - [x] Fields: url, title, abstract, authors, date
 
 ### Module 2: PDF to Text OCR
-- [x] Script: `homework/module2_pdf_ocr/pdf_ocr.py`
+- [x] Script: `module2_pdf_ocr/pdf_ocr.py`
 - [x] Functionality: Converts PDFs to text using Tesseract
 - [x] Downloads PDFs from arXiv
 - [x] OCR with layout preservation
 - [x] Output: Individual `.txt` files in `pdf_ocr/` directory
 
 ### Module 3: YouTube ASR Transcription
-- [x] Script: `homework/module3_asr/youtube_transcriber.py`
+- [x] Script: `module3_asr/youtube_transcriber.py`
 - [x] Functionality: Transcribes YouTube videos using Whisper
 - [x] Uses yt-dlp for audio download
 - [x] Includes timestamps
@@ -25,7 +25,7 @@
 - [x] Configuration: `video_config.json` with 10 video URLs
 
 ### Module 4: Data Cleaning Pipeline
-- [x] Script: `homework/module4_cleaning/data_cleaner.py`
+- [x] Script: `module4_cleaning/data_cleaner.py`
 - [x] Merges data from modules 1-3
 - [x] Language detection and filtering
 - [x] MinHash deduplication (≥0.7 similarity)
@@ -179,22 +179,21 @@ This project is **COMPLETE** and **READY FOR SUBMISSION** with:
 ## 📦 Submission Package Includes
 
 ```
-Homework2-Submission/
-├── homework/
-│   ├── module1_scraper/arxiv_scraper.py       ✅
-│   ├── module2_pdf_ocr/pdf_ocr.py             ✅
-│   ├── module3_asr/youtube_transcriber.py     ✅
-│   └── module4_cleaning/data_cleaner.py       ✅
-├── requirements.txt                           ✅
-├── run_all.py                                 ✅
-├── test_setup.py                              ✅
-├── Makefile                                   ✅
-├── README.md                                  ✅
-├── QUICKSTART.md                              ✅
-├── CLAUDE.md                                  ✅
-├── PROJECT_SUMMARY.md                         ✅
-├── QUICK_REFERENCE.md                         ✅
-└── DELIVERY_CHECKLIST.md                      ✅
+Homework2-Submission/homework/
+├── module1_scraper/arxiv_scraper.py       ✅
+├── module2_pdf_ocr/pdf_ocr.py             ✅
+├── module3_asr/youtube_transcriber.py     ✅
+├── module4_cleaning/data_cleaner.py       ✅
+├── requirements.txt                       ✅
+├── run_all.py                             ✅
+├── test_setup.py                          ✅
+├── Makefile                               ✅
+├── README.md                              ✅
+├── QUICKSTART.md                          ✅
+├── CLAUDE.md                              ✅
+├── PROJECT_SUMMARY.md                     ✅
+├── QUICK_REFERENCE.md                     ✅
+└── DELIVERY_CHECKLIST.md                  ✅
 ```
 
 **All files present and accounted for!** ✨

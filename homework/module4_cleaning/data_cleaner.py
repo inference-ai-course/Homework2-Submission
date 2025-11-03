@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
+data_cleaner.py
 Module 4: End-to-End Data Cleaning and Deduplication
 Merges outputs from modules 1-3 and performs comprehensive cleaning.
+Christine Zhao
+2025-11-02
 """
 
 import json

@@ -45,16 +45,16 @@ This will execute all four modules sequentially and generate all outputs.
 
 ```bash
 # Module 1: Scrape arXiv papers
-cd homework/module1_scraper && python arxiv_scraper.py
+cd module1_scraper && python arxiv_scraper.py
 
 # Module 2: Convert PDFs to text
-cd homework/module2_pdf_ocr && python pdf_ocr.py
+cd module2_pdf_ocr && python pdf_ocr.py
 
 # Module 3: Transcribe YouTube videos
-cd homework/module3_asr && python youtube_transcriber.py
+cd module3_asr && python youtube_transcriber.py
 
 # Module 4: Clean and deduplicate
-cd homework/module4_cleaning && python data_cleaner.py
+cd module4_cleaning && python data_cleaner.py
 ```
 
 ## Expected Runtime
@@ -90,7 +90,7 @@ homework/
 
 ### Change arXiv Category
 
-Edit `homework/module1_scraper/arxiv_scraper.py`:
+Edit `module1_scraper/arxiv_scraper.py`:
 
 ```python
 scraper = ArxivScraper(category="cs.AI", max_papers=200)
@@ -104,7 +104,7 @@ Popular categories:
 
 ### Adjust Number of PDFs
 
-Edit `homework/module2_pdf_ocr/pdf_ocr.py`:
+Edit `module2_pdf_ocr/pdf_ocr.py`:
 
 ```python
 converter.process_papers(max_papers=20)  # Default is 10
@@ -112,7 +112,7 @@ converter.process_papers(max_papers=20)  # Default is 10
 
 ### Use Different Whisper Model
 
-Edit `homework/module3_asr/youtube_transcriber.py`:
+Edit `module3_asr/youtube_transcriber.py`:
 
 ```python
 transcriber.load_whisper_model(model_size="tiny")  # Options: tiny, base, small, medium, large
@@ -184,7 +184,7 @@ transcriber.load_whisper_model(model_size="tiny")
 
 After running all modules:
 
-1. Check `homework/module4_cleaning/stats.md` for cleaning statistics
+1. Check `module4_cleaning/stats.md` for cleaning statistics
 2. Review `clean_corpus.txt` for the final output
 3. Analyze `arxiv_clean.json` to see scraped paper data
 4. Explore the OCR text files in `pdf_ocr/` directory

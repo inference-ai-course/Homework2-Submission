@@ -7,30 +7,28 @@ This repository contains a complete implementation of all four homework modules 
 ## Project Structure
 
 ```
-Homework2-Submission/
-├── homework/                          # All homework modules
-│   ├── module1_scraper/              # Module 1: Web Scraping
-│   │   └── arxiv_scraper.py          # arXiv paper scraper
-│   ├── module2_pdf_ocr/              # Module 2: PDF OCR
-│   │   └── pdf_ocr.py                # PDF to text converter
-│   ├── module3_asr/                  # Module 3: ASR
-│   │   ├── youtube_transcriber.py    # YouTube transcription
-│   │   └── video_config.json         # Video configuration
-│   └── module4_cleaning/             # Module 4: Data Cleaning
-│       └── data_cleaner.py           # Cleaning pipeline
-├── requirements.txt                   # Python dependencies
-├── run_all.py                        # Main runner script
-├── test_setup.py                     # Dependency checker
-├── Makefile                          # Convenience commands
-├── README.md                         # Full documentation
-├── QUICKSTART.md                     # Quick start guide
-└── CLAUDE.md                         # AI assistant guidance
+Homework2-Submission/homework/
+├── module1_scraper/              # Module 1: Web Scraping
+│   └── arxiv_scraper.py          # arXiv paper scraper
+├── module2_pdf_ocr/              # Module 2: PDF OCR
+│   └── pdf_ocr.py                # PDF to text converter
+├── module3_asr/                  # Module 3: ASR
+│   ├── youtube_transcriber.py    # YouTube transcription
+│   └── video_config.json         # Video configuration
+├── module4_cleaning/             # Module 4: Data Cleaning
+│   └── data_cleaner.py           # Cleaning pipeline
+├── requirements.txt              # Python dependencies
+├── run_all.py                    # Main runner script
+├── test_setup.py                 # Dependency checker
+├── Makefile                      # Convenience commands
+├── README.md                     # Full documentation
+└── QUICKSTART.md                 # Quick start guide
 ```
 
 ## Module Implementations
 
 ### Module 1: arXiv Paper Scraper ✅
-**File**: `homework/module1_scraper/arxiv_scraper.py`
+**File**: `module1_scraper/arxiv_scraper.py`
 
 **Features**:
 - Scrapes 200 papers from arXiv (configurable category)
@@ -46,7 +44,7 @@ Homework2-Submission/
 ---
 
 ### Module 2: PDF to Text OCR ✅
-**File**: `homework/module2_pdf_ocr/pdf_ocr.py`
+**File**: `module2_pdf_ocr/pdf_ocr.py`
 
 **Features**:
 - Downloads PDFs from arXiv
@@ -63,7 +61,7 @@ Homework2-Submission/
 ---
 
 ### Module 3: YouTube ASR Transcription ✅
-**File**: `homework/module3_asr/youtube_transcriber.py`
+**File**: `module3_asr/youtube_transcriber.py`
 
 **Features**:
 - Downloads audio from YouTube using yt-dlp
@@ -82,7 +80,7 @@ Homework2-Submission/
 ---
 
 ### Module 4: Data Cleaning Pipeline ✅
-**File**: `homework/module4_cleaning/data_cleaner.py`
+**File**: `module4_cleaning/data_cleaner.py`
 
 **Features**:
 - Loads and merges data from all three previous modules

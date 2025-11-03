@@ -32,27 +32,27 @@ run:
 
 module1:
 	@echo "Running Module 1: arXiv Scraper"
-	cd homework/module1_scraper && python arxiv_scraper.py
+	cd module1_scraper && python arxiv_scraper.py
 
 module2:
 	@echo "Running Module 2: PDF OCR"
-	cd homework/module2_pdf_ocr && python pdf_ocr.py
+	cd module2_pdf_ocr && python pdf_ocr.py
 
 module3:
 	@echo "Running Module 3: YouTube ASR"
-	cd homework/module3_asr && python youtube_transcriber.py
+	cd module3_asr && python youtube_transcriber.py
 
 module4:
 	@echo "Running Module 4: Data Cleaning"
-	cd homework/module4_cleaning && python data_cleaner.py
+	cd module4_cleaning && python data_cleaner.py
 
 clean:
 	@echo "Cleaning generated output files..."
-	rm -f homework/module1_scraper/*.json
-	rm -rf homework/module2_pdf_ocr/pdf_ocr/
-	rm -f homework/module2_pdf_ocr/*.pdf
-	rm -f homework/module3_asr/*.jsonl
-	rm -f homework/module3_asr/*.mp3
-	rm -f homework/module4_cleaning/clean_corpus.txt
-	rm -f homework/module4_cleaning/stats.md
+	rm -f module1_scraper/*.json
+	rm -rf module2_pdf_ocr/pdf_ocr/
+	rm -f module2_pdf_ocr/*.pdf
+	rm -f module3_asr/*.jsonl
+	rm -f module3_asr/*.mp3
+	rm -f module4_cleaning/clean_corpus.txt
+	rm -f module4_cleaning/stats.md
 	@echo "Cleaned!"

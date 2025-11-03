@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
+run_all.py
 Main runner script to execute all homework modules sequentially.
+Christine Zhao
+2025-11-02
 """
 
 import os
@@ -154,7 +157,7 @@ def main():
         return
 
     # Get the base directory
-    base_dir = Path(__file__).parent / "homework"
+    base_dir = Path(__file__).parent  
 
     # Define modules
     modules = [
@@ -224,11 +227,11 @@ def main():
     if successes == len(results):
         print("🎉 All modules completed successfully!")
         print("\nGenerated outputs:")
-        print("  - homework/module1_scraper/arxiv_clean.json")
-        print("  - homework/module2_pdf_ocr/pdf_ocr/*.txt")
-        print("  - homework/module3_asr/talks_transcripts.jsonl")
-        print("  - homework/module4_cleaning/clean_corpus.txt")
-        print("  - homework/module4_cleaning/stats.md")
+        print("  - module1_scraper/arxiv_clean.json")
+        print("  - module2_pdf_ocr/pdf_ocr/*.txt")
+        print("  - module3_asr/talks_transcripts.jsonl")
+        print("  - module4_cleaning/clean_corpus.txt")
+        print("  - module4_cleaning/stats.md")
     else:
         print("⚠ Some modules failed. Check the output above for details.")
 

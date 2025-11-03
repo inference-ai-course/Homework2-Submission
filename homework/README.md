@@ -5,18 +5,17 @@ This repository contains implementations for all four modules of the Week 2 home
 ## Project Structure
 
 ```
-Homework2-Submission/
-├── homework/
-│   ├── module1_scraper/       # arXiv paper scraper
-│   │   └── arxiv_scraper.py
-│   ├── module2_pdf_ocr/       # PDF to text OCR
-│   │   └── pdf_ocr.py
-│   ├── module3_asr/           # YouTube ASR transcription
-│   │   └── youtube_transcriber.py
-│   └── module4_cleaning/      # Data cleaning pipeline
-│       └── data_cleaner.py
+Homework2-Submission/homework/
+├── module1_scraper/       # arXiv paper scraper
+│   └── arxiv_scraper.py
+├── module2_pdf_ocr/       # PDF to text OCR
+│   └── pdf_ocr.py
+├── module3_asr/           # YouTube ASR transcription
+│   └── youtube_transcriber.py
+├── module4_cleaning/      # Data cleaning pipeline
+│   └── data_cleaner.py
 ├── requirements.txt
-├── run_all.py                 # Main runner script
+├── run_all.py             # Main runner script
 └── README.md
 ```
 
@@ -85,7 +84,7 @@ This will execute all four modules in order and generate all required outputs.
 #### Module 1: arXiv Paper Scraper
 
 ```bash
-cd homework/module1_scraper
+cd module1_scraper
 python arxiv_scraper.py
 ```
 
@@ -100,7 +99,7 @@ python arxiv_scraper.py
 #### Module 2: PDF to Text OCR
 
 ```bash
-cd homework/module2_pdf_ocr
+cd module2_pdf_ocr
 python pdf_ocr.py
 ```
 
@@ -117,7 +116,7 @@ python pdf_ocr.py
 #### Module 3: YouTube ASR Transcription
 
 ```bash
-cd homework/module3_asr
+cd module3_asr
 python youtube_transcriber.py
 ```
 
@@ -134,7 +133,7 @@ python youtube_transcriber.py
 #### Module 4: Data Cleaning Pipeline
 
 ```bash
-cd homework/module4_cleaning
+cd module4_cleaning
 python data_cleaner.py
 ```
 
@@ -230,31 +229,31 @@ python data_cleaner.py
 
 After running all modules, you should have:
 
-1. `homework/module1_scraper/arxiv_clean.json` (≤ 1MB)
-2. `homework/module2_pdf_ocr/pdf_ocr/*.txt` (multiple files)
-3. `homework/module3_asr/talks_transcripts.jsonl`
-4. `homework/module4_cleaning/clean_corpus.txt`
-5. `homework/module4_cleaning/stats.md`
+1. `module1_scraper/arxiv_clean.json` (≤ 1MB)
+2. `module2_pdf_ocr/pdf_ocr/*.txt` (multiple files)
+3. `module3_asr/talks_transcripts.jsonl`
+4. `module4_cleaning/clean_corpus.txt`
+5. `module4_cleaning/stats.md`
 
 ## Customization
 
 ### Changing arXiv Category
 
-Edit `homework/module1_scraper/arxiv_scraper.py`:
+Edit `module1_scraper/arxiv_scraper.py`:
 ```python
 scraper = ArxivScraper(category="cs.AI", max_papers=200)  # Change category
 ```
 
 ### Processing More PDFs
 
-Edit `homework/module2_pdf_ocr/pdf_ocr.py`:
+Edit `module2_pdf_ocr/pdf_ocr.py`:
 ```python
 converter.process_papers(max_papers=50)  # Increase from default 10
 ```
 
 ### Adding YouTube Videos
 
-Edit `homework/module3_asr/youtube_transcriber.py`:
+Edit `module3_asr/youtube_transcriber.py`:
 ```python
 video_list = [
     {"url": "https://www.youtube.com/...", "title": "Talk Title", "duration": "180"},
@@ -264,7 +263,7 @@ video_list = [
 
 ### Adjusting Deduplication Threshold
 
-Edit `homework/module4_cleaning/data_cleaner.py`:
+Edit `module4_cleaning/data_cleaner.py`:
 ```python
 cleaner = DataCleaner(similarity_threshold=0.8)  # Stricter deduplication
 ```
