@@ -1,0 +1,1635 @@
+arXiv:2510.24134v2 [cs.CV] 29 Oct 2025
+
+VC4VG: Optimizing Video Captions for Text-to- Video Generation
+
+Yang Du!*, Zhuoran Lin’*, Kaigiang Song”*, Biao Wang’, Zhicheng Zheng’,
+Tiezheng Ge’, Bo Zheng’, Qin Jin '*
+‘School of Information, Renmin University of China,
+?Taobao & Tmall Group of Alibaba,
+
+Abstract
+
+Recent advances in text-to-video (T2V) gen-
+eration highlight the critical role of high-
+quality video-text pairs in training models ca-
+pable of producing coherent and instruction-
+aligned videos. However, strategies for op-
+timizing video captions specifically for T2V
+training remain underexplored. In this pa-
+per, we introduce VC4VG (Video Captioning
+for Video Generation), a comprehensive cap-
+tion optimization framework tailored to the
+needs of T2V models. We begin by analyz-
+ing caption content from a T2V perspective,
+decomposing the essential elements required
+for video reconstruction into multiple dimen-
+sions, and proposing a principled caption de-
+sign methodology. To support evaluation, we
+construct VC4VG-Bench, a new benchmark
+featuring fine-grained, multi-dimensional, and
+necessity-graded metrics aligned with T2V-
+specific requirements. Extensive T2V fine-
+tuning experiments demonstrate a strong cor-
+relation between improved caption quality and
+video generation performance, validating the
+effectiveness of our approach. We release all
+benchmark tools and code! to support further
+research.
+
+1 Introduction
+
+Text-to-video (T2V) generation has witnessed
+rapid progress in recent years, marked by im-
+pressive systems such as Sora (OpenAI, 2024)
+and Kling(Kuaishou, 2024). A core driver behind
+these advancements is the availability of large-
+scale, high-quality video-caption pairs that en-
+able T2V models to generate visually rich and
+instruction-aligned content. However, acquiring
+such high-quality video-text pairs remains a ma-
+jor bottleneck: although large volumes of video
+
+“Equal contribution.
+‘Corresponding author: qjin@ruc.edu.cn
+‘https ://github.com/qyr@403/VC4VG
+
+data are readily available online, most lack accu-
+rate textual annotations or are labeled with low-
+quality captions. To bridge this gap, recent large-
+scale datasets have increasingly relied on auto-
+mated captioning powered by multimodal large
+language models (MLLMs) (Chen et al., 2024;
+Wang et al., 2023).
+
+As a result, emerging T2V systems (e.g., Open-
+Sora (Zheng et al., 2024), CogVideoX (Yang
+et al., 2024b)) and curated datasets (e.g., Open-
+Vid (Nan et al., 2024), ShareGPT4Video (Chen
+et al., 2025a), Miradata (Ju et al., 2025)) have
+adopted pseudo-caption generation as a key pre-
+processing step. Despite this trend, there re-
+mains a critical gap: no existing work provides
+a systematic caption optimization framework that
+aligns caption design, evaluation, and T2V train-
+ing in a unified, feedback-driven loop. Mean-
+while, existing video captioning benchmarks suf-
+fer from two key limitations: 1) They rely on out-
+dated metrics (e.g., BLEU (Papineni et al., 2002),
+CIDEr (Vedantam et al., 2015)) designed for short
+and generic captions. 2) They lack evaluation pro-
+tocols tailored to the specific needs of video gen-
+eration tasks (e.g., AuroraCap (Chai et al., 2024),
+Dream-1K (Wang et al., 2024a)).
+
+To address these limitations, we propose
+VC4VG (Video Captioning for Video Generation),
+a comprehensive caption optimization framework
+specifically designed to enhance T2V training. As
+illustrated in Figure 1, VC4VG consists of three
+key components:
+
+Dimension-Aware Caption Optimization: From
+a T2V generation perspective, we analyze the core
+visual-linguistic elements required for video re-
+construction and decompose captions into five es-
+sential dimensions: (1) subject attributes, (2) envi-
+ronmental context, (3) motion dynamics, (4) cam-
+era parameters, and (5) atmospheric/stylistic el-
+ements. We hypothesize that rich and accurate
+coverage across these dimensions contributes di-
+
+Raw Video
+
+Captioner Model
+
+VC4VG-Bench
+
+Optimized Captions
+(OO)
+
+Environment
+Changes: The
+
+Subject Attributes:
+A barefoot person's
+
+Q: Where is the person in the
+video walking towards?
+
+A: Walking towards the sea in the
+background. ...
+
+Q: Which body parts of the person
+are mainly filmed in the video?
+A: Lower body
+
+& feet enter the frame. person walks at
+The person is a steady pace,
+wearing dark shorts. their feet in the
+sand. leaving
+pS .
+small imprints
+a
+Subject Actions:
+The person's legs
+Camera:The
+and lower body sdleo tect
+gradually become VAD Weis
+5a with a
+more visible as they g fe
+walking towards the view Oba
+sandy beach,
+
+ocean. .
+
+in the video?
+
+Caption for T2V Generation Data Flow
+
+Q: What can be seen on the beach
+
+A: Small pebbles and debris
+
+Text-to-Video
+Model
+
+maintaining a
+
+The camera
+
+Environment .
+Attributes: remains
+...The ocean visible
+in the background Stylization: The
+
+with waves crashing overall style is
+
+against the shore. ...
+
+naturalistic and
+serene.
+
+Guidance & Feedback Loop
+
+Figure 1: Overview of the video caption optimization framework for text-to-video (T2V) generation. The original
+video is transformed into textual descriptions via captioners. These captions are then optimized according to
+dimensions that we consider essential for video reconstruction and instruct by VC4VG-Bench evaluation. Finally,
+optimized captions are used during T2V models’ training and generating videos.
+
+rectly to improve video generation performance.
+We therefore optimize raw captions generated by
+the captioner according to these dimensions.
+
+To investigate how dimensional optimizations
+enhance T2V generation relative to other caption
+models, and to enable efficient large-scale cap-
+tioning on datasets with over 10M videos, we
+build a custom MLLM captioner, LLaVA-Video-
+Gen-7B. It builds on LLaVA-Video (Zhang et al.,
+2024), augmented with Gemini 1.5 Pro (Team
+et al., 2024) and temporal-sensitive data from
+RTime (Du et al., 2024), and supports scalable, lo-
+cally deployable, high-quality caption generation.
+VC4VG-Bench — A T2V-Generation-Oriented
+Benchmark: We introduce VC4VG-Bench, a hi-
+erarchical, LLM-assisted benchmark comprising
+1,000 human-annotated Video-QA pairs. These
+QAs span multi-level visual content, from high-
+level themes to fine-grained visual details. To
+measure caption effectiveness, we introduce a
+necessity-based hierarchy that distinguishes core
+from supplementary content for video reconstruc-
+tion. This allows for automated, LLM-as-judge
+evaluations that align well with human assess-
+ments, enabling scalable and accurate evaluation
+of captioning quality from a generation-oriented
+perspective and providing actionable insights for
+model selection and data optimization in text-to-
+video generation.
+
+Closed-Loop Validation via T2V Fine-tuning:
+To validate the practical utility of our framework,
+we fine-tune CogVideoX (Yang et al., 2024b)
+on three versions of a 72K-sample video-caption
+dataset curated from OpenVid-1M (Nan et al.,
+2024), using captions generated by different meth-
+ods, including CogVLM2-Caption (Yang et al.,
+2024b), LLaVA-Video-7B (Zhang et al., 2024),
+and our proposed LLaVA-Video-Gen-7B (served
+as a proof-of-concept implementation of our op-
+timization framework). Quantitative results on
+VBench (Huang et al., 2024a,b) and MovieGen-
+Bench (Polyak et al., 2024), together with qual-
+itative studies, show that generation quality cor-
+relates strongly with the richness and necessity
+alignment of caption content across our defined di-
+mensions, validating the effectiveness of our opti-
+mization strategy.
+
+Our main contributions are threefold: 1) We
+systematically decompose video captioning into
+five key dimensions critical to video reconstruc-
+tion, providing guidance for scalable caption
+generation. 2) We propose a benchmark with
+1,000 human-verified QA pairs and an automated
+evaluation protocol tailored to T2V needs. 3)
+We demonstrate, through fine-tuning experiments,
+that improvements in caption content directly en-
+hance video generation quality, validating our cap-
+tion optimization strategy.
+
+2 VC4VG
+
+we propose VC4VG (Video Captioning for Video
+Generation), a comprehensive caption optimiza-
+tion strategy tailored for enhancing T2V train-
+ing. In this section, we first present caption infor-
+mation dimensions decomposed from the essen-
+tial requirements of T2V reconstruction, accom-
+panied by the development of LLaVA-Video-Gen,
+a captioner for large-scale video captioning in Sec-
+tion 2.1. We then introduce VC4VG-Bench, a
+novel benchmark specifically designed for video
+captioning from the text-to-video generation per-
+spective in Section 2.2.
+
+2.1 Caption Optimization
+
+High-quality video-caption pairs are essential for
+effective T2V training. We hypothesize that rich
+and accurate coverage across key dimensions in
+captions directly enhances video generation per-
+formance. To validate this, we systematically de-
+compose video captioning into five critical dimen-
+sions ensuring comprehensive yet flexible cover-
+age of essential content. This decomposition is
+grounded in a systematic analysis of the funda-
+mental requirements of T2V generation, drawing
+inspiration from practices used by professional
+video creators. These dimensions include:
+
+¢ Camera Parameter Specification: Camera pa-
+rameters capture the perspective from which the
+content is viewed which shapes narrative fram-
+ing and viewer engagement. They critically gov-
+ern text-to-video generation through three key
+dimensions: (1) shot size defining subject scale
+relative to the frame, (2) camera angles speci-
+fying viewpoint orientation, and (3) movement
+patterns describing dynamic transitions inferred
+by analyzing scene context and static reference
+objects. Special techniques like slow motion
+or macro shots are explicitly annotated as shot
+technology modifiers.
+
+Subject Attributes: A clearly defined subject
+serves as the semantic core of the scene and is
+essential for T2V models to generate meaning-
+ful, instruction-aligned content. We define sub-
+jects as the primary objects in a video, character-
+ized by two key visual aspects: 1) basic proper-
+ties such as quantity, appearance, clothing, and
+accessories; 2) spatial relationships among sub-
+jects, including their positions and interactions.
+Motion Dynamics: Motion is the defining fea-
+ture of video compared to static images and
+
+its accurate modeling is essential for achieving
+temporal coherence. We define motion dynam-
+ics through three core elements: (1) Gradual en-
+vironmental changes over time, (2) Sequential
+actions broken down into detailed limb move-
+ments, and (3) Movement paths showing direc-
+tion and position changes when subjects travel
+through scenes.
+
+Environmental Contexts: The environment de-
+fines the spatial and visual setting in which the
+subject appears, directly influencing lighting,
+composition, and physical interactions. This
+dimension is fundamental to building a believ-
+able world. We set environment descriptions en-
+compass: (1) Spatiotemporal attributes (lighting
+conditions, weather, time-of-day), (2) Geospa-
+tial layout with object placements, and all ele-
+ments are grounded in visually observable evi-
+dence without subjective interpretation.
+Stylization Guidelines: This dimension deter-
+mines the final artistic rendering, influencing the
+overall appearance to meet user-specific stylis-
+tic preferences. We summarize high level vi-
+sual aspects through: (1) Emotional ambiance
+conveyed via color grading and motion patterns,
+(2) Stylistic descriptors (e.g., anime, cyberpunk)
+governing rendering pipelines. These are de-
+rived from low-level visual cues rather than ex-
+ternal semantic knowledge.
+
+2.1.1 LLaVA-Video-Gen:A Proof-of-Concept
+
+While powerful, existing MLLMs like LLaVA-
+Video-7B (Zhang et al., 2024) lack explicit opti-
+mization for generating the complex, instruction-
+driven descriptions required for high-quality T2V
+training. To reduce this gap and validate our
+framework, we introduce LLaVA-Video-Gen, a
+7B-parameter expert captioner as a_proof-of-
+concept for our framework. This model is devel-
+oped by distilling Gemini 1.5 Pro (Team et al.,
+2024), into the more efficient LLaVA-Video-7B
+architecture. Our data curation and fine-tuning
+pipeline consists of two complementary stages.
+General-Purpose Captioning Data Curation.
+First, to enhance the foundational capability to
+follow complex instructions for diverse visual
+concepts, we curate a high-quality dataset from
+WebVid-10M (Bain et al., 2021). Our multi-
+step filtering process is designed to maximize data
+quality and diversity. We initially select videos
+with durations between 5 and 15 seconds to en-
+sure sufficient content richness while aligning with
+
+typical T2V generation lengths. To foster con-
+tent diversity, we employ Qwen2VL (Wang et al.,
+2024b) to extract content tags (e.g., subject, en-
+vironment) for balanced sampling across different
+concepts. A subsequent data cleaning pipeline (in
+Appendix A) further filters this subset based on
+aesthetic quality and motion intensity, resulting in
+200K high-quality videos. Crucially, we discard
+the original, often noisy WebVid captions and use
+Gemini 1.5 Pro to generate entirely new, detailed
+descriptions, ensuring high linguistic consistency
+and semantic depth.
+
+Temporal Reasoning Enhancement.  Sec-
+ond, to specifically enhance the model’s tem-
+poral reasoning—a known weakness in many
+MLLMs—we incorporate the RTime dataset (Du
+et al., 2024). RTime contains 21K videos featur-
+ing distinct forward and reversed semantics (e.g.,
+"opening a door" vs. "closing a door"), each
+paired with manually verified short captions. We
+leverage these concise, high-confidence captions
+as contextual prompts to guide Gemini 1.5 Pro in
+generating long-form, temporally-aware descrip-
+tions. The resulting data, structured as (video,
+forward_caption, reversed_caption) triples, is nat-
+urally suited for Direct Preference Optimization
+(DPO) (Rafailov et al., 2023).
+
+Fine-tuning. Using the comprehensive col-
+lection of generated captions, we fine-tune the
+LLaVA-Video-7B model using Low-Rank Adap-
+tation (LoRA) (Hu et al., 2022). For each video,
+we uniformly sample 32 frames for training. The
+DPO-based fine-tuning on the RTime data further
+sharpens the model’s ability to distinguish and
+describe temporal sequences, yielding our expert
+captioner, LLaVA-Video-Gen. Additional abla-
+tion studies are provided in Appendix C.1.
+
+2.2 VC4VG-Bench
+
+To quantitatively evaluate caption coverage accu-
+racy across critical video reconstruction dimen-
+sions and assess corresponding T2V generation
+improvements, we introduce VC4VG-Bench, an
+automated evaluation caption benchmark for T2V.
+
+2.2.1 Evaluation Dimensions and Videos
+
+Aligning with the characteristics of a detailed cap-
+tion necessary to generate high-quality video, our
+benchmark encompasses evaluations in five criti-
+cal dimensions of videos mentioned in Section 2.1.
+Therefore, in terms of video collection, rather than
+achieving diversity through disparate data sources,
+
+Dual-Reference Human Annotation Strategy
+
+Video
+Reference Te | Wallucinations ZAI
+_
+Fae w {kirecteeland/DetallediContent| and Detailed Content ranean el
+
+Genin [=)xz.
+
+QA Pairs by Evaluation Dimensions
+
+Subject
+Q: What does the man's hair look
+like in the video?
+A: Graying hair; Curly hair.
+
+Camera Info
+Q: What is the camera shot size
+in the video?
+A: Medium close-up.
+
+Environment
+
+Motion Q: What does the background
+
+Q: In chronological order, what
+direction is the man looking at the
+beginning of the video? How does
+his gaze shift later on?
+
+A: At the beginning, the man's
+gaze is directed to one side;
+Then, it shifts to the other side;
+Finally, he looks at the camera.
+
+look like in the video?
+A: Gray solid color
+background.
+
+Atmosphere&Style
+Q: What is the mood or tone of
+the video?
+A: Introspective.
+
+Figure 2: The core framework of evaluation QA-
+pairs, structured around five key assessment dimen-
+sions. Leveraging dual-reference (video content & tex-
+tual captions) enables multimodal alignment verifica-
+tion, effectively assisting human annotation to ensure
+accuracy and comprehensive coverage in evaluation
+QA-pairs.
+
+Evaluation Metrics
+
+Multigranularity QA
+
+@
+Q: /level-1] What is the elephant
+doing in the video?
+At —— water.
+
+0: eee 1] Is the elephant's trunk
+moving in the video?
+A: Yes.
+
+Multiple Scoring Points within
+
+Temporal-Info Processing
+
+Q: /level-2] In chronological order, Q: What actions does the elephant's
+what movements does the trunk exhibit after it is submerged
+elephant's trunk make in the video? in water in the video?
+A: [scoring point-1]At first, it is
+submerged in water;
+[scoring point-2]Then it bends
+towards its mouth to drink water.
+
+Q: What actions does the elephant
+perform in the video?
+
+Figure 3: Illustration of the multi-granularity evalu-
+ation QA-pair system specifically designed for video
+generation tasks. Featuring moderate information clus-
+tering in temporal processing, the hierarchical QA-pair
+architecture based on reconstruction-necessity incorpo-
+rates multiple scoring points to comprehensively assess
+caption quality in video generation tasks.
+
+we prioritize the diversity of videos across the five
+evaluation dimensions. The evaluation videos are
+curated from Pixabay’, chosen for their high aes-
+thetic quality and rich visual detail, with durations
+typically ranging from 5 to 20 seconds.
+
+“https ://pixabay.com/videos
+
+Boiverse Reference Answers & Isolation of Complex Info$=3
+
+Q: Which young people in the video have arm movements while dancing?
+What specific movements are they doing?
+
+A:
+
+The man wearing a hat/green jacket has arm movements;
+
+The man wearing a hat/green jacket raises both his arms;
+
+The third white man/light brown short-haired man also has arm movements;
+
+The third white man/light brown short-haired man raises one arm.
+
+Figure 4: Separating scoring metrics: (1) presence
+of arm movements and (2) movement specificity, to
+systematically isolate complex information evaluation.
+Concurrently, character-specific features (e.g., wearing
+hat, wearing green jacket) are leveraged to formulate
+diverse reference answers, and therefore enhance an-
+swer adaptability across diverse caption.
+
+2.2.2 Evaluation QA Design
+
+In terms of evaluation QA system design, We
+adopt a similar divide-and-conquer strategy by
+AuroraCap (Chai et al., 2024).
+
+Human Annotation Strategy Unlike Aurora-
+Cap (Chai et al., 2024)’s approach, which relies
+on manually refined ground-truth captions derived
+from LLM-generated outputs and fully automates
+QA generation using GPT-4 (OpenAI, 2023) with
+predefined prompts, our QA pairs are entirely
+human-annotated as shown in Figure 2. Anno-
+tators simultaneously reference both the original
+video content and Gemini-1.5-Pro (Team et al.,
+2024) generated captions—the latter of which may
+contain information omissions or hallucinations.
+This dual-reference methodology creates a com-
+plementary framework where human visual inter-
+pretation and multi-modal model understanding
+jointly establish a holistic and precise comprehen-
+sion of video content.
+
+We opt for manual QA annotation over manual
+caption refinement to ensure that our QA design
+incorporates diverse granularity and complexity
+levels to assess nuanced information reconstruc-
+tion. Directly generating QA pairs by LLMs ex-
+hibits the inherent reliability limitations.
+
+Temporal Information Processing In terms of
+question formulation, temporal information intro-
+duces significant complexity, particularly when
+considering sequences of actions (e.g., motion tra-
+jectories of subjects or camera operations) that in-
+
+volve chronological ordering, concurrent events,
+or causal relationships.
+
+We address this by clustering temporally corre-
+lated information (e.g., sequences of hand move-
+ments) for evaluation. This design is motivated
+by two primary considerations: First, aggregating
+multiple temporal elements into a single question
+(e.g., "What sequential actions did the subject per-
+form?") would substantially increase the difficulty
+of answer formulation and evaluation. Second, de-
+composing sequences into individual actions risks
+introducing conditional dependencies (e.g., "What
+occurred after Action 1?"), which becomes un-
+manageable if the caption omits or misrepresents
+prerequisite actions (e.g., Action 1).
+
+General QA Formulation To further enhance
+assessment robustness against variations in cap-
+tioner outputs (e.g., linguistic diversity, descrip-
+tive paradigms, accuracy, comprehensiveness, and
+granularity), we implement three general strate-
+gies as shown in Figure 3 and Figure 4:
+
+1) Multigranularity QA supplementation: In-
+corporating questions that assess both fine-grained
+details (e.g., enumerating specific hand move-
+ments) and high-level assertions (e.g., pres-
+ence/absence of hand actions);
+
+2) Isolation of complex information: Separat-
+ing challenging elements (e.g., left/right hand dis-
+tinctions) from broader contextual descriptions to
+avoid conflated evaluations;
+
+3) Diversified reference answers: Accommo-
+dating multiple valid descriptions for ambiguous
+entities (e.g., “the man on the left” vs. “the man
+wearing a black hat’) through semantically equiv-
+alent answer variants.
+
+2.2.3 Evaluation Metrics
+
+In the design of evaluation metrics, we allocate
+scores based on the informational density of each
+QA pair. For QA pairs containing substantial in-
+formation, we decompose answers into multiple
+scoring points to enable precise score distribution
+while reducing the complexity of automated eval-
+uation.
+
+Reconstruction-necessity-based Hierarchy. We
+stratify QA pairs into two levels according to their
+necessity for video reconstruction. This hierar-
+chy reflects our expectation that captions should
+prioritize accurate coverage of information criti-
+cal to video fidelity. Regarding the classification
+criteria for reconstruction-necessity-based hierar-
+
+Caption Model Environment Subject Motion Camera Atmosphere&style | Necessity-L1 Necessity-L2 | Total score
+Score/% Score/% Score/% Score/% Score/% Score/% Score/% Score/%
+ShareCaptioner-Video-7B (Chen et al., 2025a) 196/43.5 103/22.3, 85/25.4 48/33.1 2/70.6 284/46.3 60/20.1 444/31.5
+Vriptor (Yang et al., 2024a) 208/46.1 126/27.3 60/17.9 31/21.4 6/94.1 303/49.3 38/17.3 441/31.3
+VideoLLaMA3-7B (Zhang et al., 2025) 119/26.4 106/22.9 88/26.3. 17/11.7 4/82.4 232/37.8 12/14.1 344/24.4
+Qwen2VL-7B (Wang et al., 2024b) 179/39.7 134/29 = 98/29.3,_23/15.9 2/70.6 296/48.2 50/18.8 446/31.6
+CogVLM2-Caption (Yang et al., 2024b) 216/47.9 174/37.7 93/27.8 14/9.7 3/76.5 317/51.6 93/24.2 510/36.2
+LLaVA-Video-7B (Zhang et al., 2024) 287/63.6 211/45.7 110/32.8 = 28/19.3 5/88.2 367/59.8 284/35.7 651/46.2
+Gemini 1.5 Pro (Team et al., 2024) 278/61.6 255/55.2 119/35.5 44/30.3 17/100.0 374/60.9 339/42.6 713/50.6
+LLaVA-Video-Gen-7B (Ours) 304/67.4 256/55.4 154/46.0  74/51.0 6/94.1 459/74.8 345/43.3 804/57.0
+Gemini 1.5 Pro-MiraData (Ju et al., 2025) 335/74.3 287/62.1 163/48.7  77/53.1 6/94.1 471/76.7 407/51.1 878/62.3
+Gemini 1.5 Pro-VC4VG (Team et al., 2024) 372/82.5 328/71.0 170/50.7 85/58.6 17/100.0 513/83.6 459/57.7 972/68.9
+
+Table 1: Quantitative captioning evaluation results comparison between free-generated and content-constrained
+models. The best results of video captioning methods are marked in bold and the second-best are underlined. It
+is important to note that due to inherent differences of model and variations in prompt engineering strategies, the
+caption results do not reflect their absolute performance capabilities. For free-generated setting, models response
+using the uniform prompt "Please describe this video in detail”.
+
+Q: Where is the person in the video walking towards?
+A: Walking towards the sea in the background.
+
+[LLaVa-Video-Gen Caption]
+.. The person walks at a steady
+pace, passing the camera and
+continuing to walk towards the
+ocean...
+
+[Qwen2-VL Caption]
+
+.. The man appears to be walking
+slowly and is looking
+down at the sand as he walks. ...
+
+[LLaVA-Video Caption] ... The
+person continues to walk towards
+the camera, gradually getting
+closer with each step. ....
+
+[Gemini-1.5-Pro Caption] ... A
+barefoot person’s feet enter the
+frame from the bottom left,
+walking towards the ocean. ...
+
+Q: Which hand is the man holding the strawberry with in the video?
+A: His left hand
+
+[CogVLM-2 Caption)
+A bearded man... feeds a
+strawberry to a woman
+
+.. He holds a strawberry in his
+right hand and offers it to the
+
+TiLaVa-Video-Gen Caption]
+woman, «. |
+
+[VideottaMA3 Caption}
+... In the video, a man is seen
+feeding a woman a strawberry
+while they are ona
+couch. ...
+
+[Tarsier2 Caption}
+.. feeding a strawberry to a woman
+.. while he continues to
+hold the strawberry. ...
+
+Figure 5: ITllustration of representative examples of
+video caption performance on the benchmark, demon-
+strating variations in action descriptions.
+
+chy, information pertaining to high-level concepts
+and core structures is predominantly categorized
+as Level-1 necessity, while fine details are gener-
+ally assigned to Level-2 necessity. Concurrently,
+the dimension of information or its visual saliency
+level within the video context also impacts neces-
+sity classification. For instance, although both rep-
+resent fine details, the color of the dress of the
+subject female (as the visual focus) would be clas-
+sified as Level-1 necessity, whereas the color of
+background curtains (secondary visual elements)
+would typically fall under Level-2 necessity.
+
+2.2.4 Automated Evaluation Results
+
+We adopt the LLM-as-judge paradigm to imple-
+ment automated evaluation, leveraging GPT-40 for
+extracting target information from captions and
+determining whether predefined scoring criteria
+
+are adequately addressed. The pipeline achieved a
+consistency rate over 80% with human judgments,
+which demonstrates the reliability of our frame-
+work.
+
+As demonstrated in Table 1, under the free-
+generated setting, mainstream MLLMs and spe-
+cialized captioners exhibit significant performance
+variations on our benchmark. Gemini-1.5-Pro
+demonstrates relative advantages overall. How-
+ever, without explicit prompt guidance, it tends to
+generate concise and generalized captions that fre-
+quently omit details essential for video reconstruc-
+tion.
+
+CogVLM2-Caption (Yang et al., 2024b),
+ShareCaptioner-Video-7B (Chen et al., 2025a)
+and Vriptor (Yang et al., 2024a), despite being
+specialized captioning models, exhibit deficien-
+cies across multiple dimensions and therefore
+struggle to generate captions that effectively
+support text-to-video applications.
+
+Under the prompt engineering setting, we com-
+pared two data synthesis strategies for T2V tasks,
+MiraData (Ju et al., 2025) and our VC4VG, us-
+ing Gemini-1.5-Pro. Both approaches empha-
+size comprehensive descriptions across video di-
+mensions, where the former requires structured
+caption output while the latter imposes no for-
+mat restrictions. | Benchmark results demon-
+strate that Gemini-1.5-Pro-VC4VG achieves sig-
+nificantly higher scores than Gemini-1.5-Pro-
+MiraData, which in turn significantly outperforms
+Gemini-1.5-Pro under free-generated setting. This
+suggests that while MiraData’s synthesis strategy
+can effectively align with critical dimensions of
+T2V tasks, there remains room for improvement.
+
+Our captioning model trained on Gemini-
+1.5-Pro-VC4VG data demonstrates competitive
+
+performance on the benchmark. Compared
+to Gemini-1.5-Pro under free-generated setting,
+it shows significant improvements at the pri-
+mary necessity-level, approaching the perfor-
+mance level of Gemini-1.5-Pro-MiraData. This in-
+dicates that the captions generated by our model
+can accurately and comprehensively describe the
+highly essential information across various dimen-
+sions required for video reconstruction.
+
+3 T2V Generation Experiments
+
+In this section, we present experimental results
+and analysis of applying different captioning
+methods to CogVideoX-5B (Yang et al., 2024b)
+T2V model training. Section 3.1 details our train-
+ing preparation including video sources, caption-
+ing methodologies, and parameter configurations.
+We subsequently demonstrate the effectiveness of
+video-caption pairs generated by different caption-
+ing models for T2V model training in Section 3.2.
+
+3.1 Experimental Settings
+
+Video Source and Preprocessing: We curated ap-
+proximately 72K videos from OpenVid-1M (Nan
+et al., 2024) through rigorous filtering based on
+aesthetic quality and temporal consistency. To
+mitigate aspect ratio distortion caused by res-
+olution mismatches during training, we imple-
+ment adaptive resizing and cropping based on
+each video’s original aspect ratio. Given that
+CogVideoX-5B generates 6-second videos with 49
+frames at 8 frames per second (fps), we tempo-
+rally segment all source videos into 6-second clips
+through random sampling to ensure motion con-
+sistency. This refined dataset serves as our pri-
+mary video source for validating different caption-
+ing methodologies.
+
+Captioning Methods: Consistent with the cap-
+tioning guidelines in Table 1, we employ the
+following models for video caption generation:
+(1)CogVLM2-Caption (Yang et al., 2024b) is
+adopted during the training of Cog VideoX to con-
+vert video data into textual descriptions. This
+alignment tends to ensure consistency between
+the fine-tuning phase and CogVideoX’s training
+paradigm. (2)LLaVA-Video-7B (Zhang et al.,
+2024) extends the LLaVA-Onevision (Li et al.,
+2024) through fine-tuning on the LLaVA-Video-
+178K which containing detailed caption annota-
+tions, enabling the generation of comprehensive
+and fine-grained video descriptions. (3)LLaVA-
+
+Video-Gen represents our expert captioner model
+introduced in Section 2.1, which is distilled from
+Gemini 1.5 Pro with prompt enhanced on dimen-
+sions mentioned in Sec 2.1.
+
+T2V Model Setting: We conduct full-parameter
+fine-tuning of CogVideoX-5B, a widely adopted
+open-source DiT-based T2V generation model, us-
+ing the original training configuration: 49-frame
+sampling, 720x480 resolution, learning rate of 2e-
+5, and 64xNVIDIA H20 GPUs for 5 epochs. Dur-
+ing inference, we maintain identical resolution and
+frame count as in training, configured with 8 fps
+to generate approximately 6-second videos. The
+CogVideoXDPMScheduler (Lu et al., 2022a,b) is
+employed with 50 steps and guidance of scale 6
+throughout inference phases.
+
+3.2 Experimental Results Comparison
+
+3.2.1 Automatic Quantitative Evaluation
+
+Automatic Metrics. We employ several metrics
+in VBench (Huang et al., 2024a), a widely adopted
+benchmark for automated evaluation of T2V gen-
+eration quality, to assess models trained with dif-
+ferent captioning methods. Given that our train-
+ing utilizes extended captions containing richer
+visual details and motion descriptions, we adopt
+the official GPT-enhanced prompts from VBench
+repository for generation. As shown in Table 2,
+LLaVA-Video-Gen demonstrates superior overall
+performance in most of the metrics, especially
+for semantic understanding such as multiple ob-
+jects, spatial relationship and scene. The per-
+formance ranking aligns with our VC4VG-Bench
+scores from Table 1, validating our benchmark’s
+effectiveness for evaluating training captions.
+
+3.2.2 Human-annotated GSB Quantitative
+Evaluation
+
+To enable fine-grained evaluation of T2V gen-
+eration fidelity, we curate 200 samples from
+MovieGenBench (Polyak et al., 2024). Us-
+ing Gemini-1.5-Pro, we generate Miradata-
+style prompts with MovieGen-produced videos
+as reference, then reconstruct videos through
+each T2V model. Three domain experts
+perform blind assessments comparing LLaVA-
+Video-Gen against its closest-performing counter-
+parts (LLaVA-Video-7B and CogVLM-Caption)
+through side-by-side evaluation using GSB (Good,
+Same, Bad) scoring criteria across five reconstruc-
+tion dimensions.
+
+Subject |Background| Temporal Motion |Dynamic] Aesthetic Imaging | Object
+
+Captioning Models Consistency | Consistency | Flickering | Smoothness} Degree Quality Quality Class
+CogVideoX-5B 92.93% 94.41% 97.95% 97.76% | 68.06% | 61.93% 61.26% | 82.20%
++CogVLM2-Caption 93.60% 95.31% 95.45% 98.73% 58.33% | 63.43% 64.02% | 88.37%
++LLaVA-Video-7B 93.59% 95.12% 98.53% 98.79% | 59.72% | 64.00% 63.47% | 87.74%
++LLaVA-Video-Gen(Ours) 94.25% 95.58% 98.20% 98.56% 59.72% | 65.16% 65.95% | 90.98%
+Lo. Multiple Spatial Temporal | Appearance} Overall Total
+Captioning Models Objects Color Relationship Scene Style Style Consistency | Score
+CogVideoX-5B 57.62% 78.63% 60.66% 51.67% 24.95% | 23.99% 27.07% | 79.97%
++CogVLM2-Caption 63.33% 79.58% 73.45% 56.32% 25.60% | 24.68% 27.55% | 81.54%
++LLaVA-Video-7B 70.88% 85.21% 71.37% 53.85% | 25.78% | 24.16% 27.59% | 81.79%
+
++LLaVA-Video-Gen(Ours) 77.90% 75.84% 75.65 % 59.88% 25.64% 24.56% 27.70% | 82.50%
+
+Table 2: Quantitative VBench evaluation results comparison between T2V models trained with captions generated
+by different models. We use all dimension gpt enhanced prompts in vbench and sample once for each prompt. The
+best results of video captioning methods are marked in bold.
+
+Captioning Model Environment Subject Motion Camera Atmosphere&style Overall
+puoning s G/S/B/% G/S/B/% G/S/B/% — G/S/B/% G/S/B/% G/S/B/%
+LLaVA-Video-Gen - - - - - -
+-vs LLaVA-Video-7B_ | 26.5/72/1.5 50/44/6 —-23.5/68.5/8 _ 0.5/98.5/1 1/99/0 61/28.5/10.5
+-vs CogVLM2-Caption | 16/82.5/1.5  28.5/62.5/9  23.5/68.5/8 _1/97.5/1.5 0/99.5/0.5 37.5/51/11.5
+
+Table 3: Quantitative human-annotated evaluation results. The evaluation compares the performance of LLaVA-
+Video-Gen, against two baseline models: LLaVA-Video-7B and CogVLM2-Caption. Human annotators assessed
+video outputs from these models based on 200 samples from the MovieGenBench dataset, which are annotated
+with prompts in miradata-style (Ju et al., 2025) For each comparison, evaluators rated whether LLaVA-Video-
+Gen’s output was Good (G), Same (S), or Bad (B) relative to the baseline across several criteria. The scores
+are presented as G:S:B percentages, indicating the proportion of times LLaVA-Video-Gen is judged superior,
+equivalent, or inferior to the respective baseline for each dimension.
+
+MovieGen Ground Truth
+
+Our findings in Table 3 reveal three key in-
+sights: (1) Information gains in Environment, Sub-
+ject, and Motion dimensions directly correlate
+with T2V generation improvements; (2) Compara-
+ble performance on Atmosphere attributes across
+models aligns with VC4VG-Bench’s lower task
+difficulty for this dimension; (3) For Camera prop-
+erties, while models effectively control shot size
+and angles, movement patterns prove challeng-
+ing due to MLLMs’ limited capability in under-
+standing fine-grained temporal dynamics - a lim-
+itation exacerbated by MovieGenBench’s sparse
+coverage of complex camera motions. Collec-
+tively, these empirical results validate that our
+dimension-aware optimization strategy effectively
+guides T2V training data curation.
+
+3.2.3 Qualitative Evaluation Figure 6: Qualitative evaluation of different T2V mod-
+We choose samples for Figure 6 and Figure 7 to vi- _ els’ reconstruction performance. Please zoom in for a
+
+sualize representative cases. The T2V model fine- _ better view.
+tuned on captions generated by different models
+
+demonstrates T2V improvements in scene detail
+
+preservation and instruction adherence compared
+
+to the raw Cog VideoX-5B.
+
+4 Related Works
+
+Video-Text Dataset. High-quality T2V models
+require video-text datasets with scene details and
+instruction alignment for effective training. Ex-
+isting datasets primarily fall into three categories:
+human-annotated (Xu et al., 2016; Du et al.,
+2024; Wang et al., 2019; Anne Hendricks et al.,
+2017), metadata-derived captions from video plat-
+forms (Bain et al., 2021), and automatically gen-
+erated captions (Miech et al., 2019; Chen et al.,
+2024; Wang et al., 2023; Yang et al., 2024a; Nan
+et al., 2024; Ju et al., 2025). Traditional automa-
+tion methods like ASR transcription (Miech et al.,
+2019; Xue et al., 2022) achieve scale but exhibit
+weak video-text semantic alignment, making them
+suboptimal for generative tasks.
+
+Modern multimodal LLMs (MLLMs) demon-
+strate enhanced visual description capabilities,
+driving their adoption in T2V training corpus gen-
+eration (Chen et al., 2024; Wang et al., 2023; Nan
+et al., 2024; Zheng et al., 2024; Hong et al., 2022;
+Yang et al., 2024b; Kong et al., 2024; Polyak et al.,
+2024; Ju et al., 2025; Chen et al., 2025a; Yang
+et al., 2024a). Datasets like Panda-70M (Chen
+et al., 2024) and Intern Vid (Wang et al., 2023) only
+produce short captions. Current solutions priori-
+tize fine-grained dense video descriptions through
+MLLM-based approaches: OpenSora (Zheng
+et al., 2024) leverages PLLaVA (Xu et al., 2024),
+CogVideoX (Yang et al., 2024b; Hong et al., 2022)
+employs its proprietary Cog VLM2-Cap, OpenVid
+utilizes LLaVA-1.6 (Liu et al., 2024), and Mira-
+Data (Ju et al., 2025) adopts cost-intensive GPT-
+4V (Zhang et al., 2023) annotations. Most meth-
+ods adopt approaches without specialized frame-
+works for optimizing video generation elements.
+InstanceCap (Fan et al., 2024) generates dense
+structural captions through a complex pipeline
+and suffers from significant efficiency bottlenecks
+compared to end-to-end generation methods, ulti-
+mately limiting its scalability.
+
+Evaluation of Video Captioning. As the ca-
+pabilities of video captioning have advanced,
+the associated benchmarks have evolved from
+traditional short-caption evaluation(e.g., MSR-
+VTT (Ku et al., 2016), VATEX (Wang et al.,
+2019)) and metrics(e.g., METEOR (Banerjee and
+Lavie, 2005) CIDEr (Vedantam et al., 2015),
+BLEU (Papineni et al., 2002), ROUGE-L (Lin,
+2004)), to address long-form captioning chal-
+lenges. Notably, AuroraCap (Chai et al., 2024)
+
+introduced VDC (Chai et al., 2024), along with
+an LLM-based evaluation metric VDCScore, over-
+coming limitations of direct caption assessment
+through LLMs. Dream-1K (Wang et al., 2024a)
+and CaReBench (Xu et al., 2025) focus more
+extensively on human-annotated video captions
+and tailored evaluation methods. However, these
+benchmarks are primarily designed for video cap-
+tioning in the context of video understanding
+rather than video generation. Although VidCap-
+Bench (Chen et al., 2025b) aligns its evaluation
+design with the key metrics for T2V generation, its
+training-free T2V verification mechanism inade-
+quately demonstrates that models performing well
+on this benchmark can effectively serve as train-
+ing data for high-quality T2V generation. In this
+paper, we propose a novel benchmark specifically
+designed for T2V tasks and empirically validate its
+consistency with actual generation quality through
+real-world T2V training experiments.
+
+5 Conclusion
+
+In this paper, we present VC4VG, a comprehen-
+sive video caption optimization framework de-
+signed for T2V models. Our framework systemat-
+ically decomposes video captioning into five key
+dimensions that are critical for video reconstruc-
+tion, thereby providing practical guidance for scal-
+able caption generation. Building on this decom-
+position, we further introduce VC4VG-Bench,
+a specialized benchmark that emphasizes multi-
+dimensional video descriptions tailored to T2V
+generation scenarios. Through fine-tuning experi-
+ments, we demonstrate a clear correlation between
+enhanced caption quality and improved video gen-
+eration performance, validating the effectiveness
+of our approach. We hope that our framework
+will support the community in developing higher-
+quality video captions for T2V models and, ulti-
+mately, more powerful video generation systems.
+
+Limitations
+
+Our VC4VG-Bench automates the evaluation of
+open-ended video captioning. While demonstrat-
+ing high correlation with human judgment, sub-
+tle biases may still exist. Furthermore, perfor-
+mance can fluctuate due to varying model configu-
+rations, including different video processing tech-
+niques and prompt engineering strategies. Conse-
+quently, the reported metrics primarily reflect cap-
+tion quality under specific experimental settings,
+
+rather than the fundamental performance differ-
+ences between the models.
+
+Ethical Considerations
+
+Regarding ethical considerations, it is important to
+acknowledge that Text-to-Video models may gen-
+erate biased or harmful content. Such outputs can
+potentially perpetuate stereotypes or disseminate
+misinformation. We emphasize the critical need
+for responsible model application. Developers are
+encouraged to implement robust safeguards to mit-
+igate these risks.
+
+Acknowledgments
+
+This work was sponsored by CCF-ALIMAMA
+TECH Kangaroo Fund (NO. CCF-ALIMAMA OF
+2024007).
+
+References
+
+Lisa Anne Hendricks, Oliver Wang, Eli Shechtman,
+Josef Sivic, Trevor Darrell, and Bryan Russell. 2017.
+Localizing moments in video with natural language.
+In Proceedings of the IEEE international conference
+on computer vision, pages 5803-5812.
+
+Max Bain, Arsha Nagrani, Giil Varol, and Andrew Zis-
+serman. 2021. Frozen in time: A joint video and
+image encoder for end-to-end retrieval. In [EEE In-
+ternational Conference on Computer Vision.
+
+Satanjeev Banerjee and Alon Lavie. 2005. Meteor: An
+automatic metric for mt evaluation with improved
+correlation with human judgments. In Proceedings
+of the acl workshop on intrinsic and extrinsic evalu-
+ation measures for machine translation and/or sum-
+marization, pages 65-72.
+
+Wenhao Chai, Enxin Song, Yilun Du, Chenlin Meng,
+Vashisht Madhavan, Omer Bar-Tal, Jeng-Neng
+Hwang, Saining Xie, and Christopher D. Manning.
+2024. Auroracap: Efficient, performant video de-
+tailed captioning and a new benchmark. arXiv
+preprint arXiv:2410.03051.
+
+Lin Chen, Xilin Wei, Jinsong Li, Xiaoyi Dong,
+Pan Zhang, Yuhang Zang, Zehui Chen, Haodong
+Duan, Zhenyu Tang, Li Yuan, and 1 others. 2025a.
+Sharegpt4video: Improving video understanding
+and generation with better captions. Advances in
+Neural Information Processing Systems, 37:19472-
+19495.
+
+Tsai-Shien Chen, Aliaksandr Siarohin, Willi Mena-
+pace, Ekaterina Deyneka, MHsiang-wei Chao,
+Byung Eun Jeon, Yuwei Fang, Hsin-Ying Lee,
+Jian Ren, Ming-Hsuan Yang, and Sergey Tulyakov.
+2024. Panda-70m: Captioning 70m videos with
+multiple cross-modality teachers. In Proceedings of
+
+the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition.
+
+Xinlong Chen, Yuanxing Zhang, Chongling Rao,
+Yushuo Guan, Jiaheng Liu, Fuzheng Zhang, Chen-
+gru Song, Qiang Liu, Di Zhang, and Tieniu Tan.
+2025b. Vidcapbench: A comprehensive benchmark
+of video captioning for controllable text-to-video
+generation. arXiv preprint arXiv:2502.12782.
+
+Yang Du, Yuqi Liu, and Qin Jin. 2024. Reversed in
+time: A novel temporal-emphasized benchmark for
+cross-modal video-text retrieval. In Proceedings of
+the 32th ACM International Conference on Multime-
+dia, page 5260-5269.
+
+Tiehan Fan, Kepan Nan, Rui Xie, Penghao Zhou, Zhen-
+heng Yang, Chaoyou Fu, Xiang Li, Jian Yang, and
+Ying Tai. 2024. Instancecap: Improving text-to-
+video generation via instance-aware structured cap-
+tion. Preprint, arXiv:2412.09283.
+
+Wenyi Hong, Ming Ding, Wendi Zheng, Xinghan Liu,
+and Jie Tang. 2022. Cogvideo: Large-scale pre-
+training for text-to-video generation via transform-
+ers. arXiv preprint arXiv:2205.15868.
+
+Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan
+Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang,
+Weizhu Chen, and 1 others. 2022. Lora: Low-rank
+adaptation of large language models. JCLR, 1(2):3.
+
+Ziqi Huang, Yinan He, Jiashuo Yu, Fan Zhang,
+Chenyang Si, Yuming Jiang, Yuanhan Zhang, Tianx-
+ing Wu, Qingyang Jin, Nattapol Chanpaisit, Yao-
+hui Wang, Xinyuan Chen, Limin Wang, Dahua Lin,
+Yu Qiao, and Ziwei Liu. 2024a. VBench: Compre-
+hensive benchmark suite for video generative mod-
+els. In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition.
+
+Ziqi Huang, Fan Zhang, Xiaojie Xu, Yinan He,
+Jiashuo Yu, Ziyue Dong, Qianli Ma, Nattapol
+Chanpaisit, Chenyang Si, Yuming Jiang, Yaohui
+Wang, Xinyuan Chen, Ying-Cong Chen, Limin
+Wang, Dahua Lin, Yu Qiao, and Ziwei Liu. 2024b.
+Vbench++: Comprehensive and versatile bench-
+mark suite for video generative models. arXiv
+preprint arXiv:2411.13503.
+
+Xuan Ju, Yiming Gao, Zhaoyang Zhang, Ziyang Yuan,
+Xintao Wang, Ailing Zeng, Yu Xiong, Qiang Xu,
+and Ying Shan. 2025. Miradata: A _ large-scale
+video dataset with long durations and structured cap-
+tions. Advances in Neural Information Processing
+
+Systems, 37:48955-48970.
+
+Weijie Kong, Qi Tian, Zijian Zhang, Rox Min,
+Zuozhuo Dai, Jin Zhou, Jiangfeng Xiong, Xin Li,
+Bo Wu, Jianwei Zhang, Kathrina Wu, Qin Lin,
+Aladdin Wang, Andong Wang, Changlin Li, Duo-
+jun Huang, Fang Yang, Hao Tan, Hongmei Wang,
+and 34 others. 2024. Hunyuanvideo: A systematic
+framework for large video generative models.
+
+Kuaishou. 2024. Kling. https://kling.kuaishou.
+com.
+
+Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang,
+Feng Li, Hao Zhang, Kaichen Zhang, Yanwei
+Li, Ziwei Liu, and Chunyuan Li. 2024.  Llava-
+onevision: Easy visual task transfer. arXiv preprint
+arXiv:2408.03326.
+
+Chin-Yew Lin. 2004. Rouge: A package for auto-
+matic evaluation of summaries. In Text summariza-
+tion branches out, pages 74-81.
+
+Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan
+Zhang, Sheng Shen, and Yong Jae Lee. 2024. Llava-
+next: Improved reasoning, ocr, and world knowl-
+edge.
+
+Cheng Lu, Yuhao Zhou, Fan Bao, Jianfei Chen,
+Chongxuan Li, and Jun Zhu. 2022a. Dpm-solver:
+A fast ode solver for diffusion probabilistic model
+sampling in around 10 steps. Advances in Neural
+Information Processing Systems, 35:5775—5787.
+
+Cheng Lu, Yuhao Zhou, Fan Bao, Jianfei Chen,
+Chongxuan Li, and Jun Zhu. 2022b. Dpm-solver++:
+Fast solver for guided sampling of diffusion proba-
+bilistic models. arXiv preprint arXiv:2211.01095.
+
+Antoine Miech, Dimitri Zhukov, Jean-Baptiste
+Alayrac, Makarand Tapaswi, Ivan Laptev, and Josef
+Sivic. 2019. HowTo1l00M: Learning a Text-Video
+Embedding by Watching Hundred Million Narrated
+Video Clips. In ICCV.
+
+Kepan Nan, Rui Xie, Penghao Zhou, Tiehan Fan, Zhen-
+heng Yang, Zhijie Chen, Xiang Li, Jian Yang, and
+Ying Tai. 2024. Openvid-1m: A large-scale high-
+quality dataset for text-to-video generation. arXiv
+preprint arXiv:2407.02371. Accepted at the 13th In-
+ternational Conference on Learning Representations
+(ICLR 2025).
+
+OpenAL. 2023. GPT-4 technical report. arXiv preprint
+arXiv:2303.08774.
+
+OpenAL. 2024. Sora: Generating videos from text.
+https: //openai.com/blog/sora.
+
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-
+Jing Zhu. 2002. Bleu: a method for automatic eval-
+uation of machine translation. In Proceedings of the
+40th annual meeting of the Association for Compu-
+tational Linguistics, pages 311-318.
+
+Adam Polyak, Amit Zohar, Andrew Brown, Andros
+Tjandra, Animesh Sinha, Ann Lee, Apoorv Vyas,
+Bowen Shi, Chih-Yao Ma, Ching-Yao Chuang,
+David Yan, Dhruv Choudhary, Dingkang Wang,
+Geet Sethi, Guan Pang, Haoyu Ma, Ishan Misra,
+Ji Hou, Jialiang Wang, and 69 others. 2024. Movie
+gen: A cast of media foundation models. Preprint,
+arXiv:2410.13720.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Christo-
+pher D Manning, Stefano Ermon, and Chelsea Finn.
+2023. Direct preference optimization: Your lan-
+guage model is secretly a reward model. Ad-
+vances in neural information processing systems,
+
+36:53728-53741.
+
+Gemini Team, Petko Georgiev, Ving Ian Lei, Ryan
+Burnell, Libin Bai, Anmol Gulati, Garrett Tanzer,
+Damien Vincent, Zhufeng Pan, Shibo Wang, and 1
+others. 2024. Gemini 1.5: Unlocking multimodal
+understanding across millions of tokens of context.
+arXiv preprint arXiv:2403.05530.
+
+Zachary Teed and Jia Deng. 2020. Raft: Recurrent
+all-pairs field transforms for optical flow. In Com-
+puter Vision—ECCV 2020: 16th European Confer-
+ence, Glasgow, UK, August 23-28, 2020, Proceed-
+ings, Part IT 16, pages 402-419. Springer.
+
+Ramakrishna Vedantam, C Lawrence Zitnick, and Devi
+Parikh. 2015. Cider: Consensus-based image de-
+scription evaluation. In Proceedings of the IEEE
+conference on computer vision and pattern recog-
+nition, pages 4566—4575.
+
+Jiawei Wang, Liping Yuan, Yuchen Zhang, and Hao-
+miao Sun. 2024a. Tarsier: Recipes for training and
+evaluating large video description models. Preprint,
+arXiv:2407.00634.
+
+Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhi-
+hao Fan, Jinze Bai, Keqin Chen, Xuejing Liu,
+Jialin Wang, Wenbin Ge, Yang Fan, Kai Dang,
+Mengfei Du, Xuancheng Ren, Rui Men, Dayi-
+heng Liu, Chang Zhou, Jingren Zhou, and Junyang
+Lin. 2024b. Qwen2-vl: Enhancing vision-language
+model’s perception of the world at any resolution.
+arXiv preprint arXiv:2409.12191.
+
+Xin Wang, Jiawei Wu, Junkun Chen, Lei Li, Yuan-
+Fang Wang, and William Yang Wang. 2019. Vatex:
+A large-scale, high-quality multilingual dataset for
+video-and-language research. In Proceedings of the
+IEEE/CVF international conference on computer vi-
+sion, pages 4581-4591.
+
+Yi Wang, Yinan He, Yizhuo Li, Kunchang Li, Jiashuo
+Yu, Xin Ma, Xinhao Li, Guo Chen, Xinyuan Chen,
+Yaohui Wang, and | others. 2023. Internvid: A
+large-scale video-text dataset for multimodal under-
+standing and generation. In The Twelfth Interna-
+tional Conference on Learning Representations.
+
+Haoning Wu, Erli Zhang, Liang Liao, Chaofeng Chen,
+Jingwen Hou Hou, Annan Wang, Wenxiu Sun Sun,
+Qiong Yan, and Weisi Lin. 2023. Exploring video
+quality assessment on user generated contents from
+aesthetic and technical perspectives. In Interna-
+tional Conference on Computer Vision (ICCV).
+
+Jun Xu, Tao Mei, Ting Yao, and Yong Rui. 2016. Msr-
+vtt: A large video description dataset for bridging
+video and language. In Proceedings of the IEEE
+conference on computer vision and pattern recog-
+
+nition, pages 5288-5296.
+
+Lin Xu, Yilin Zhao, Daquan Zhou, Zhijie Lin,
+See Kiong Ng, and Jiashi Feng. 2024.  Pllava:
+Parameter-free llava extension from images to
+videos for video dense captioning. arXiv preprint
+arXiv:2404. 16994.
+
+Yifan Xu, Xinhao Li, Yichun Yang, Desen Meng, Rui
+Huang, and Limin Wang. 2025. Carebench: A
+fine-grained benchmark for video captioning and re-
+trieval. Preprint, arXiv:2501.00513.
+
+Hongwei Xue, Tiankai Hang, Yanhong Zeng, Yuchong
+Sun, Bei Liu, Huan Yang, Jianlong Fu, and Bain-
+ing Guo. 2022. Advancing high-resolution video-
+language representation with large-scale video tran-
+scriptions. In International Conference on Com-
+puter Vision and Pattern Recognition (CVPR).
+
+Dongjie Yang, Suyuan Huang, Chengqiang Lu, Xi-
+aodong Han, Haoxin Zhang, Yan Gao, Yao Hu, and
+Hai Zhao. 2024a. Vript: A video is worth thousands
+of words. Advances in Neural Information Process-
+ing Systems, 37:57240-57261.
+
+Zhuoyi Yang, Jiayan Teng, Wendi Zheng, Ming Ding,
+Shiyu Huang, Jiazheng Xu, Yuanming Yang, Wenyi
+Hong, Xiaohan Zhang, Guanyu Feng, and | oth-
+ers. 2024b. Cogvideox: Text-to-video diffusion
+models with an expert transformer. arXiv preprint
+arXiv:2408.06072.
+
+Bogiang Zhang, Kehan Li, Zesen Cheng, Zhiqiang Hu,
+Yuqian Yuan, Guanzheng Chen, Sicong Leng, Yum-
+ing Jiang, Hang Zhang, Xin Li, Peng Jin, Wenqi
+Zhang, Fan Wang, Lidong Bing, and Deli Zhao.
+2025. Videollama 3: Frontier multimodal foun-
+dation models for image and video understanding.
+arXiv preprint arXiv:2501.13106.
+
+Xinlu Zhang, Yujie Lu, Weizhi Wang, An Yan,
+Jun Yan, Lianke Qin, Heng Wang, Xifeng Yan,
+William Yang Wang, and Linda Ruth Petzold. 2023.
+Gpt-4v(ision) as a generalist evaluator for vision-
+language tasks. Preprint, arXiv:2311.01361.
+
+Yuanhan Zhang, Jinming Wu, Wei Li, Bo Li, Zejun
+Ma, Ziwei Liu, and Chunyuan Li. 2024. Video in-
+struction tuning with synthetic data. arXiv preprint
+arXiv:2410.02713.
+
+Zangwei Zheng, Xiangyu Peng, Tianji Yang, Chen-
+hui Shen, Shenggui Li, Hongxin Liu, Yukun Zhou,
+Tianyi Li, and Yang You. 2024. Open-sora: Democ-
+ratizing efficient video production for all.
+
+A. Video Filtering Details
+
+We implemented a proprietary data cleaning
+pipeline to rigorously process the OpenVid-
+1M (Nan et al., 2024) dataset, ultimately curating
+72K high-quality videos. The pipeline integrates
+the following critical components:
+
+Satistics QA Pair Scoring Point Avg Point/Pair
+
+Subject 293 462 1.6
+Environment 306 450 1.5
+Atmosphere&Style 17 17 1.0
+Motion 208 335 1.6
+Camera Info 132 145 1.1
+
+Necessity-L1 / 614 /
+
+Necessity-L2 / 796 /
+Total 956 1410 1.5
+
+Table 4: VC4VG-Bench Statistics.
+
+¢ Text Overlay Detection: Detects excessive
+subtitles or text overlays in videos, filtering
+out frames with significant content obstruc-
+tion.
+
+¢ Aesthetic Score and DOVER++ (Wu et al.,
+2023): Evaluates visual quality by sampling
+multiple frames per video clip, applying the
+DOVER++ assesses overall video quality,
+considering technical and aesthetic factors, to
+discard low-quality videos.
+
+¢ Video Classification & Frame-level Filter-
+ing: we developed a classification model
+to detect low-quality content categories, in-
+cluding frosted-border videos and PPT-style
+slideshows. We filter videos with transitional
+effects (e.g., fade-in/fade-out) through per-
+frame analysis to ensure content consistency.
+
+¢ Optical Flow-based Motion Intensity Resam-
+pling: Utilizes the RAFT (Teed and Deng,
+2020) model to compute optical flow from
+video frames, quantifying motion intensity
+distribution to guide training data resam-
+
+pling.
+
+B VC4VG-Bench Details
+
+B.1 Statistics
+
+We show the statistics of VC4VG-Bench in Ta-
+ble 4. As illustrated, the distribution of QA pairs
+across different dimensions is intentionally non-
+uniform. This design choice reflects the relative
+importance and information richness of each di-
+mension in the context of text-to-video generation.
+
+Specifically, dimensions such as Subject, Envi-
+ronment, and Motion are fundamental to produc-
+ing coherent and meaningful video content. They
+typically carry the majority of the semantic infor-
+mation within a video description. Therefore, we
+
+CogVideoX-5B
+
+LLaVA-Video-Gen(ours)
+= .
+
+=~
+
+Prompt main idea: A pair of hands wearing a light grey knitted
+sweater place a kiwi fruit on a wooden cutting board. The other hand
+holds a knife with a black handle. The knife begins to slice down the
+kiwi fruit, revealing the fruit's glistening juicy texture and pattern of
+black seeds. Two whole kiwi fruits are placed next to the one being cut.
+
+Prompt main idea: An alien with smooth light grey skin and large black
+eyes, wearing a dark blue jumpsuit, stood in front of a whiteboard in a
+brightly lit classroom, holding a black marker. The alien first drew a
+square on the whiteboard, then carefully moved to the right and drew a
+second square next to the first.
+
+Figure 7: Qualitative comparison of CogVideoX-5B between raw checkpoint and versions trained on captions
+generated by LLaVA-Video-Gen and CogVLM2-Cap. Due to space limitations, only the main idea of the prompt
+is shown. The red circles highlight the main distinguishing points of the generated videos. Please zoom in for a
+
+better view.
+
+allocate a larger portion of our annotation bud-
+get to these core dimensions, resulting in a higher
+number of QA pairs to ensure comprehensive eval-
+uation of these essential aspects.
+
+In contrast, the Atmosphere & Style dimension,
+while important for personalization and artistic ex-
+pression, is often more subjective and can be de-
+scribed with fewer words. To maintain a high stan-
+dard of objectivity in our benchmark, we adopt
+a conservative annotation strategy for this cate-
+gory. We create QA pairs for Atmosphere & Style
+only when such attributes are visually distinct and
+could be described objectively. For videos that
+lack a clear and discernible style, no QA pair is
+assigned for this dimension. This deliberate ap-
+proach explains why Atmosphere & Style has the
+fewest QA pairs. This rationale ensures that our
+benchmark effectively prioritizes the most critical
+and objectively measurable aspects of video gen-
+eration.
+
+B.2. Prompt Template
+
+In the automated evaluation process, we first ex-
+tract question-relevant content from the generated
+captions, then assess the extracted information by
+comparing it with reference answers. The cor-
+responding prompt template for this evaluation
+pipeline is demonstrated in Figure 9. We employ
+
+GPT-40-0806 version as the evaluation judge, uti-
+lizing its reasoning capabilities to perform content
+alignment analysis and scoring.
+
+B.3 Video Collection
+
+Video selection was primarily based on diver-
+sity across caption dimensions, which inher-
+ently ensures content diversity in the visual do-
+main.Figure 8 presents video examples from
+our benchmark, demonstrating the corresponding
+video diversity across various dimensions.
+
+C Other Experiments Details
+C.1 Ablation Study of LLaVA-Video-Gen
+
+To validate the effectiveness of our training strat-
+egy and dissect the contributions of each compo-
+nent, we conduct a thorough ablation study for
+LLaVA-Video-Gen on the VC4VG-Bench. We
+evaluate four distinct model variants to isolate the
+impact of our data curation and fine-tuning meth-
+ods. The variants are as follows:
+
+¢ LLaVA-Video-7B: The original pre-trained
+model, evaluated with simple prompts as a
+baseline (equivalent to our reporting in Table
+2).
+
+¢ LLaVA-Video-PE: The original model with-
+out any fine-tuning, but prompted with our
+
+Caption Model Environment Subject Motion Camera Atmosphere&style Total score
+Score/% Score/% Score/%  Score/% Score/% score/%
+LLaVA-Video-7B (Baseline) 287/63.6 211/45.7  110/32.8 28/19.3 15/88.2 651/46.2
+LLaVA-Video-PE (w/o fine-tuning) 240/53.2 183/39.6 117/34.9  44/30.3 15/88.2 599/42.5
+LLaVA-Video-Gen-SFT (w/o RTime) 289/64.1 258/55.8 146/43.6 71/49.0 16/94.1 780/55.3
+LLaVA-Video-Gen (Final) 304/67.4 256/55.4 154/46.0 74/51.0 16/94.1 804/57.0
+
+Table 5: Ablation study of LLaVA-Video-Gen on the VC4VG-Bench. We evaluate the impact of our curated
+WebVid data (SFT) and the RTime dataset (DPO). PE’ denotes Prompt Engineering. Best results are in bold.
+
+complex, multi-dimensional instructions to
+assess the impact of prompt engineering
+alone.
+
+LLaVA-Video-Gen-SFT: The model after
+SFT on our curated 200K WebVid subset, but
+without the subsequent temporal enhance-
+ment stage.
+
+LLaVA-Video-Gen: Our final model, which
+undergoes both SFT on the WebVid data and
+DPO on the RTime dataset.
+
+The results, presented in Table 5, clearly demon-
+strate the efficacy of our methods. The results con-
+firm that 1) Prompt engineering alone offers lim-
+ited improvement and may even degrade perfor-
+mance; 2) SFT on our high-quality WebVid sub-
+set leads to substantial gains; 3) DPO with RTime
+yields additional improvements, especially in mo-
+tion and camera dimensions.
+
+C.2 Ablation Study of T2V Training Steps
+
+As illustrated in Figure 10, we fine-tune
+CogVideoX-5B for 5 epochs (1,600 steps) us-
+ing captions generated by our LLaVA-Video-Gen
+framework. Based on VBench evaluations (Huang
+et al., 2024a), which measure quality score, se-
+mantic score, and total score through line chart
+analysis, we observe peak performance at 1,200
+training steps. We therefore select the 1200-
+step checkpoint for final evaluation. To ensure
+fair comparison in Section 4.2, all baseline cap-
+tion methods are evaluated under identical train-
+ing configurations using their respective 1200-step
+checkpoints.
+
+C.3 Qualitative Analysis
+
+We present a qualitative comparison between
+our LLaVA-Video-Gen and Cog VLM2-Caption in
+Figure 7.
+
+D_ Reproducibility Statement
+
+We will release our benchmark and corresponding
+codes for reproducibility.
+
+E_ License
+
+This work is licensed under the Creative Com-
+mons Attribution-NonCommercial 4.0 Interna-
+tional License (CC BY-NC 4.0).
+
+Poh
+Multi-subject stint Life
+
+Facial
+Expressions
+
+Low-level
+
+Figure 8: Video Examples from Benchmark
+
+[1] Information Extraction Template
+
+Please answer the question using the original sentences from the
+following caption of the video. Answer the question by finding
+relevant content from the video caption as comprehensively as
+possible, and do not make inferences.
+
+Question:
+{question}
+
+Comparison of VBench percentage on different steps
+
+Caption: 83} —® Quality Score
+
+{caption} -™- Semantic Score
+-&- Total Score
+
+82
+
+[2] LLM-as-Judge Template
+Compare the given answer with the provided reference to identify
+which reference items are accurately reflected in the answer.
+
+cs
+
+Sequentially examine each reference item. Determine whether the 3 A
+answer covers the key point in any form (explicit or implicit). § 80 A A Pa’
+Accept semantically equivalent phrasing without requiring exact ws, fi f \
+wording matches. yo] N £1 / \
+Final output format: \ a \ f \ a
+Reason: NL Nf Nie
+Comprehensive conclusion based on analysis ies . ‘ / ‘
+Item numbers correctly mentioned: [array or empty list] ‘
+
+200 400 600 800 1000 1200 1400 1600
+Question: ater
+
++
+{auestion) Figure 10: Comparison of VBench score percentage on
+different steps.
+
+Reference:
+{reference}
+
+Answer:
+{answer}
+
+Figure 9: Automated Evaluation Prompt Template

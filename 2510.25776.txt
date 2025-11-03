@@ -1,0 +1,1763 @@
+arX1v:2510.25776v1 [cs.CL] 27 Oct 2025
+
+StreetMath: Study of LLMs’ Approximation Behaviors
+
+Chiung-Yi Tseng!, Somshubhra Roy”, Maisha Thasin?, Danyang Zhang*, and Blessing
+Effiong®
+
+‘LuxMuse AI , ctseng@luxmuse.ai
+?Department of Electrical and Computer Engineering, North Carolina State University ,
+sroy22@ncsu. edu
+3Department of Mathematics, University of Waterloo , thasin.maisha@gmail.com
+“Vokram Group. , danyang@vokram.com
+°Department of Computer Science, Saint Louis University , Blessing. effiong@slu. edu
+
+Abstract
+
+There is a substantial body of literature examining the mathematical reasoning capabilities of
+large language models (LLMs), particularly their performance on precise arithmetic operations
+in autoregressive architectures. However, their ability to perform approximate reasoning in
+informal, fast-paced mathematical operations has received far less attention, especially among
+non-autoregressive decoder models. Our work addresses this gap by introducing StreetMath, a
+benchmark designed to evaluate models’ approximation abilities under real-world approximation
+scenarios. We conduct extensive evaluations across different LLM architectures: Qwen3-4B-
+Instruct-2507, Qwen3-4B-Thinking-2507, Dream-v0-Instruct-7B, Falcon-Mamba-7B-Instruct, and
+Mamba-GPT-3B. Furthermore, we apply mechanistic interpretability techniques to probe their
+internal computational states. Our analysis reveals that LLMs generally attempt to compute
+exact values or invoke external tools even in tasks that call for approximation. Moreover, while
+models sometimes reach the correct answer in early layers or steps, they still consume more tokens
+when solving approximation tasks. Additional experiments indicate that exact and approximate
+arithmetic operations rely on largely separate neural components. Drawing upon research on
+cognitive psychology, we argue that LLMs do not exhibit cognitive miserliness in the same way
+humans do in street math settings. We open source our work https://github.com/ctseng777/
+StreetMath
+
+1 Introduction
+
+Human mathematical reasoning flexibly alternates between exact calculation and rough estimation,
+depending on context. This adaptability—often described as "cognitive miserliness"{21]—allows
+people to conserve effort by using approximations when precision is unnecessary. According to
+Kahneman’s dual-process theory, humans preferentially rely on System 1 (fast, intuitive) thinking for
+everyday approximate calculations—what we call street math—the quick mental calculations people
+make in everyday life, such as estimating the total cost of groceries or computing a restaurant tip
+(e.g., leaving a 20% tip on a $61 bill—roughly 20% of $60 ~ $12, which is much easier to calculate).
+This reflects the broader concept of cognitive miserliness, as the adaptive tendency to minimize
+mental effort by employing shortcuts and approximations when full precision is unnecessary [14].
+Street math exemplifies the context where System 1 dominates: quick estimates suffice, and the
+cognitive cost of engaging System 2 (slow, effortful) reasoning is unwarranted. This principle also
+
+highlights fundamental capacity limitations: cognitive processing requires effort, which humans
+are motivated to conserve by using "good enough" strategies when circumstances permit. Our
+findings reveal that large language models (LLMs), in contrast, tend to bypass this adaptive
+flexibility. Instead of switching to easier approximation when appropriate, they engage in effortful,
+exact computation—even when rapid estimation would be more efficient—paralleling a departure
+from human-like cognitive efficiency. Recent interpretability studies have uncovered Fourier-like
+computation circuits [50] and attention heads dedicated to mathematical processing [48]. Yet it
+remains unclear whether these models exhibit the same context-sensitive flexibility as humans, or
+whether their reasoning is rigidly tied to exact solutions.
+
+In this work, we introduce the StreetMath dataset, a curated collection of 1000 approximation
+problems drawn from everyday street math scenarios. Using this benchmark, we systematically
+evaluate diverse model classes, including autoregressive decoder architectures (Qwen3-4B-Instruct-
+2507 [45], Qwen3-4B-Thinking-2507), state-space models (Falcon-Mamba-7B [52], Mamba-GPT-
+3B [7]), and diffusion-based language models (Dream-v0-Instruct-7B [47]). Our experiments reveal
+a consistent bias across all architectures: models overwhelmingly favor exact computation, even
+in contexts where rough estimation would suffice. Most importantly, some models achieve better
+approximation scores only at the cost of increased computation (tokens), which runs counter to
+humans’ cognitive miserliness. To better understand this limitation, we examine models’ rounding
+behavior, a fundamental operation for approximation in the street math setting. We apply linear
+probing to compare internal representations, finding that models’ approximation on single numbers
+resembles human behavior: they often round numbers toward 5 or 10. In addition, models perform
+well at digit-level detection but struggle to generalize to word-based numbers [25].
+
+We further investigate the neural underpinnings of these behaviors. By pruning the neurons
+involved in exact arithmetic [5], we uncover a surprising dynamic: removing math-specific parameters
+can actually improve performance on approximation tasks. This suggests that rigid, precision-
+oriented circuits may actively hinder flexible estimation. Additional probing into the entropy and
+effective ranks of intermediate layers [42] reveals similar distributions and dimensionalities between
+exact arithmetic operations and approximation. These findings imply that approximation does not
+reduce computational cost—contrary to how humans use approximation to simplify computation.
+
+Together, these findings suggest that while LLMs have developed specialized pathways for
+arithmetic, they lack the human-like adaptability required for context-sensitive street math. Although
+LLMs are capable of approximating single numbers, they do not leverage this ability during the
+process of solving street math questions; instead, they approximate only after calculating exact
+answers. We conclude that LLMs do not reason about approximation questions in the same way
+humans do. The training corpora likely introduce this universal gap across model architectures and
+sizes.
+
+2 StreetMath Dataset & Evaluations
+
+We release 1,000 multiple-choice math reasoning problems under street math settings, covering
+five major topics, each with several subtopics: basket sum (sum of shopping items), discounts
+(buy-n-get-m-free, threshold discounts such as “$X off if you spend $Y", percentage discounts), taxes
+(tax before discount and tax after discount applied), units (calculating cost based on per-pound or
+per-kilogram prices), and tips (% on spend). Each question offers four answer options, designed
+to distinguish different levels of approximation capability: exact calculation, good approximation
+(within 20% relative error of the exact answer), mildly off (between 60% and 90% relative error),
+and way off (greater than 150% relative error). Details of the benchmark is elaborated in B. The
+
+Model A E M W_ Uncategorized Tool calls Avg tokens
+
+Qwen3-4B-Instruct-2507 445 514 40 1 0 1000 125
+Qwen-4B-Thinking-2507 151 637 197 15 0 0 228
+Dream-v0-Instruct-7B 0 1000 0 0 0 0 263
+Falcon-Mamba-7B-Instruct 177 469 131 22 201 0 131
+Mamba-GPT-3B 174. 459 166 198 3 0 86
+
+Abbreviations: A = Good approximation, E = Exact Math, M = Mildly off, W = Way off
+
+Table 1: Overall judgement counts by model with tool calls and average tokens (rounded).
+
+benchmark not only evaluates final answers but also examines intermediate numerical evidence and
+the chain-of-thought (CoT) reasoning process. Any traces of exact computation or tool usage are
+flagged as exact math. To assess whether models exhibit cognitive miserliness, we use token count
+as a proxy for reasoning efficiency.
+
+We evaluate a range of model architectures including autoregressive decoder, state-
+space and language diffusion models across different reasoning styles (CoT vs. non-CoT) and
+parameter sizes (3B, 4B, 7B). The models include Qwen3-4B-Instruct-2507, Qwen3-4B-Thinking-
+2507, Dream-v0-Instruct-7B, Falcon-Mamba-7B-Instruct, and mamba-GPT-3B, with experiemnt
+setup details in A. We carefully adapt system and user prompts to each architecture to ensure fair
+comparisons. As shown in Tablel and 2, LLMs across all architectures predominantly compute
+exact answers even when model prompt explicitly asks for approximation. When they do produce
+approximated answers, they typically first compute the exact value and then round it. Notably,
+Qwen3-4B-Thinking-2507 shows better approximation performance than Qwen3-4B-Instruct-2507,
+but this improvement comes at the cost of higher token usage (228 vs. 125 tokens on average) and
+increased deviations contrary to human cognitive miserliness. State-space models achieve similar
+approximation performance to Qwen3-4B-Instruct-2507 with fewer tokens but greater deviations.
+Dream-v0-Instruct-7B consistently produces exact answers with perfect accuracy. We leave it to
+future work to investigate whether adjusting the steps and temperatures of Dream-v0-Instruct-7B
+can improve its approximation performance.
+
+Overall, our findings indicate that LLMs tend to rely on exact arithmetic even in approximation
+settings, showing behavior opposite to human-like cognitive miserliness.
+
+Model Topic Good approx Exact math Mildly off Way off Uncategorized N
+
+Qwen3-4B-
+
+Instruct-2507 basket_ sum 86 154 1 0 QO 241
+discounts 15 220 7 0 QO 242
+taxes 40 132 1 0 0 173
+units 22 150 0 0 0 172
+tips 22 150 0 0 O 172
+
+Qwen-4B-
+
+Thinking-2507 basket_sum 46 104 55 36 O 241
+discounts 80 61 51 50 QO 242
+taxes 40 45 46 42 0 173
+units 35 84 22 31 QO 172
+tips 28 68 40 36 0 172
+
+Dream-v0-
+
+Instruct-7B basket_ sum 0 241 0 0 QO 241
+discounts 0 242 0 0 QO 242
+taxes 0 173 0 0 0 173
+units 0 172 0 0 0 172
+tips 0 172 0 0 O 172
+
+Falcon-Mamba-7B _ basket_ sum 47 106 43 0 45 241
+discounts 50 108 61 5 18 242
+taxes 38 63 47 0 25 173
+units 8 94 7 14 49 172
+tips 11 77 4 0 80 172
+
+Mamba-GPT-3B basket_ sum 51 97 46 47 QO 241
+discounts 43 111 35 53 QO 242
+taxes 29 59 39 43 3 173
+units 32 78 31 31 0 172
+tips 19 114 15 24 0 172
+
+Table 2: Benchmark results: Counts by topic for all models.
+
+3 Linear Probe on Rounding Behaviors
+
+We investigate whether models encode numerical topology similar to human cognitive distance
+effects [10, 32] by training linear probes [2, 18] to detect nearness to multiples of 5 and 10 [9],
+defining proximity as exactly one integer away from the nearest multiple (e.g., 21 is near-10; 22 is
+not). Using simple templates to extract hidden-state representations, we evaluate five Street Math
+models on digit-based (“Here is 23.”) and word-based (“Consider the number twenty three.”) inputs,
+analyzing (i) layer-wise accuracy, (ii) best-layer errors across distances 0, 1, 2+. The experiment
+setup is elaborated in C, and results are shown in Figure 1 and Table 3 to Table 6.
+
+Digit tasks show early emergence [46] where state-space models lead: Mamba-GPT-3B reaches
+99.9% and Falcon-Mamba-7B reaches 98%, with best layers in early—middle positions (shortcut-
+friendly; supports early stopping), whereas Dream-v0-Instruct-7B peaks late (26th Near-5, 24th
+Near-10), consistent with diffusion vs. autoregressive/state-space differences. Distance-1 cases
+(e.g., 9, 11, 14, 16) are hardest, reflecting digit encoding [24] and calibration biases [29]. Word
+tasks underperform across architectures, evidencing surface-form encoding and limited numerical
+abstraction [3, 17, 30], likely due to tokenization, pretraining bias toward digits, and separable
+digit/word representational clusters.
+
+Model Peak Acc | Best Layer | Err (0) | Err (1) | Err (2)
+Qwen3-4B-Instruct 0.939 2 0.4% 5.5% 9.4%
+Qwen3-4B-Thinking 0.917 6 7.2% 14.6% 2.5%
+Dream-7B 0.970 26 4.2% 4.8% 0.5%
+Falcon-Mamba-7B 0.989 7 0.7% 0.6% 1.7%
+-Instruct
+
+Mamba-GPT-3B 0.999 3 0.4% 0.0% 0.0%
+
+Table 3: Comprehensive Near-5 Digit Analysis: Performance and Error Patterns at the best layer. Acc =
+
+Accuracy; Err = Error rate
+
+Model Peak Acc | Best Layer | Err (0) | Err (1) | Err (2)
+Qwen3-4B-Instruct 0.603 16 7.0% 4.0% 94.3%
+Qwen3-4B-Thinking 0.607 0.4% 0.6% 100.0%
+Dream-7B 0.620 1 0.0% 0.0% 99.5%
+Falcon-Mamba-7B 0.784 20 4.2% 2.7% 50.5%
+-Instruct
+
+Mamba-GPT-3B 0.746 13 2.1% 0.0% 64.2%
+
+Table 4: Comprehensive Near-5 (Words) Analysis: Performance and Error Patterns at the best layer. Acc
+= Accuracy; Err = Error rate
+
+Model Peak Acc | Best Layer | Err (0) | Err (1) | Err (2) | Err (3) | Err (4+)
+Qwen3-4B-Instruct 0.967 8 4% 12% 1% 1% 0%
+Qwen3-4B-Thinking 0.987 7 1% 3% 3% 0% 1%
+Dream-7B 0.988 24 2% 5% 0% 0% 0%
+Falcon-Mamba-7B 0.998 10 1% 0% 1% 0% 0%
+-Instruct
+
+Mamba-GPT-3B 0.999 2 0% 0% 0% 0% 0%
+
+Table 5: Comprehensive Near-10 Analysis: Performance and Error Patterns at the Best Layer
+
+Model Peak Acc | Best Layer | Err (0) | Err (1) | Err (2) | Err (3) | Err (4+)
+Qwen3-4B-Instruct 0.680 3 96% 98% 3% 4% 3%
+Qwen3-4B-Thinking 0.687 18 97% 96% 4% 2% 2%
+Dream-7B 0.698 12 98% 100% 0% 0% 0%
+Falcon-Mamba-7B 0.811 9 67% 58% 0% 0% 0%
+-Instruct
+
+Mamba-GPT-3B 0.789 4 74% 57% 2% 5% 2%
+
+Table 6: Comprehensive Near-10 (Words) Analysis: Performance and Error Patterns at the Best Layer
+
+Accuracy per Layer across Probes (digits_paraphrase, near_5)
+
+2 s br
+rs i °
+
+Accuracy
+©
+g
+
+0.6
+0.5
+0.4
+0 10 20 30 40 50 60
+Layer/Step Number
+—— Dream_linear_probe_near_5 —— mamba-gpt-3b_near_5 —— Qwen3_4B thinking_linear_probe_near_5
+
+—— Falcon-mamba-7b-instruct_near_5 =—— Qwen3_4B_non_thinking_linear_probe_near_5
+
+(a) Digits paraphrase (near=5)
+
+Accuracy per Layer across Probes (digits_paraphrase, near_10)
+
+1.0
+0.9
+08
+>
+o
+oz
+3
+o
+tos
+05
+04
+0 10 20 30 40 50 60
+Layer/Step Number
+—— Dream_linear_probe_near_10 —— mamba-gpt-3b_near_10 —— Qwen3_4B _thinking_near_10
+—— Falcon-mamba-7b-instruct_near_l10 = —— Qwen3_4B_non_thinking_linear_probe_near_10
+(b) Digits paraphrase (near=10)
+Accuracy per Layer across Probes (words, near_5)
+0.80
+0.75
+0.70
+0.65
+>
+iS)
+© 0.60
+3
+9 055
+go
+0.50
+0.45
+0.40
+0 10 20 30 40 50 60
+Layer/Step Number
+—— Dream_linear_probe_near_5 —— mamba-gpt-3b_near_5 —— Qwen3_4B thinking_linear_probe_near_5
+—— Falcon-mamba-7b-instruct_near_5 =—— Qwen3_4B_non_thinking_linear_probe_near_5
+(c) Words (near=5)
+Accuracy per Layer across Probes (words, near_10)
+08
+O7
+F 06
+£
+3
+o
+<5
+0.4
+03
+
+Layer/Step Number
+
+—— Dream_linear_probe_near_10 —— mamba-gpt-3b_near_10 —— Qwen3_4B _thinking_near_10
+—— Falcon-mamba-7b-instruct_near_l10 = —— Qwen3_4B_non_thinking_linear_probe_near_10
+
+(d) Words (near=10)
+
+Figure 1: Accuracy per layer across models for digits paraphrase and words tasks with near parameters 5
+and 10.
+
+4 Causal Studies
+
+To isolate parameters tied to exact arithmetic [6, 35], We adapt the MathNeuro codebase to study
+pruning and scaling in instruction-tuned LMs, with experiment details in D. For each calibration
+corpus (a CSV with instruction and response columns), we estimate parameter importance by regis-
+tering forward hooks on all Linear layers and accumulating mean activation magnitudes weighted by
+the corresponding weight magnitudes over 200 calibration samples. We then construct a keep-mask
+that retains the top p% of parameters, where p € {0.01%, 0.1%, 0.5%, 1%, 2.5%, 5%, 10%, 25%, 50%}.
+We find that increasing pruning does not necessarily hurt StreetMath performance: aside from
+Qwen3-4B-Instruct-2507, most models remain stable or even improve under moderate pruning,
+contradicting the intuition that reduced capacity uniformly impairs numerical reasoning. Pruning
+effects diverge by benchmark, as depicted in Figure 2: MMLU and RACE are similarly resilient,
+whereas GSM8K is extremely sensitive—even slight pruning collapses accuracy to near zero across
+all models—implicating a specialized, fragile neuron subset for exact arithmetic while Street Math
+and language-heavy tasks rely on more distributed representations. These patterns align with prior
+results [6], suggesting a dual pathway: (i) localized, brittle circuits for exact arithmetic that fail
+under pruning, and (ii) distributed, robust circuits for approximation and text-heavy reasoning,
+where moderate pruning can denoise and improve performance—consistent with StreetMath being
+tackled more as context-driven linguistic estimation than strict mathematical computation.
+
+5 Layer-wise Studies
+
+To uncover the internal state of LLMs, we extract layerwise diagnostics from transformers on
+mathematical reasoning corpora and StreetMath and analyze the spectral entropy, effective rank,
+activation entropy... The layer-wise analyses [42] reveal a broadly U-shaped evolution of spectral
+entropy and effective rank (high at input, dipping early, then rising) across models and tasks, with
+Falcon-Mamba-7B on StreetMath as the main exception, as depicted in Figure 3 Figure 4 and
+E. GSM8K runs of Qwen3-4B-Instruct-2507 show a pronounced dip by the first third of layers
+and a steady increase. Notably, both GSM8K and StreetMath runs exhibit elbow-like transitions
+at comparable depths, consistent with early compression and later re-expansion seen in shortcut
+reasoning [12]. This observation supports the view that approximation in StreetMath does not help
+models reach solutions more efficiently, showing the opposite of human cognitive miserliness [20].
+
+It is evident from our experiments that task-specific effects emerge across the models. StreetMath
+runs typically show higher late-layer entropy and effective rank than GSM8K for the same model,
+along with larger transition distances. This pattern indicates not only higher variability across
+models but also more sustained representational expansion and stronger late-stage adjustments. By
+contrast, GSM8K often consolidates into a stable mid-layer corridor with very high cosine similarity
+and minimal angular changes. These observations support our causal study results that models use
+a more diverse set of neurons when handling street math-type questions while dedicating to a small
+set of neurons when handling exact arithmetic operations. For details, refer to E.
+
+StreetMath: Accuracy vs. Pruning Proportion
+
+0.40
+0.35
+e ©
+0.30
+0.25
+>
+s
+£ 0.20
+&
+=
+0.15
+—@- *GSMBK for all models
+0.10} —@- Dream-vo-Instruct-78
+-@ Qwen3-4B-Instruct-2507
+0,05 | —@- Qwen3-4B-Thinking-2507
+—@- falcon-mamba-7b-instruct
+-@- mamba-gpt-3b
+0.00
+0.0001 0.0005 0,001 0.005 0.01 0.025 0.05 0.1 0.25 05
+Proportion pruned
+(a) Overall accuracy
+Pruning: Accuracy vs Proportion
+0.35 036
+0.35
+0.30
+0.25
+& 0.20
+2
+g
+<o15 0.14 0.14 0.14 v
+—e mmiu
+—*— StreetMath
+0.10 —® gsm8k
+me race
+0.05
+0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00
+0.00 >—_ oo —_ >—__—_>—!_0>—__>—___>—__>—__4
+10-4 10-3 10-2 10-1
+Proportion pruned
+(c) Pruning accuracy on Qwen3-4B-Instruct-2507
+Pruning: Accuracy vs Proportion
+0.30 4 929
+a
+0.25
+0.22
+0.20
+ing 0.19
+2
+3 0.15
+<
+—e mmiu
+0.10 4 StreetMath
+—® gsmsk
+me race
+0.05
+0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00
+0.00
+10-4 10-3 10-2 10-1
+
+Proportion pruned
+
+Pruning: Accuracy vs Proportion
+
+0.39.
+0.40
+0.35 1 9.32 0.32 0.32 0.32
+0.30 \ 0.2855
+0.25
+>
+8
+5 0.20
+3
+<
+0.15 —e® mmiu
+—&- StreetMath
+0.10 —@& gsmsk
+le race
+0.05
+0.00 0.00 0.00 0.00 0.00 0.00 0,00 0,00 0.00 0.00
+0.00 >-—___o___»>—______>—___>—__>—__>—__>—_>—__
+10-4 10-3 10-2 10-1
+
+Proportion pruned
+
+(b) Pruning accuracy on Qwen3-4B-Thinking-2507
+
+Pruning: Accuracy vs Proportion
+
+0.40 7 —®- mmiu 4
+—® gsmsk 0.40
+0.35 | —® StreetMath ,
+me race 0.29 0.29 0.35
+0.30 0.2929 0.29 0.2929 0.29 rae
+. 0.26
+0.25
+
+Accuracy
+°
+N
+=)
+
+0.20 0.20 0.20
+0.20
+0.15
+0.10
+0.05
+0.00 0.00 0.00 0.00 © 0.00 0.00 0.00 0.00 0.00 0.00
+0.00 >-—_—___o—\_2>—___—\__>—__>—__>—___>—___>—__4
+10-4 10-3 10-2 107!
+
+Proportion pruned
+
+(d) Pruning accuracy on Dream-v0-Instruct-7B
+
+Pruning: Accuracy vs Proportion
+
+0.30. 0.304
+0.30 0.29 0.29 029° 0.29 0.29 a
+0.25
+bby 0.22
+ay 0.23
+0.20 4 922
+0.20
+c
+i
+$0.15
+3
+<
+—® mmiu
+0.10 —*— StreetMath
+—® gsm8k
+0.05 —™- race
+0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00
+0.00 >-—___o—__>—___>—__>—_____>—_>—__>—__
+10-4 10-3 10-2 10-1
+
+Proportion pruned
+
+(e) Pruning accuracy on mamba-GPT-3B.png
+
+(f) Pruning accuracy on Falcon-Mamba-7B-Instruct
+
+Figure 2: Effect of structured pruning on task performance for all models. Accuracy is plotted against the
+proportion of parameters pruned for StreetMath and GSM8K benchmarks.
+
+Layerwise Averages Summary — Qwen/Qwen3-4B-Instruct-2507 | gsm8k
+
+Spectral Entropy Effective Rank Cosine Similarity
+60 10
+35
+50
+2 30 x E
+5 g 4% :
+Go. rn E 06
+3 2 30 a
+g g Es
+£04
+& 20 & 20 3
+a °
+15 7 bed
+—— Mean —— Mean —-— Mean
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+3.0
+—— Mean 4 —— Mean
+25 fe
+x 2
+> @ 12
+a
+fa
+a ¢ e
+ao, 5 2 os
+Bs : Zo,
+s Se 2 06
+ra .
+oe s a
+co] © 0.4
+< s
+05 10?
+2 0.2
+—-— Mean
+0.0 0.0
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+108 8
+—— Mean
+10° 4 108 7
+9 6
+104 £ 8
+= Ss 5
+8 2 2
+g 1074 2 10° ca
+8 s 4
+ia 23
+© 104 g Ey
+& 6 55)
+104 10*
+1
+of —— Mean —— Mean :
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+
+(a) Layerwise Average Summary - Qwen3-4B-Instruct-2507 on GSM8K
+Layerwise Averages Summary — Qwen/Qwen3-4B-Instruct-2507 | StreetMath
+
+Spectral Entropy Effective Rank Cosine Similarity
+10
+25 175
+> _ be > 08
+2.0 £
+g 5 25 ic
+© E 06
+Eo
+Fis $100 te
+g § A
+6 2 75 £04
+B10 fi 8
+2 5.0 2
+me emma be ae, 2 0.2 Sy Seal
+05 25
++1 std +1 std +1 std
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+3.0 —— Mean aan —— Mean
+ah
++1std c +1 std
+25 cl
+> 12
+$ 2 8
+5 20 eo = 10
+a 5 8
+g§15 a £08
+z a % o6
+210 5 10 4
+Fs B04
+< 3
+05 —— Mean 202
+<
+ee
+0.0 ene 0.0
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+
+—-— Mean —e— Mean
+10°
+
+Covariance Trace
++
+i
+a7 48
+8
+Gradient Norm
+q a a
+7
+i
+a7 8
+4
+Logit Lens Score
+ieee |
+oo
+as
+a
+
+°
+5
+°
+w
+5
+a
+8
+8
+
+15 20 25 30 10 15 20 25 30
+Layer Layer Layer
+
+(b) Layerwise Average Summary - Qwen3-4B-Instruct-2507 on StreetMath
+
+Figure 3: Comparative Layerwise Average Summary for Qwen3-4B-Instruct-2507 on GSM8K vs StreetMath
+
+Layerwise Averages Summary — Qwen/Qwen3-4B-Thinking-2507 | gsm8k
+
+Spectral Entropy Effective Rank Cosine Similarity
+60 10
+3.5
+so
+o8
+B30 “
+g & 40
+Bas e Eos
+s 2 30
+g 3 o4
+20 :
+oO £
+20
+a i
+15 a 02
+—— Mean —— Mean —— Mean
+10 °
+° 5 10 15 2 2 30 35 ° 5 10 15 2 2% 3 35 ° 5 Fe Cr er re ne
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+30
+—— Mean Pa —— Mean
+25 2
+5
+S12
+B20 id
+fe Sie E10
+a A g
+15 8 Fos
+So 2 g
+g a 2 06
+$10 yg a
+Fs Boa
+* 3
+Os 10?
+2 02
+0.0 Mean 0.0
+° STRSNINT 10 SET 5 pentiaE 20 EEE 2 = WORN oO ENTS 0 5 FiO enna = ERENEI 0 SIRT = EanRINET> 0 EERE) ° 5 iO MeNINET > REET 20 IRIE EnNEEE OEE)
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+of 8
+—— Mean
+7
+10° 4 10°
+g ge
+8 104 € 8.
+e 5
+g = 2
+10? 4 <€ 10° c4
+S a s
+£ 3S = 3
+S104 © Db
+8 oO Eye
+104 10*
+1
+wf —— Mean —— Mean 6
+
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+(a) Layerwise Average Summary - Qwen3-4B-Thinking-2507 on GSM8K
+Layerwise Averages Summary — Qwen/Qwen3-4B-Thinking-2507 | StreetMath
+Spectral Entropy Effective Rank Cosine Similarity
+40 10
+80
+35
+>
+2 x
+£30 5
+£ @
+fa gy a
+tg $
+£ 3” 2
+Fa ° £
+B20 g go"
+& 20 &
+LS —— Mean —— Mean 0.2 —— Mean
++1 std +1 std +1std
+10 °
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+3.0 10*
+—— Mean ann —— Mean
+25 #1 std 2 +1std
+> $12
+2 3
+8 20 9 E10
+& zu g
+Sieg & fae
+3 1.0 g 4 a)
+é Boa
+os 1 5
+Mean | 2o2
++
+oo +1 std 00
+° Ee Cr ° 5 w05 DS ° 3 Fr oe nr ae
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+10° J 8
+—— Mean
+10° | 7 +1 std
+a 10° AG
+8 sod E 8
+ae 5 5
+8 oO S32
+10! ye
+—— Mean 10 —— Mean 1
+wt +1 std +1 std ;
+35 35
+
+10 15 20 25 30 10 15 20 25 30 10 15 20 25 30 35
+Layer Layer Layer
+
+(b) Layerwise Average Summary - Qwen3-4B-Thinking-2507 on StreetMath
+
+Figure 4: Comparative Layerwise Average Summary for Qwen3-4B-Thinking-2507 on GSM8K vs StreetMath
+
+10
+
+Layerwise Averages Summary — Dream-v0-Instruct-7B | gsm8k
+
+Spectral Entropy Effective Rank Cosine Similarity
+40 80 10
+35 10
+2 se 60 F
+S30 <
+4 @ 50
+a ra
+Dos
+B = 40
+Boo 2 30
+3 fa
+15 2
+—— Mean - —— Mean
+10 +1 std 5 £1 std
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 0 5 10 15 20 25 30 35
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+3.0
+—— Mean a4. —— Mean
+a
+25 +1 std 2 +1 std
+5
+> S12
+£20 210 S10
+2 ¢ 10 ra
+fry is g
+cls 8 208
+§ 2 g
+3s i) Boe
+S10 a] B
+g ‘i Boa
+10 3
+oe —— Mean 2 02
+#1 std
+0.0 0.0
+° 5 Fn a ae nr ee 0 5 qo 15 2 (5 30 35 ° 5 10 Fey 20 5 30 35
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+108 J 8
+—— Mean
+10° 4 10° 7 +1 std
+g w6
+e § Bs
+% ad A
+2104 < 10 oa
+S 2 s
+& 23
+any 5 3
+en 10* eid
+uy —— Mean —— Mean 1
+w4 +1std +1 std o
+0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35 0 5 10 15 20 25 30 35
+layer Layer layer
+
+(a) Layerwise Average Summary - Dream-v0-Instruct-7B on GSM8K
+
+Layerwise Averages Summary — Dream-org/Dream-v0-Instruct-7B | StreetMath
+Spectral Entropy Effective Rank Cosine Similarity
+
+90
+
+80
+
+70
+
+60
+
+50
+
+Spectral Entropy
+¢
+he
+"8
+a8
+Ea
+Effective Rank
+a
+Eq
+
+40 —— Mean —e— Mean
+0.2 +1 std
+0 5 10 Fe 20 25 0 5 10 15 20 25 fy 5 10 15 20 25
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+
+—-— Mean
++1std
+
+175, —— Mean
+
+150 Fa #1 std
+
+10°
+
+0.25
+
+Activation Entropy
+Ht
+ie
+a
+a
+
+L2 Distance
+=
+fa
+8
+3
+Angular Distance (radians)
+£26 € 5h &
+
+oO 5 10 15 20 25 0 5 10 15 20 25 oO 5 10 15 20 25
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+
+10°
++1 std
+
+10°
+
+10°
+—-— Mean
+
+Covariance Trace
+a
+i
+a
+Gradient Norm
+=
+fa
+8
+3
+Logit Lens Score
+co NB oO
+He
+te
+as
+Es
+
+8
+
+10 15 20 25 10 15 20 25
+Layer Layer Layer
+
+(b) Layerwise Average Summary - Dream-v0-Instruct-7B on StreetMath
+
+Figure 5: Comparative Layerwise Average Summary for Dream-v0-Instruct-7B on GSM8K on GSM8K vs
+Street Math
+
+11
+
+Layerwise Averages Summary — Falcon-mamba-7B-Instruct | gsm8k
+
+Spectral Entropy Effective Rank Cosine Similarity
+AG 20 10
+70
+35 .
+& = 60 4
+= 30 &
+a g 0 .
+$25 F 40
+6 $
+a =
+& 20 a
+—e— Mean 20 —e— Mean . —e- Mean
++1 std 10 +1 std +1 std
+0 5 10 15 20 25 30 0 5 10 15 20 25 30 0 5 10 15 20 25 30
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+AG —— Mean aati —— Mean
++1 std 2 +1 std
+> @ 12
+220 £
+2 © 10° = 10
+[4 e
+wis g Eos
+So = £
+B10 5 B08
+@ 1 .
+2 N a
+Fs 8 04
+05 2
+—-— Mean 2 o2
+107 +1 std *
+0.0 an
+0 5 10 15 20 25 30 0 5 10 15 20 25 30 0 5 10 15 20 25 30
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+8 —— Mean
+10° 10° +1std
+te ev
+° 1084 E 56
+& S a
+0 z2
+g 2 2
+i 10? s 10° G4
+$ S 2
+6 0 i Se
+—— Mean —-— Mean
+10? +1 std 2 +1 std A
+0 5 10 15 20 25 30 0 5 10 15 20 25 30 0 5 10 15 20 25 30
+Layer Layer Layer
+(a) Layerwise Average Summary - Falcon-mamba-7B on GSM8K
+Layerwise Averages Summary — Falcon-mamba-7B-Instruct | StreetMath
+Spectral Entropy Effective Rank Cosine Similarity
+1.0
+—— Mean 85
+“2 +1 std
+80 :
+Bar x E
+2
+£ 5 15 3
+G40 a E08
+3 > 70 wo
+ja Pt
+539 o 2 oz
+38
+60 —— Mean 0.6] —— Mean
+37 55 +1 std +1 std
+0 10 20 30 40 50 60 0 10 20 30 40 50 60 0 10 20 30 40 50 60
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+10
+144 —*— Mean —— Mean _ —— Mean
++1std +1std _ +1std
+3
+R12 ay Zoos
+£ g 07
+_ = |
+c cc 5 06
+Los B10 a
+8 y BOS
+= 06 is
+< S04
+a 2 03
+04 10 &
+02
+02
+0 10 20 30 40 50 60 0 10 20 30 40 50 60 0 10 20 30 40 50 60
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+10°} —— Mean —— Mean 8
++1 std 108 +1 std
+@ 104 io
+& S a
+gy 104 S 4
+& © 08 a4
+= 3 a
+[s) i a
+10! —— Mean
++
+10 c +1std
+0 10 20 30 40 50 60 0 10 20 30 40 50 60 0 10 20 30 40 50 60
+Layer Layer Layer
+
+(b) Layerwise Average Summary - Falcon-mamba-7B on StreetMath
+
+Figure 6: Comparative Layerwise Average Summary for Falcon-mamba-7B-Instruct on GSM8K on GSM8K
+vs StreetMath
+
+12
+
+Layerwise Averages Summary — CobraMamba/mamba-gpt-3b | gsm8k
+
+Spectral Entropy Effective Rank Cosine Similarity
+90 a
+4.0 80
+0.9
+> 35 70 -
+2 x z
+£ 5 °° & 08
+=e 30 fed a
+a ‘© 50 £
+a s a
+Eas % 40 o o7
+3 é a
+30
+B20 ia 80s
+—— Mean 20 —— Mean - —— Mean
+= +1 std 10 +1 std . t1std
+0 5 10 15 20 25 0 5 10 15 20 25 C) 5 10 15 20 25
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+2.00
+—— Mean 10? ~ —— Mean
+| +1 std gv #1 std
+2B 150 8
+2 Boos
+= 125 g a
+‘1.00 £ = 06
+S a s
+075 S 10? a
+2 s 5 04
+3 0.50 5
+< 3
+0.25 —— Mean B02
+0.00 +1std | *
+0.0
+0 5 10 15 20 25 0 5 10 15 20 25 0 5 10 15 20 25
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+10°
+8 —— Mean
+10° +1 std
+g v
+® E 56
+£ 10° 8 10° a
+g 2 a
+Fa € S4
+S 10 @ 4
+8 io 9 108 4
+—-— Mean —-— Mean
++1 std +1 std 0
+10°
+0 5 10 15 20 25 0 5 10 15 20 25 0 5 10 15 20 25
+Layer Layer Layer
+(a) Layerwise Average Summary - mamba-gpt-3B on GSM8K
+Layerwise Averages Summary — CobraMamba/mamba-gpt-3b | StreetMath
+Spectral Entropy Effective Rank Cosine Similarity
+100 Lo
+4.0
+80 09
+235 x 2
+a 5 5 O08
+< = 60 =
+4 3.0 g & 07
+£ s ®
+3 2 40 £
+25 5 G06
+a 3
+204 7 Mean 20} —*— Mean co —— Mean
++1 std 1 std +1 std
+04
+0 5 10 15 20 25 0 5 10 15 20 25 C) 5 10 15 20 25
+Layer Layer Layer
+Activation Entropy L2 Distance Angular Distance (radians)
+175 c
+—— Mean 10? a —— Mean
+150 +1std Zio +1 std
+5 Ss
+2 125 3
+£ y Eos
+i 1.00 £ g
+& 075 a ig oe
+Fd B
+6 ~ 10? a
+Z 0.50 ea 04
+< 8
+3
+0.25 —— Mean 2Po2
+0.00 +1std | +
+0.0
+0 5 10 15 20 25 0 5 10 15 20 25 0 5 10 15 20 25
+Layer Layer Layer
+Covariance Trace Gradient Norm Logit Lens Score
+10°
+8 —— Mean
++4
+n0 #1std
+e gs
+® 104 S
+je 2 10° 43
+8 $ 54
+g 10° @ g
+8 5 in
+—-— Mean . —-— Mean
+10° | +1 std +1 std Py
+0 5 10 15 20 25 0 5 10 15 20 25 0 5 10 15 20 25
+Layer Layer Layer
+
+(b) Layerwise Average Summary - mamba-gpt-3B on StreetMath
+
+Figure 7: Comparative Layerwise Average Summary for mamba-gpt-3B on GSM8K on GSM8K vs StreetMath
+
+13
+
+6 Conclusion
+
+We curated the StreetMath benchmark to reveal LLMs’ lack of cognitive miserliness in street-math
+settings. Although these models can round single numbers, they fail to use this ability to save
+computational effort and instead rely on exact arithmetic even when approximation would suffice.
+Our analyses show that models activate broader neuron sets for approximate reasoning but narrower,
+specialized ones for exact computation, suggesting limited flexibility in reallocating cognitive
+resources. Pruning experiments further indicate that removing precision-oriented parameters can
+improve approximation, implying that rigid numerical circuits may hinder adaptive estimation.
+Overall, these results demonstrate that current LLMs can perform arithmetic but not economize
+it—highlighting a key gap between human and machine reasoning in their ability to modulate effort
+based on context.
+
+14
+
+A Experiment Setup
+
+A.1 Model Selection
+
+To examine how different architectures perform under the street math setting, we selected repre-
+sentative models from autoregressive transformer, diffusion-based LLM, and state-space families.
+Given computational constraints, we restricted our study to small- and medium-sized models. To
+ensure reproducibility and enable deeper investigation of internal mechanisms, we further limited our
+selection to open-source models with publicly available weights. Because the task requires models
+to follow prompts reliably and generate multiple-choice responses, we focused on instruction-tuned
+and thinking models. Within these constraints, we also sought to preserve meaningful comparisons,
+such as chain-of-thought versus instruction-only models, as well as cross-architecture and cross-size
+contrasts.
+
+Accordingly, our study evaluates Qwen3-4B-Instruct-2507, Qwen3-4B-Thinking-2507, Dream-v0-
+Instruct-7B, Falcon-Mamba-7B, and Mamba-GPT-3B. All models are initialized with the default
+parameters.
+
+A.2 Hardware specifications
+
+We conducted all experiments on a single NVIDIA A10 GPU hosted on RunPod, using an Ubuntu
+22.04 operating system with CUDA version 12.8.1.
+
+B- StreetMath dataset and benchmark result
+
+B.1 Data Curation
+
+StreetMath targets everyday “street math,” emphasizing fast estimation over exact arithmetic. It
+contains multiple-choice questions across shopping and daily-life contexts: basket totals, discounts
+(percentage-off, BOGO, buy-n-get-m, threshold coupons), taxes (pre/post-discount), unit conversions
+(Ib-oz, kg-g), and tips. Prompts explicitly nudge for approximate reasoning (“about how much”) to
+elicit human-style rounding.
+
+Each question has four options: the exact value; a “good approximation” within 20% relative
+error (correct); a “mildly off” option; and a “way off” option (fractional or multi-fold). Choices are
+shuffled A—D, with metadata storing numeric values. Spacing ensures clear separation: mild > 60%
+and way > 150%.
+
+Good approximations follow deterministic rounding rules. Basket totals round prices to dollars,
+then sum and drop cents. Discounts round prices to dollars, rates to nearest 5%, pair BOGO (buy
+one get one) items by price, and compute buy-n-get-m deterministically. Threshold coupons apply
+to a rounded subtotal. Taxes round bases and rates (5% steps) before dropping cents. Unit costs
+round prices and weights. Tips apply percentages to subtotals rounded to $5/$10 buckets.
+
+Data generation is deterministic given a seed. Templates randomize prices, quantities, and
+rates. Outputs are JSONL lines with id, topic, prompt, choices, labels, correct_label, and
+metadata (exact, good, mild, way). Splits are controllable by topic weights. A validator enforces
+spacing and alignment.
+
+B.2 StreetMath Benchmark
+
+The benchmark evaluates LLMs on StreetMath via local JSONL or hosted dataset
+(LuxMuseAI/StreetMathDataset). The system prompt encourages estimation and discourages
+
+15
+
+exact calculation. Models must output: “Final choice: <A|B|C|D>”, “Answer: <numeric>”, and
+“Reasoning: <short sentence>”; optional inner thoughts appear in <think>...</think>. The
+runner supports OpenAl-compatible APIs, local Transformers, and Ollama.
+
+Outputs are parsed for choice, numeric answer, reasoning, and optional tool calls. If only a
+number is given, the closest choice is inferred. Labels: exact = "Exact math," good = "Good
+approximation," mild/way = "Mildly off"/"Way off." We use the count of Good approximation as
+evaluation metrics to avoid giving arbitrary weights to each choice.
+
+Each sample yields a JSON record with prompt, predictions, reasoning, token/latency, and
+judgement. A summary aggregates mean scores, label counts, accuracy by topic, tool-call frequency,
+and average resource use. This setup cleanly separates approximation skill from exact computation
+preference while ensuring reproducibility across models and backends.
+
+C Linear Probe
+
+C.1 Experimental Setup
+
+Task Definition: We train linear probes to detect numerical proximity concepts, specifically
+whether numbers are "near" multiples of 5 or 10. For near-5 detection, proximity is defined as
+min(|n mod 10 — OJ, |n mod 10 — 5], |n mod 10 — 10|) < 1, covering digits {0, 1, 4, 5, 6, 9}. For
+near-10 detection, proximity is defined as min(|n mod 10 — 0], |n mod 10 — 10]) < 1, covering digits
+{0, 1, 9}.
+
+Data Generation: We generated 4,000 training samples and 1,500 validation samples per
+condition. Numbers were randomly sampled from [0, 9999] and embedded into descriptive templates.
+Two template sets were used:
+
+¢ Template A: “Consider the number {n}.”, “Let x = {n}.”, “Value: {n}”, etc.
+e Template B: “Here is {n}.”, “We study the scalar {n}.”, “Write down {n} and continue.”, etc.
+
+Numbers were presented in two surface forms: digits (“25”) and words (“twenty five”) using the
+num2words library with normalization (hyphens and commas removed, lowercase).
+Training Protocol: We used a two-stage streaming approach to handle memory constraints:
+
+1. Standardization: StandardScaler fitted per layer using partial_fit() with mean centering
+disabled
+
+2. Classification: SGD logistic regression with optimal learning rate, L2 regularization (a =
+10~*), and single-epoch updates
+
+C.2 Evaluation Methodology
+
+Cross-Template Validation: Three validation sets tested different robustness aspects: 1.Training:
+Template A + digits; 2. Validation A: Template B + digits (template robustness); 3. Validation W:
+Template A + words (cross-modal transfer).
+
+Error Analysis: We analyzed error patterns at the best-performing layer (highest accuracy)
+across distance buckets. For near-5: distances 0, 1, 2+ . For near-10: distances 0-5 maintained
+separately. We also examined errors by rounding direction: -1 (round down closer), 0 (exact
+multiple), +1 (round up closer).
+
+Layer Selection Rationale: We analyzed the best-performing layer rather than layer averages
+because: (1) it reveals models’ optimal proximity detection capabilities, (2) it avoids noise from
+
+16
+
+suboptimal layers that could mask genuine patterns, (3) it aligns with interpretability goals of
+understanding whether models can learn proximity concepts.
+
+Layer Sampling: We probed every layer (stride=1) for comprehensive analysis, skipping only
+embedding layers (layer 0).
+
+Statistical Measures: Accuracy per layer, error rates by distance/direction, best layer
+identification. Results averaged over single runs with fixed random seeds (1337) for reproducibility.
+
+D Causal Study
+
+Due to compute constraints, each setting is run once using bootstrap samples (< 500 examples)
+drawn from both the training set (CSV with question, solution, and answer fields) and each
+calibration set. For every pruning proportion, we reload the model (AutoModelForCausal1Ly,
+bfloat16, device_map=auto; Dream models are wrapped for 1m_eval compatibility), apply the
+mask, and evaluate performance using the EleutherAI LM Evaluation Harness on user-specified
+tasks.
+
+To manage compute, per-task evaluation is capped at 1,000 items, and prompts are truncated
+to 256 tokens. When no 1m_eval tasks are provided, a lightweight multiple-choice evaluator is used.
+For GSM8K, evaluation is limited to 1,000 samples. For Street Math-style multiple choice, we
+treat a “good approximation” judgment as correct.
+
+All results are saved per model, per task and per pruning proportion in the specified results
+directory.
+
+E Layerwise Study
+
+The experiments implement a two-stage pipeline that first extracts layerwise diagnostics from
+transformer models on mathematical reasoning corpora and then aggregates and visualizes these
+diagnostics across many prompts.
+
+In the first stage, model-specific analysis scripts (for example, Dream-v0-Instruct-7B, Qwen3-4B
+variants, Mamba-GPT-3B, and Falcon-mamba-7B-Instruct) load a Hugging Face model and tokenizer
+and evaluate it on a chosen dataset split. The workflows support both the GSM8K test split and a
+StreetMath test set. For each prompt, the scripts request hidden states, and compute a suite of
+metrics for every layer. Intra-layer measurements include spectral entropy and effective rank [36]
+obtained from singular-value spectra, activation entropy computed from histogram estimates, the
+trace of the covariance matrix as a proxy for Gaussian complexity, gradient norms approximated by
+the variance of hidden activations, logit-lens proxy scores, and attention entropy when attention
+weights are present. Inter-layer measurements quantify how the representation changes from one
+layer to the next through cosine similarity, L2 distance, and angular distance. Each prompt therefore
+contributes a record containing these per-layer vectors, along with metadata, to a JSON file. Due
+to computational constraint, we limit each dataset to 1000 samples.
+
+The second stage consolidates these per-prompt records. The script reads a results JSON and
+computes the sample mean and the sample standard deviation across prompts for every metric
+and for every layer index. Because the raw results may mix series of slightly different lengths,
+the aggregation is performed at the most common length observed for each metric, ensuring that
+elementwise statistics are well-defined and not dominated by outliers in shape.
+
+17
+
+F Related Work
+
+F.1 The Approximation Gap in Mathematical Reasoning
+
+Current mathematical reasoning research exhibits a systematic bias toward exact computation,
+creating a fundamental blind spot in our understanding of numerical intelligence. Zhou et al. [50]
+demonstrated that LLMs use specialized Fourier mechanisms for precise arithmetic, while Yu and
+Ananiadou [48] identified localized attention heads for exact operations. Kahneman [21]—adaptively
+reduces computational effort when an approximation suffices. These findings systematically overlook
+cognitive flexibility, instead celebrating models that can perform precise calculations while ignoring
+whether they can engage in the contextually appropriate approximation that characterizes genuine
+mathematical understanding. These mechanistic insights, while valuable, represent a narrow
+conception of mathematical reasoning that prioritizes precision over cognitive flexibility. Recent
+work by Srivastava et al. on LMThinkBench [43] reveals that models achieve high accuracy but
+at the cost of unnecessarily complex reasoning paths; a pattern consistent with systems that lack
+the cognitive control mechanisms necessary for adaptive approximation. When models cannot
+modulate their computational precision based on contextual demands, they default to maximum
+effort regardless of whether such precision is warranted or efficient. Highlighting the gap between
+computational capability and efficient reasoning.
+
+F.2 Training Data Bias Toward Exact Computation
+
+Research reveals systematic biases in mathematical reasoning training data that favor exact com-
+putation over flexible approximation strategies. Analysis of major mathematical training corpora
+shows a predominant focus on problems with exact, verifiable answers. Paster et al’s OpenWebMath
+dataset [34], containing 14.7B tokens of mathematical web content, consists primarily of forum
+discussions, educational materials, and reference pages where mathematical problems are presented
+with definitive solutions rather than approximation strategies. Similarly, Lewkowycz et al’s Minerva
+training corpus [26] drew from 118GB of scientific papers and mathematical web content that
+emphasizes precise computational procedures.
+
+This training bias toward exact answers has measurable consequences for model behavior. The
+pattern-matching hypothesis is supported by Mirzadeh et al’s GSM-Symbolic analysis [31], which
+reveals that model performance degrades significantly when numeric values are perturbed, indicating
+over-reliance on specific number patterns rather than general reasoning principles. Shao et al. [40]
+explicitly acknowledge this issue, noting that their model exhibits "data selection bias in pre-training
+and fine-tuning" that leads to weaker performance on certain problem types.
+
+F.3 Overthinking and Computational Inefficiency
+
+Recent work has documented a troubling pattern: LLMs consistently overthink mathematical
+problems, generating verbose reasoning chains when simpler approaches would suffice. Ding et
+al. [13] proposed "break the chain" strategies to reduce token consumption, demonstrating that
+models maintain performance even when forced to skip intermediate steps. Zhao et als work on
+efficiency enhancement in reasoning models [49] suggests this isn’t just a performance issue but a
+fundamental architectural limitation.
+
+18
+
+F.4. Mechanistic Evidence for Competing Circuits
+
+Mechanistic interpretability studies reveal distinct and overlapping neural pathways for exact
+versus approximate reasoning. Christ et al. [5] demonstrated that math-specific parameters can be
+isolated through structured pruning. Skean et al. [41] conducted a layer-by-layer analysis, revealing
+that different types of mathematical operations are processed at different depths in transformer
+architectures. Sun et al. [44] probed arithmetic errors in language models and identified systematic
+patterns in computational failures, while Saynova et al. [37] investigated whether mathematical
+reasoning relies on fact recall, heuristics, or pure computation, finding evidence for multiple pathways
+depending on problem complexity and context.
+
+F.5 Numerical Representation and Geometric Understanding
+
+Understanding how LLMs represent numerical information has been a focus of recent mechanistic
+interpretability work. Levy and Geva [25] demonstrated that language models encode numbers using
+individual circular representations for each digit in base 10, providing geometric understanding of
+numerical processing. Kantamneni and Tegmark [22] extended this work by showing that language
+models use trigonometric functions in their internal computations, suggesting sophisticated geometric
+representations of numerical concepts. Zhu et al. [51] investigated how language models encode
+numeric magnitude, while Shah et al. [39] examined magnitude comparison tasks, finding that
+models develop specialized circuits for determining relative numerical size. These representational
+studies suggest that current numerical encodings may be too rigid to support flexible approximation
+strategies.
+
+F.6 Architectural Differences in Approximation Capacity
+
+Different LLM architectures exhibit varying capabilities for flexible reasoning, though systematic
+evaluation of approximation strategies across architectures remains limited. Li et al. [27] explored
+diffusion models for language tasks, demonstrating their application to text generation, though
+their mathematical reasoning capabilities, particularly regarding approximation versus precision
+trade-offs, have not been extensively studied.
+
+The architectural constraints that affect mathematical reasoning extend beyond approximation
+to fundamental information processing capabilities. Jelassi et al. [19] demonstrated that transformers
+can theoretically copy strings of exponential length while state-space models are fundamentally
+limited by their fixed-size latent state, suggesting that the rigid memory constraints that impede
+copying may also constrain flexible approximation strategies. These findings indicate that current
+architectural paradigms may systematically differ in their capacity for the kind of cognitive flexibility
+that characterizes human mathematical reasoning.
+
+This architectural variation highlights a broader gap in our understanding of how different model
+designs affect the ability to engage in contextually appropriate approximation—a crucial aspect
+of mathematical intelligence that remains largely unexplored across the spectrum of current LLM
+architectures.
+
+F.7 Augmentation Strategies and Alternative Approaches
+
+Recognizing the limitations of pure language model approaches to arithmetic, researchers have
+proposed several augmentation strategies. Tool-augmented approaches represent the dominant
+paradigm, where models learn to invoke external calculators, symbolic solvers, or knowledge bases.
+Schick et al. [38] introduced Toolformer, which teaches LLMs to use tools through self-supervised
+
+19
+
+learning, while Das et al. [8] developed MathSensei, combining web search, Python execution, and
+Wolfram-Alpha integration for comprehensive mathematical reasoning support.
+
+Program-aided reasoning offers another promising direction. Gao et al. [16] proposed Program-
+Aided Language models (PAL), which generate Python programs as intermediate reasoning steps,
+while Chen et al. [4] introduced Program-of-Thoughts prompting to separate computation from
+reasoning. These approaches effectively delegate precise calculations to programming environments
+while preserving natural language reasoning.
+
+At the architectural level, Dietz and Klakow [11] introduced the Integrated Gated Calculator
+(IGC), which emulates a calculator directly on the GPU, achieving 98-99% accuracy on arithmetic
+tasks in a single iteration without external tools. Lauter et al. [23] investigated machine learning
+approaches for modular arithmetic, demonstrating specialized techniques for specific algebraic
+structures, though with limited success that highlights the inherent difficulty of certain mathematical
+operations.
+
+While these augmentation strategies successfully address computational limitations and im-
+prove exact calculation capabilities, they do not resolve the fundamental issue our work identifies:
+the inability to engage in contextually appropriate approximation when exact computation is
+unnecessary. Current approaches actually reinforce the precision bias by providing increasingly
+sophisticated mechanisms for exact calculation, potentially exacerbating the cognitive inflexibility
+that characterizes current mathematical reasoning systems.
+
+F.8 Pattern Recognition vs. Algorithmic Understanding
+
+A fundamental question concerns whether models learn genuine algorithms or rely on sophisticated
+pattern recognition. Nikankin et al. [33] examined "arithmetic without algorithms," investigating
+whether models can perform mathematical reasoning without explicit algorithmic procedures,
+suggesting that models may rely on pattern recognition and approximation strategies that differ
+fundamentally from formal mathematical computation. Gambardella et al. [15] investigated whether
+language models perform hard arithmetic by examining their computational processes, while Lovering
+et al. [28] examined language model probabilities in mathematical contexts, providing insights into
+how models represent uncertainty and confidence.
+
+F.9 The Need for Approximation-Aware Evaluation
+
+Current mathematical reasoning evaluation focuses exclusively on exact computation, creating a
+fundamental evaluation gap that obscures crucial aspects of mathematical intelligence. While Ahn et
+al’s comprehensive survey [1] emphasizes that "accuracy shouldn’t be the sole metric" for evaluating
+mathematical reasoning and highlights the need for more robust evaluation beyond final-answer
+correctness, existing benchmarks continue to reward only precise answers regardless of contextual
+appropriateness.
+
+This evaluation paradigm fails to assess whether LLMs can engage in the kind of flexible,
+context-appropriate approximation that characterizes human mathematical cognition in everyday
+settings. The gap is significant because it touches on fundamental questions about the nature of
+machine intelligence and whether current LLMs genuinely understand mathematical concepts or
+merely implement sophisticated pattern matching. Without evaluating approximation capabilities,
+we cannot determine if models possess the cognitive flexibility necessary for human-like mathematical
+reasoning in diverse contexts.
+
+20
+
+G
+
+Limitations
+
+While our work provides new insights into the approximation behavior of LLMs, several limitations
+remain. First, the StreetMath dataset contains only 1,000 problems, which may not capture the full
+
+variety of real-world estimation tasks. Second, our evaluation focuses on a specific set of open-source
+models; results may not generalize to larger proprietary systems or other architectures. Third, our
+analysis is restricted to numerical approximation in simple arithmetic settings. Extensions to more
+complex mathematical domains are left for future work.
+
+Acknowledgments
+
+We acknowledge the use of AI tools (ChatGPT, Codex) for text proofreading, formatting assistance
+and scripting.
+
+References
+
+[1]
+
+[10]
+
+[11]
+
+Janice Ahn, Rishu Verma, Renze Lou, Di Liu, Rui Zhang, and Wenpeng Yin. Large language
+models for mathematical reasoning: Progresses and challenges, February 2024. URL http:
+//arxiv.org/abs/2402.00157. arXiv:2402.00157.
+
+Guillaume Alain and Yoshua Bengio. Understanding intermediate layers using linear classifier
+probes. arXiv preprint arXiv:1610.01644, 2016.
+
+Yonatan Belinkov and James Glass. Analysis methods in neural language processing: A survey.
+Transactions of the Association for Computational Linguistics, 7:49—72, 2019.
+
+Wenhu Chen, Xueguang Ma, Xinyi Wang, and William W Cohen. Program of thoughts
+prompting: Disentangling computation from reasoning for numerical reasoning tasks. arXiv
+preprint arXtv:2211.12588, 2022.
+
+B. R. Christ, Z. Gottesman, J. Kropko, and T. Hartvigsen. Math neurosurgery: Isolating
+language models’ math reasoning abilities using only forward passes. arXiv preprint, 2025.
+
+Bryan R. Christ, Zack Gottesman, Jonathan Kropko, and Thomas Hartvigsen. Math neuro-
+surgery: Isolating language models’ math reasoning abilities using only forward passes, June
+2025. URL http: //arxiv. org/abs/2410.16930. arXiv:2410.16930.
+
+CobraMamba. Mamba-gpt-3b, 2023. Hugging Face model card; Apache-2.0 license.
+
+Debrup Das, Debopriyo Banerjee, Somak Manocha, and Ashish Baral. Mathsensei: A tool-
+augmented large language model for mathematical reasoning. arXiv preprint arXiv:2402.17281,
+2024.
+
+Johan De Brauwer, Tom Verguts, and Wim Fias. The representation of multiplication facts:
+Developmental changes in the problem size, five, and tie effects. Journal of Experimental Child
+Psychology, 94(1):43-66, 2006.
+
+Stanislas Dehaene. The number sense: How the mind creates mathematics. OUP USA, 2011.
+
+M. Dietz and D. Klakow. Igc: Integrating a gated calculator. arXiv preprint, 2025.
+
+21
+
+[12] Mengru Ding, Hanmeng Liu, Zhizhang Fu, Jian Song, Wenbo Xie, and Yue Zhang. Break the
+
+[13
+
+[14
+
+[17
+
+[18
+
+[19
+
+21
+
+22
+
+23
+
+24
+
+|
+
+|
+
+chain: Large language models can be shortcut reasoners, June 2024. URL http: //arxiv.org/
+abs/2406.06580. arXiv:2406.06580.
+
+Y. Ding et al. Break the chain: Large language models with heuristics. arXiv preprint, 2024.
+
+Susan T. Fiske and Shelley E. Taylor. Social Cognition. McGraw-Hill Series in Social Psychology.
+McGraw-Hill, New York, 2nd edition, 1991.
+
+Andrew Gambardella, Yusuke Iwasawa, and Yutaka Matsuo. Language models do hard
+arithmetic tasks easily and hardly do easy arithmetic tasks. In Proceedings of the 62nd
+Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers),
+pages 811-824, Bangkok, Thailand, 2024. Association for Computational Linguistics. doi:
+10.18653/v1/2024.acl-short.74. URL https://aclanthology.org/2024.acl-short.74/.
+
+Luyu Gao, Aman Madaan, Shuyan Zhou, Uri Alon, Pengfei Liu, Yiming Yang, Jamie Callan,
+and Graham Neubig. Pal: Program-aided language models. In Proceedings of the 40th
+International Conference on Machine Learning, volume 202 of Proceedings of Machine Learning
+Research, pages 10764-10779. PMLR, 2023. URL https://proceedings.mlr.press/v202/
+gao23f .html.
+
+Yoav Goldberg. A primer on neural network models for natural language processing. Journal
+of Artificial Intelligence Research, 57:345—420, 2016.
+
+John Hewitt and Christopher D Manning. A structural probe for finding syntax in word
+representations. In Proceedings of the 2019 Conference of the North American Chapter of the
+Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long
+and Short Papers), pages 4129-4138, 2019.
+
+Samy Jelassi, David Brandfonbrener, Sham M. Kakade, and Eran Malach. Repeat after
+me: Transformers are better than state space models at copying. In Proceedings of the 41st
+International Conference on Machine Learning, volume 235 of Proceedings of Machine Learning
+Research, pages 21502-21521. PMLR, 2024. URL https://proceedings.mlr.press/v235/
+jelassi24a.html.
+
+Dorothy Lianlian Jiang, Shun Ye, Liang Zhao, and Bin Gu. Do reductions in search costs
+for partial information on online platforms lead to better consumer decisions? evidence of
+cognitive miser behavior from a natural experiment. page isre.2022.0432, February 2025. ISSN
+1047-7047, 1526-5536. doi: 10.1287/isre.2022.0432. URL https: //pubsonline.informs.org/
+doi/10.1287/isre.2022.0432.
+
+Daniel Kahneman. Thinking, fast and slow. Farrar, Straus and Giroux, 2011.
+
+S. Kantamneni and Max Tegmark. Language models use trigonometric functions. arXiv
+preprint, 2025.
+
+K. Lauter et al. Machine learning for modular arithmetic. arXiv preprint, 2024.
+
+Amit Arnold Levy and Mor Geva. Language models encode numbers using digit representations
+in base 10. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter
+of the Association for Computational Linguistics: Human Language Technologies (Volume 2:
+Short Papers), pages 385-395, 2025.
+
+22
+
+[25]
+
+[26]
+
+[27]
+[28]
+
+[29
+
+32
+
+33
+34
+
+30
+
+[37]
+[38
+
+[39
+
+[40
+
+Omer Levy and Mor Geva. Language models encode numbers. arXiv preprint, 2024.
+
+Aitor Lewkowycz, Anders Andreassen, David Dohan, Ethan Dyer, Henryk Michalewski, Vinay
+Ramasesh, Ambrose Slone, Cem Anil, Imanol Schlag, Theo Gutman-Solo, et al. Solving
+quantitative reasoning problems with language models. Advances in Neural Information
+Processing Systems, 35:3843-3857, 2022.
+
+J. Li et al. Diffusion language models. arXiv preprint, 2025.
+C. Lovering et al. Language model probabilities. arXiv preprint, 2024.
+
+Charles Lovering, Michael Krumdick, Viet Dac Lai, Seth Ebner, Nilesh Kumar, Varshini Reddy,
+Rik Koncel-Kedziorski, and Chris Tanner. Language model probabilities are not calibrated in
+numeric contexts. arXiv preprint arXiv:2410.16007, 2024.
+
+R Thomas McCoy, Ellie Pavlick, and Tal Linzen. Right for the wrong reasons: Diagnosing
+syntactic heuristics in natural language inference. arXiv preprint arXiv:1902.01007, 2019.
+
+Iman Mirzadeh, Keivan Alizadeh, Hooman Shahrokhi, Oncel Tuzel, Samy Bengio, and Mehrdad
+Farajtabar. GSM-Symbolic: Understanding the limitations of mathematical reasoning in
+large language models, October 2024. URL http://arxiv.org/abs/2410.05229. Apple;
+arXiv:2410.05229.
+
+Robert S Moyer and Thomas K Landauer. Time required for judgements of numerical inequality.
+Nature, 215(5109):1519-1520, 1967.
+
+A. Nikankin et al. Arithmetic without algorithms. arXiv preprint, 2025.
+
+Keiran Paster, Marco Dos Santos, Zhangir Azerbayev, and Jimmy Ba. Openwebmath: An
+open dataset of high-quality mathematical web text. arXiv preprint arXiv:2310.06786, 2023.
+
+Daking Rai, Yilun Zhou, Shi Feng, Abulhair Saparov, and Ziyu Yao. A practical review
+of mechanistic interpretability for transformer-based language models, March 2025. URL
+http: //arxiv.org/abs/2407 .02646. arXiv:2407.02646.
+
+O. Roy and M. Vetterli. The effective rank: A measure of effective dimensionality. In 2007
+15th European Signal Processing Conference, pages 606-610. IEEE, 2007.
+
+A. Saynova et al. Fact recall, heuristics or pure computation. arXiv preprint, 2025.
+
+Timo Schick, Jane Dwivedi-Yu, Roberto Dessa, Roberta Raileanu, Maria Lomeli, Luke Zettle-
+moyer, Nicola Cancedda, and Thomas Scialom. Toolformer: Language models can teach
+themselves to use tools. arXiv preprint arXiv:2302.04761, 2023.
+
+Raj Shah, Vijay Marupudi, Reba Koenen, Khushi Bhardwaj, and Sashank Varma. Nu-
+meric magnitude comparison effects in large language models. In Findings of the Associ-
+ation for Computational Linguistics: ACL 2023, pages 6147-6161, Toronto, Canada, 2023.
+Association for Computational Linguistics. doi: 10.18653/v1/2023.findings-acl.383. URL
+https: //aclanthology.org/2023.findings-acl .383/.
+
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Mingchuan Zhang, Y. K. Li,
+Yihan Gong, Zihan Jin, Xiao Wang, et al. Deepseekmath: Pushing the limits of mathematical
+reasoning in open language models. arXiv preprint arXiv:2402.03300, 2024.
+
+23
+
+[41]
+[42|
+
+[43]
+
+[44]
+[45]
+
+[46]
+
+[47
+
+[48]
+
+[49
+
+50
+
+51
+
+52
+
+M. Skean et al. Layer by layer: Uncovering mathematical reasoning. arXiv preprint, 2025.
+
+Oscar Skean, Md Rifat Arefin, Dan Zhao, Niket Patel, Jalal Naghiyev, Yann LeCun, and Ravid
+Shwartz-Ziv. Layer by layer: Uncovering hidden representations in language models, June 2025.
+URL http: //arxiv. org/abs/2502.02013. version: 2; arXiv:2502.02013.
+
+Gaurav Srivastava, Aafiya Hussain, Sriram Srinivasan, and Xuan Wang. LMThinkBench:
+Towards basic math reasoning and overthinking in large language models, July 2024. URL
+http: //arxiv.org/abs/2507 .04023. arXiv:2507.04023.
+
+X. Sun et al. Probing for arithmetic errors in language models. arXiv preprint, 2025.
+
+Qwen Team. Qwen3 technical report, 2025. URL https://arxiv.org/abs/2505 .09388.
+arXiv:2505.09388.
+
+Surat Teerapittayanon, Bradley McDanel, and Hsiang-Tsung Kung. Branchynet: Fast inference
+via early exiting from deep neural networks. In 2016 23rd international conference on pattern
+recognition (ICPR), pages 2464-2469. IEEE, 2016.
+
+Jiacheng Ye, Zhihui Xie, Lin Zheng, Jiahui Gao, Zirui Wu, Xin Jiang, Zhenguo Li, and Lingpeng
+Kong. Dream 7b: Diffusion large language models. arXiv preprint arXiv:2508.15487, 2025.
+
+Zeping Yu and Sophia Ananiadou. Interpreting arithmetic mechanism in large language models
+through comparative neuron analysis. In Proceedings of the 2024 Conference on Empirical
+Methods in Natural Language Processing, pages 3293-3306, 2024.
+
+Weixiang Zhao, Jiahe Guo, Yang Deng, Xingyu Sui, Yulin Hu, Yanyan Zhao, Wanxiang Che,
+Bing Qin, Tat-Seng Chua, and Ting Liu. Exploring and exploiting the inherent efficiency
+within large reasoning models for self-guided efficiency enhancement, June 2024. URL http:
+//arxiv.org/abs/2506.15647. arXiv:2506.15647.
+
+Tianyi Zhou, Deqing Fu, Vatsal Sharan, and Robin Jia. Pre-trained large language models use
+fourier features to compute addition. arXiv preprint arXiv:2406.08445, 2024.
+
+W. Zhu et al. Language models encode the concept of numeric magnitude. arXiv preprint,
+2025.
+
+Jingwei Zuo, Maksim Velikanov, Dhia Eddine Rhaiem, Ilyas Chahed, Younes Belkada, Guillaume
+Kunsch, and Hakim Hacid. Falcon mamba: The first competitive attention-free 7b language
+model, 2024. URL https: //arxiv.org/abs/2410.05355. arXiv:2410.05355.
+
+24
