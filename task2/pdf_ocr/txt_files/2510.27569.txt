@@ -1,0 +1,345 @@
+arXiv Paper: 2510.27569
+Title: MARAG-R1: Beyond Single Retriever via Reinforcement-Learned Multi-Tool Agentic Retrieval
+Authors: Qi Luo, Xiaonan Li, Yuxin Wang, Tingshuo Fan, Yuan Li, Xinchi Chen, Xipeng Qiu
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27569
+OCR Date: 2025-11-03T16:25:43.551488
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+MARAG-RI1: Beyond Single Retriever via Reinforcement-Learned
+Multi-Tool Agentic Retrieval
+QiLuo* XiaonanLi* Yuxin Wang TingshuoFan YuanLi XinchiChen Xipeng Qiu’
+School of Computer Science, Fudan University
+qluo22@m.fudan.edu.cn xpqiu@fudan.edu.cn
+Abstract knowledge is limited to static pretraining data,
+which may lead to factual inaccuracies and reduced
+
+Via) Large Language Models (LLMs) excel al t rea adaptability to new information (Kim et al., 2025;
+
+N soning and generation but are inherently limited W. 1. 2023). A tj ing the abil
+
+on) by static pretraining data, resulting in factual Wang et al., ). As a result, improving the abil-
+
+N inaccuracies and weak adaptability to new in- ity to access and utilize external information has
+3S formation. Retrieval-Augmented Generation become a cornerstone for enhancing the factuality,
+
+oe) (RAG) addresses this issue by grounding LLMs interpretability, and trustworthiness of LLM-based
+
+in external knowledge; However, the effective- reasoning.
+
+~ ness of RAG critically depends on whether the A mainstream approach to addressing this limi-
+
+model can adequately heme relevant informa tation is Retrieval-Augmented Generation (RAG),
+
+mm Hon. Existing Systems rely on a sing’e which supplements LLMs with access to external
+
+—] retriever with fixed top-k selection, restricting a .
+
+OU access to a narrow and static subset of the cor- knowledge sources during inference. By integrat-
+yn pus. As a result, this single-retriever paradigm ing retrieved evidence into the reasoning process,
+oO has become the primary bottleneck for com- RAG mitigates hallucination and improves factual
+
+— prehensive external information acquisition, es- rounding. Depending on how retrieval and reason-
+
+8 ig. Dep i
+
+— pecially in tasks requiring corpus-level reason- ing are orchestrated, existing retrieval-augmented
+> ing. To overcome this limitation, we propose generation (RAG) frameworks can be broadly cat-
+
+Z MARAG-RI, a reinforcement-learned multi- egorized into Workflow RAG and Agentic RAG.
+
+tool RAG framework that enables LLMs to dy- Workflow RAG Fi la) ad fixed
+ne namically coordinate multiple retrieval mecha- York ow! systems ( igure a) adopt a fixe
+
+NN nisms for broader and more precise information pipeline: given a query, the retriever selects a top-k
+
+: access. MARAG-R1 equips the model with subset of documents, and the LLM generates an
+
+S four retrieval tools—semantic search, keyword answer based solely on that static context (Trivedi
+
+Vat search, filtering, and aggregation—and learns et al., 2023; Yao et al., 2023; Jiang et al., 2023;
+
+N both how and when to use them through a two- Asai et al., 2023). While efficient, such work-
+> Stage training process: supervised fine-tuning flows are inherently passive and limited in flexibil-
+
+oe followed by reinforcement learning. This de- : : :
+
+; : P ity—once retrieval is complete, the model cannot
+
+~< sign allows the model to interleave reasoning . .
+
+Ss and retrieval, progressively gathering sufficient refine or expand its evidence base. Recent eval-
+evidence for corpus-level synthesis. Experi- uations show that even state-of-the-art retrievers
+ments on GlobalQA, HotpotQA, and 2Wiki- achieve maximum recall below 0.45 on multi-hop
+MultiHopQA demonstrate that MARAG-R1 QA tasks (Liu et al., 2025), and LLMs attain ac-
+substantially outperforms strong baselines and curacy under 0.6 even when provided with gold
+achieves new state-of-the-art results in corpus- evidence (Tang and Yang, 2024). This rigidity fun-
+level reasoning tasks. . se
+
+damentally restricts the scalability of Workflow
+
+1 Introduction RAG in tasks that demand corpus-level reasoning
+and cross-document synthesis (Edge et al., 2025;
+
+Large Language Models (LLMs) have demon- Zhuang et al., 2025). In contrast, Agentic RAG
+strated remarkable reasoning and generative ca- frameworks empower LLMs to actively plan, re-
+pabilities across diverse domains (OpenAl et al., _ trieve, and integrate information through iterative
+2024; DeepSeek-AI et al., 2025). However, their decision-making (Jin et al., 2025; Chen et al., 2025;
+*Equal contribution. Yao et al., 2023). Rather than following a pre-
+*Corresponding author. determined pipeline, the model behaves as an au-
+
+
+============================================================
+PAGE 2
+============================================================
+
+| 4 tasks that demand comprehensive understanding
+across all documents, thereby making the current
+fe) z 5 single-retriever paradigm a major bottleneck in ex-
+lam (ep [2 ee Paracigm a ma]
+ternal information acquisition.
+User Lim Documents . .
+I I To address this challenge, we introduce
+LIM Response Tonk Docunents MARAG RY ewe Ic) 7 a une’ frame"
+(a) StandardRAG work for Mu ti-tool Agentic Retrieval- ugmente
+User Input Retrieval Generation — that enables LLMs to acquire a
+wider range of external information through dif-
+O ferent retrieval tools and better utilize it via rein-
+(an) Ce} a> forcement learning to enhance global reasoning.
+User ULM Graph Instead of relying on a single retriever or static
+graph abstraction, MARAG-R1 equips the model
+LLM Response Topk Nodes with four retrieval tools: semantic search for rele-
+(b) Graph-based RAG vance, keyword search for precision, filtering for
+User Input Retrieval Tool Call : . : ,
+4 rd constraint-based selection, and aggregation for sta-
+tistical synthesis. The model learns both when and
+fe) (ep (aN & e how to use these tools through a two-stage train-
+oO “tren ing pipeline: (1) supervised fine-tuning provides
+User Lum NG _J) was & Pip. . . P . & P .
+I I “ an initial understanding of tool usage patterns, and
+TEM Response Retrieval Tool Response (2) reinforcement learning optimizes tool sequenc-
+(c) MARAG-RI ing and reasoning strategies for maximal cover-
+age. This enables the model to interleave thinking
+Figure 1: Overview of the MARAG-RI framework. and retrieval—progressively gathering and consoli-
+(a) The standard RAG model performs a single-round gating evidence until sufficient information is ob-
+retrieval from a fixed top-k document set, which often tained—thereby bridging the gap between retrieval
+limits knowledge coverage. (b) The graph-based RAG :
+: . and global reasoning.
+models structured semantic relations among documents, ,
+which enhances global awareness but loses the original We summarize our contributions as follows:
+document-level information during graph construction. .
+(c) In contrast, our MARAG-R1 framework dynamically * To the best of our knowledge, MARAG-R1 is
+coordinates multiple specialized retrieval tools to access the first framework that enables an LLM to
+and integrate diverse external information, achieving coordinate multiple retrieval tools through re-
+more comprehensive and factual reasoning. inforcement learning to obtain more external
+information for global retrieval and reasoning.
+tonomous agent that can issue queries, invoke tools, ° We conduct extensive comparisons with ex-
+and refine its reasoning trajectory based on interme- isting iterative and reinforcement-based RAG
+diate observations. Graph-based approaches (Fig- methods. Results show that MARAG-R1 SIg-
+ure 1b) such as GraphRAG (Edge et al., 2025) and nificantly outperforms all baselines and es-
+HyperGraphRAG (Luo et al., 2025) construct struc- tablishes new state-of-the-art performance on
+tured semantic abstractions to achieve global aware- global retrieval tasks.
+wh wine reinforcement rearing (tase ¢ Further analyses reveal that each component
+oe " ya a et al ” » an Re- contributes critically to overall improvements
+eare ( en et al, ) optimize adaptive re- and exhibits strong transfer to multi-hop QA
+trieval behaviors.
+; ; tasks.
+However, existing RAG systems still suffer from
+limited external information access. Most ap- 2 Related Work
+proaches rely on a single retriever with a fixed . .
+top-k selection strategy, which confines the model 2.1 Retrieval-Augmented Generation
+to a narrow and static subset of the corpus. This re- _ Retrieval-Augmented Generation (RAG) enhances
+striction prevents the model from acquiring the full language models by grounding their responses in
+range of relevant external information required for external knowledge sources (Lewis et al., 2021;
+
+
+============================================================
+PAGE 3
+============================================================
+
+Karpukhin et al., 2020). Early RAG systems  cality of graph traversal restricts their ability to
+employed dense retrievers with dual-encoder ar- _ perform exhaustive corpus-wide retrieval required
+chitectures to retrieve relevant documents based _ for global aggregation tasks (Edge et al., 2025; Luo
+on semantic similarity, achieving significant im- et al., 2025; Sanmartin, 2024).
+provements in open-domain question answer-
+ing (Karpukhin et al., 2020; Bajaj et al., 2018; 2.2 Agentic RAG Systems
+Kwiatkowski et al., 2019; Joshi et al., 2017). Sub- The emergence of tool-using agents has opened
+sequent work focused on improving retrieval strate- joy, possibilities for RAG systems. ReAct (Yao
+gies through contrastive learning (Izacard et al.,  ¢ a],, 2023) demonstrates that language models
+2022) and tighter integration of retrieval with gen- Gan be prompted to interleave reasoning and ac-
+eration (Borgeaud et al., 2022). These founda- tion, enabling them to interact with external tools
+tional approaches primarily address single-hop re- ang APIs. Subsequent work has explored train-
+trieval tasks where answers reside in individual ing agents specifically for retrieval tasks. LLa-
+documents. trieval (Li et al., 2024) is a training-free retrieval
+Recent advances have extended RAG to multi- framework where an LLM iteratively verifies and
+hop reasoning scenarios requiring information syn- updates retrieval results through a verify—update
+thesis across multiple documents. Self-RAG (Asai process, enabling self-improvement without su-
+et al., 2023) introduces self-reflection mechanisms pervised training. These training-free agentic ap-
+that dynamically control retrieval timing and ver- proaches show promise but are limited by the qual-
+ify retrieved content quality. FLARE (Jiang et al., ity of prompting strategies and lack the ability
+2023) proposes active retrieval strategies that trig- tg Jearn from task-specific feedback (Jiang et al.,
+ger document fetching based on generation con- 2023; Asai et al., 2023). Recent work has begun
+fidence. IRCoT (Trivedi et al., 2023) interleaves exploring reinforcement learning (DeepSeek-AI
+chain-of-thought reasoning with iterative retrieval, 4 al., 2025; Schulman et al., 2017; Ahmadian et al.,
+demonstrating advantages on multi-hop reasoning 2024; Hu et al., 2025) to optimize multi-step re-
+benchmarks (Trivedi et al., 2022; Ho et al., 2020; trieval strategies. Search-R1 (Jin et al., 2025) and
+Yang et al., 2018). While these methods improve Research (Chen et al., 2025) apply RL to train
+reasoning over small document sets, they remain agents for iterative retrieval in multi-hop reason-
+constrained by top-k retrieval paradigms that fun- ing tasks, demonstrating improvements over fixed
+damentally limit their ability to achieve complete etrieval strategies. However, these methods op-
+document coverage for corpus-wide aggregation —_timize solely with answer-level rewards, provid-
+tasks (Edge et al., 2025; Luo et al., 2025). ing sparse feedback that offers limited guidance
+Structured retrieval methods attempt to address fo, learning complex multi-step retrieval behaviors.
+limitations of unstructured approaches by organiz- fore critically, they focus on optimizing local in-
+ing knowledge into graphs or hierarchical struc- formation retrieval within small document subsets
+tures (Edge et al., 2025; Guo et al., 2025; Gutiérrez rather than addressing the distinct challenge of ex-
+et al., 2025). KG-RAG (Sanmartin, 2024) con- _ haustive corpus-wide retrieval (Edge et al., 2025;
+structs knowledge graphs from unstructured text | Wo et al., 2025). Our work extends this line of
+and performs multi-hop reasoning through graph research by introducing process-level rewards that
+traversal. GraphRAG (Edge et al., 2025) builds provide dense supervision for intermediate retrieval
+multi-level community structures to support global steps and by explicitly targeting global retrieval
+queries requiring thematic synthesis across entire tacks requiring complete document coverage and
+corpora. HippoRAG (Gutiérrez et al., 2025) simu- aggregation (Jin et al., 2025; Gutiérrez et al., 2025;
+lates hippocampal memory mechanisms using per- | jg al., 2025).
+sonalized PageRank for optimized retrieval paths.
+HyperGraphRAG (Luo et al., 2025) extends graph 3 Method
+representations to hypergraphs that model com-
+plex multi-relational structures through hyperedges _ Instead of improving a single retriever, MARAG-
+connecting multiple nodes. However, these graph- _R1 leverages multiple retrieval tools to acquire sub-
+based approaches face fundamental challenges: in- __ stantially more external information than a single
+formation loss during graph construction limits __ retriever, and trains the LLM to better utilize this
+their fidelity to original documents, and the lo- _ evidence for reasoning. As illustrated in Figure 2,
+
+
+============================================================
+PAGE 4
+============================================================
+
+Stagel: Trajectory Collection Stage2: Supervised Fine-Tuning
+a <tool_call> Dense Search </ tool_call > _
+as fs) Sf ») <tool_response>...<tool_response> >t
+= (om) d h <think>...</think> 38
+Raw Data @ Dense Search cy epmnla <tool_call> Keyword Search </ tool_call >
+*
+eB» Agaregation Too! 2 Document Filter ps
+we
+Stage3: Reinforcement Learning
+Update Policy Model RLOO
+‘ 2 Reward Design
+€5
+Query | 23) estimation
+Figure 2: Overview of the MARAG-R1 framework.
+MARAG-R1 consists of three major stages: (1) 3.1.2 Trajectory Structure and Collection
+expert trajectory collection, (2) supervised fine- Each training instance consists of a query—answer
+tuning, and (3) reinforcement learning for tool co- pair (Q, A*). We expand it into a multi-step rea-
+ordination. We next describe these three stages in —_ soning trajectory T = {91,So,...,S}7]}, where
+detail. each step S; contains the model’s intermediate rea-
+; ; soning R;, the tool invocation C;, and the resulting
+3.1 Stage 1: Trajectory Collection documents Di:
+To train the agent effectively, we first collect high- Si =(Ri Cy, Di), t<ITI- (1)
+quality expert trajectories that demonstrate multi- The final 7 th ‘call with th
+step reasoning for global RAG tasks. This stage in- ne tna. step replaces the too ca with the pre-
+» dacioni wy: dicted answer A. Expert trajectories are collected
+volves two key components: designing specialized : :
+: : , using a teacher model under controlled prompting.
+retrieval tools and defining the trajectory structure. :
+Low-quality or redundant traces are filtered out
+3.1.1 Retrieval Tools through rejection sampling to guarantee trajectory
+: . consistency and factual correctness.
+To support diverse retrieval demands, MARAG-R1 y
+is equipped with four complementary tools, each 3,2 Stage 2: Supervised Fine-Tuning
+targeting a specific retrieval pattern: We initialize the agent using expert trajectories
+. enerated by prompting GPT-4 with task in-
+1. Semantic Retriever pp: performs dense 8 : y Promping ae
+; : structions and examples, followed by rejection
+semantic retrieval for broad contextual explo- . : :
+: sampling for quality control. Given a dataset
+ration. D = {(Qi,T*,Af)}%4 of query-trajectory-
+. . answer triples, we optimize the standard next-token
+2. Keyword Retriever FixR: performs keyword- aon P P
+. : prediction loss:
+based matching to retrieve relevant docu-
+N_ IT
+ments.
+Lsrr = — 1) (log Po($j | Qi, Sj), 2)
+3. Document Filter Fpr: filters candidate docu- i=1 j=l
+ments based on metadata attributes or logical | where @ represents the model parameters and S<;
+constraints. denotes all steps before step 7. This stage teaches
+the agent to mimic expert behavior in tool selec-
+4. Aggregation Tool F'c: executes statistical tion and multi-step reasoning, establishing a strong
+or structural operations (e.g., counting, rank- foundation for subsequent RL training. We refer to
+ing, or set aggregation) to synthesize global the model after this cold start stage as MARAG-CS
+evidence. (SFT-only).
+
+
+============================================================
+PAGE 5
+============================================================
+
+3.3 Stage 3: Reinforcement Learning predicted and expert trajectories, respectively:
+After imitation, MARAG-R1 is refined through re- 1, if Neat < Ney,
+inforcement learning (Ahmadian et al., 2024) to Rr = Nea —Ney .
+optimize multi-tool coordination. The model inter- max(0, I- Neu ) » otherwise.
+acts with the retrieval environment, autonomously . (5)
+generating trajectories and receiving rewards that This reward encourages the agent to explore the
+reflect both outcome accuracy and procedural qual- _ Tetrieval space beyond expert trajectories when ben-
+ity. eficial, while penalizing redundant or unproductive
+tool calls to balance exploration with efficiency.
+3.3.1 Reward Design Overall Reward. The final trajectory-level re-
+We design a composite reward that provides dense, — ward aggregates the above components:
+interpretable feedback for both answer accuracy
+and retrieval behavior. Global retrieval requires not RT) =Rat+ Ret Rr. (6)
+only producing correct final answers but also col- a . . coo.
+lecti . : . This hierarchical design prioritizes comprehen-
+ecting comprehensive evidence through effective . . .. oo :
+
+. . sive evidence acquisition, which is essential for
+exploration of the document space. To this end, we hievi lobal ing in RAG svst
+decompose the total reward into three components: achieving gional reasoning m systems.
+answer reward, document coverage reward, and 33.2. Policy Optimization
+tool exploration reward. To optimize the policy, MARAG-R1 employs Rein-
+
+. forcement Learning with Leave-One-Out baseline
+Answer Reward (4). This term evaluates the (RLOO) (Ahmadian et al., 2024). Given a batch
+correctness of the final answer using a token-level - . . K
+. ‘ a. . of Kx trajectories {Ti} , sampled from the current
+FI score, which provides partial credit for answers : : .
+. policy 7, the gradient of the expected reward is
+that are semantically close to the reference: : ;
+estimated as:
+= FI(A, A* 3 ix
+Ra (A, A"), 30) = HDL (RT) ~ ges YS RUT) Vo log Po(T).
+i=1 j#i
+where A and A* denote the predicted and ground- ; M
+truth answers, respectively. This reward offers fine- where R(7;) denotes the scalar reward defined
+grained supervision that encourages the agent to above. The leave-one-out baseline reduces gradi-
+produce precise yet robust outputs. ent variance by comparing each trajectory’s reward
+to the mean of others within the same batch, thus
+Document Coverage Reward (R;;). To assess _ stabilizing optimization without requiring an ex-
+the completeness and precision of retrieved evi- plicit reference model or KL regularization. This
+dence, we compute an FI score over document _ formulation is particularly suitable for multi-step
+identifiers. Let Dprea = {a,j denote the set easoning tasks with discrete tool-use actions, as it
+of retrieved document IDs and‘D* the ground-truth__ allows efficient credit assignment at the trajectory
+supporting documents. The reward is defined as: level. Through RLOO optimization, MARAG-R1
+refines its retrieval and reasoning strategies beyond
+. 2-P-Rec supervised imitation, achieving more consistent
+Ry = F\(Dprea,D") = P+Rec ’ (4) and efficient multi-tool coordination.
+we * 4 Experimental Setu
+where precision P = Poe" | and recall Rec = P P
+pre .
+Poe This reward encourages retrieving all 4.1 Baselines
+necessary documents while minimizing irrelevant | We compare our approach with six representa-
+retrievals. tive Retrieval-Augmented Generation (RAG) meth-
+ods (Lewis et al., 2021; Trivedi et al., 2023; Edge
+Tool Exploration Reward (Rr). This compo- _ et al., 2025; Luo et al., 2025; Jin et al., 2025; Chen
+nent promotes strategic exploration by rewarding _ et al., 2025). StandardRAG (Lewis et al., 2021;
+sufficient but not excessive tool usage. Let Nea | Karpukhin et al., 2020) represents the basic single-
+and N®,, denote the number of tool calls in the round retrieval paradigm. ITER-RETGEN (Shao

@@ -1,0 +1,175 @@
+arXiv Paper: 2510.27535
+Title: Patient-Centered Summarization Framework for AI Clinical Summarization: A Mixed-Methods Design
+Authors: Maria Lizarazo Jimenez, Ana Gabriela Claros, Kieran Green, David Toro-Tobon, Felipe Larios, Sheena Asthana, Camila Wenczenovicz, Kerly Guevara Maldonado, Luis Vilatuna-Andrango, Cristina Proano-Velez, Satya Sai Sri Bandi, Shubhangi Bagewadi, Megan E. Branda, Misk Al Zahidy, Saturnino Luz, Mirella Lapata, Juan P. Brito, Oscar J. Ponce-Ponte
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27535
+OCR Date: 2025-11-03T16:26:41.173017
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+Title: Patient-Centered Summarization Framework for Al Clinical Summarization: A Mixed-Methods Design
+Maria Lizarazo Jimenez", Ana Gabriela Claros”, Kieran Green’, David Toro-Tobon’, Felipe Larios’,
+Sheena Asthana‘*, Camila Wenczenovicz', Kerly Guevara Maldonado’, Luis Vilatuna-Andrango’,
+Cristina Proano-Velez', Satya Sai Sri Bandi’, Shubhangi Bagewadi', Megan E. Branda‘, Misk Al
+Zahidy', Saturnino Luz‘, Mirella Lapata’, Juan P. Brito’*, Oscar J. Ponce-Ponte’?
+1. Care and Al Laboratory, Knowledge and Evaluation Research Unit, Division of Endocrinology,
+Diabetes, Metabolism and Nutrition, Department of Medicine, Mayo Clinic, Rochester, Minnesota,
+USA
+2. University Hospitals Plymouth NHS Trust, Derriford Hospital, Plymouth, UK
+3. Division of Endocrinology, Diabetes, Metabolism, and Nutrition, Mayo Clinic, Rochester,
+Minnesota, USA
+4. Centre for Health Technology, University of Plymouth, UK
+5. Division of Clinical Trials and Biostatistics, Department of Quantitative Health Sciences, Mayo
+Clinic, Rochester, Minnesota, USA.
+6. Usher Institute, University of Edinburgh
+7. School of Informatics, University of Edinburgh
+*These authors contributed equally.
+Corresponding author:
+Oscar J. Ponce-Ponte
+ponceponte.oscar@mayo.edu
+Care and Al Laboratory, Knowledge and Evaluation Research Unit, Division of Endocrinology, Diabetes,
+Metabolism and Nutrition, Department of Medicine, Mayo Clinic, Rochester, Minnesota, USA
+Mayo Clinic, 200 First Street SW, Rochester, MN 55902.
+Word count: 3,751; Figures: 2; Tables: 3
+1
+
+
+============================================================
+PAGE 2
+============================================================
+
+Large Language Models (LLMs) are increasingly demonstrating the potential to reach human-level
+performance in generating clinical summaries from patient-clinician conversations. However, these
+summaries often focus on patients’ biology rather than their preferences, values, wishes, and concerns. To
+achieve patient-centered care, we propose a new standard for Artificial Intelligence (Al) clinical
+summarization tasks: Patient-Centered Summaries (PCS). Our objective was to develop a framework to
+generate PCS that capture patient values and ensure clinical utility, and to assess whether current open-
+source LLMs can achieve human-level performance in this task. We used a mixed-methods process. Two
+Patient and Public Involvement groups (10 patients and 8 clinicians) in the United Kingdom participated in
+semi-structured interviews exploring what personal and contextual information should be included in clinical
+summaries and how it should be structured for clinical use. Findings informed annotation guidelines used
+by eight clinicians to create gold-standard PCS from 88 atrial fibrillation consultations. Sixteen consultations
+were used to refine a prompt aligned with the guidelines. Five open-source LLMs (Llama-3.2-3B, Llama-
+3.1-8B, Mistral-8B, Gemma-3-4B, and Qwen3-8B) generated summaries for 72 consultations using zero-
+shot and few-shot prompting, evaluated with ROUGE-L, BERTScore, and qualitative metrics. Patients
+emphasized lifestyle routines, social support, recent stressors, and care values. Clinicians sought concise
+functional, psychosocial, and emotional context. The best zero-shot performance was achieved by Mistral-
+8B (ROUGE-L 0.189) and Llama-3.1-8B (BERTScore 0.673); the best few-shot by Llama-3.1-8B (ROUGE-
+L 0.206, BERTScore 0.683). Completeness and fluency were similar between experts and models, while
+correctness and patient-centeredness favored human PCS.
+
+2
+
+
+============================================================
+PAGE 3
+============================================================
+
+KEYWORDS: Patient-Centered Summarization; Large Language Models (LLMs); Qualitative Framework.
+3
+
+
+============================================================
+PAGE 4
+============================================================
+
+INTRODUCTION
+Clinical summarization is an essential component of modern healthcare, as it allows clinicians to efficiently
+aggregate, organize, and synthesize complex patient data into concise, actionable insights that support
+clinical reasoning, decision-making, and care coordination’. High-quality summaries help reduce
+information overload, promote safer care transitions, and improve communication among providers and
+with patients’®. For example, high-quality discharge summaries have been associated with fewer
+medication errors, lower readmission rates, mitigating diagnostic errors, facilitating effective communication
+between care teams, and increasing clinician satisfaction?+. Yet preparing these summaries is time-
+consuming and contributes to documentation burden, which has motivated the development of artificial
+intelligence (Al) systems to automate the task. These systems use natural language processing to generate
+concise summaries from electronic health records (EHRs) and patient-clinician encounters 5°. Recent work
+in clinical dialogue summarization has employed multi-stage pipelines and fine-tuned large language
+models (LLMs) to improve the accuracy and coherence of patient-clinician summaries, reaching almost
+human-level performance®.
+However, current Al models are trained on clinical notes that have increasingly evolved to capture biological
+complexity as well as provide enough documentation to justify billing and reimbursement’. This dual
+purpose has shaped current summaries and the datasets used to guide current Al scribes, making them
+biologically centered and prioritizing pathophysiological details over patient preferences, their context, and
+what truly matters to them®. As a result, these models often produce clinical summaries that focus on
+medical issues and the clinician’s perspective, without fully incorporating patients’ values, preferences, and
+concerns. Therefore, we posit that patient-centered summarization is a new Al task that captures patients’
+values and preferences while preserving clinical utility. This a key issue for enabling patient-centered
+pathways particularly for older patients with multimorbidity, whose experience of clinical encounters may be
+less shaped by the need for condition-specific information than a holistic approach that understands their
+needs to manage complex health problems to maximize quality of life®'°.
+To ensure that patient-centered summaries (PCS) truly capture what matters to patients while remaining
+clinically useful, their definition must be dynamic and context-dependent. What constitutes a “patient-
+centered” summary may vary across settings, medical specialties, cultural contexts, geographic regions,
+and individual backgrounds. Therefore, PCS must continuously adapt to both patients’ and clinicians’
+perspectives within these varying contexts. Achieving this requires ongoing collection and synthesis of
+feedback from both groups to define an evolving gold-standard PCS, which can then guide local
+benchmarking or fine-tuning of Al systems.
+Because this process is often time-consuming and resource-intensive, we propose a methodology to
+accelerate and streamline it through patient and public involvement and engagement (PPIE) groups. In this
+study, we demonstrate the feasibility of this approach, including the benchmarking of open-source large
+language models (LLMs). Specifically, we (1) introduce a novel mixed-methods framework for developing
+a context-aware, patient-centered, gold-standard for clinical summarization, and (2) benchmark current
+open-source LLMs against gold-standard PCS to establish a baseline for future improvement in this area.
+METHODS
+The framework to define, generate, and evaluate PCS followed a four-step a mixed-methods design. First,
+we captured patients’ and clinicians’ perspectives into PCS by leveraging the Patient and Public
+Involvement and Engagement (PPIE) methodology. Two PPIE groups were convened to define the core
+components of a PCS through semi-structured interviews. Second, these findings were translated into an
+annotation guideline, which eight clinicians’ annotators used to create gold-standard PCS for 88 transcribed
+4
+
+
+============================================================
+PAGE 5
+============================================================
+
+patient-clinician consultations. Third, a prompt was iteratively developed using 16 consultations and then
+used to generate PCS from five general-purpose, open-source LLMs (Llama-3.2-3B, Llama-3.1-8B, Mistral-
+8B, Gemma-3-4B, and Qwen3-8B) with zero-shot and few-shot prompting techniques. Notably, none of
+these models were pretrained on clinical summaries from EHRs. Finally, the model-generated summaries
+from the remaining 72 consultations were evaluated against the gold-standard PCS using a quantitative
+analysis (ROUGE-L and BERTScore) and a qualitative human assessment across five domains, including
+correctness and patient-centeredness. Figure 1 provides an overview of the study workflow.
+Study Methods
+1 2 3 4
+Patient and Public Annotation Guideline Prompt Generation Performance
+Involvement and Gold-Standard Assessment
+2» \ =
+Rea -
+fay Sd
+oe - we
+* Conducted semi- * Developed annotation * Refined prompts © Performed quantitative
+structured interviews guidelines iteratively using PPIE (ROUGE-L, BERTScore)
+with patients and « Eight clinical annotators * 18% patient-clinician « Perfomed qualitative
+clincians generated PCS from 88 transcripts were evaluation
+* Identified key domains transcripts selected for prompt (correctness,
+and structural generation completeness,
+preferences for PCS « Applied zero and few- conciseness, patient-
+shot prompting centeredness, fluency)
+Figure 1. Study Methods. The study followed four phases: (1) Patient and Public Involvement and
+Engagement (PPIE) to identify key domains for patient-centered summaries (PCS); (2) development
+of annotation guidelines and a consensus-based gold-standard PCS; (3) prompt generation refined
+with PPIE and tested in zero- and few-shot settings; and (4) performance assessment using
+quantitative metrics (ROUGE-L, BERTScore) and qualitative human evaluation.
+First step: Patient and Public Involvement
+Two PPIE groups were recruited from Devon, a southwest coastal region in the United Kingdom. Eligible
+participants included adult patients (aged 18 or older) with capacity to provide informed consent and engage
+in PPIE discussions, as well as clinicians who regularly conducted face-to-face clinical appointments.
+Patients were excluded if they lacked decision-making capacity or could not meaningfully participate.
+Clinicians were excluded if they did not routinely provide direct patient care, meaning those with continuous
+contact with patients in the outpatient clinic.
+Semi-structured interviews for the PPIEs were led by K.G, who developed and iteratively improved and
+simplified the interview questions with input from experts in patient-centeredness. These questions explored
+the importance of capturing 1) Personal and Lifestyle information, 2) Support systems and Beliefs, 3) Health
+Goals and Challenges, 4) Emotional and Mental Health, 5) Sources of Meaning, and for clinicians, an
+additional question about how they preferred to receive and prioritize the information discussed from an
+appointment. These domains were derived and synthesized from integrative models of patient-centered
+5

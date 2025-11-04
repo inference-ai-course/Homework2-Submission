@@ -1,0 +1,292 @@
+arXiv Paper: 2510.27552
+Title: Multilingual BERT language model for medical tasks: Evaluation on domain-specific adaptation and cross-linguality
+Authors: Yinghao Luo, Lang Zhou, Amrish Jhingoer, Klaske Vliegenthart Jongbloed, Carlijn Jordans, Ben Werkhoven, Tom Seinen, Erik van Mulligen, Casper Rokx, Yunlei Li
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27552
+OCR Date: 2025-11-03T16:26:13.535339
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+MULTILINGUAL BERT LANGUAGE MODEL FOR MEDICAL
+TASKS: EVALUATION ON DOMAIN-SPECIFIC ADAPTATION AND
+CROSS-LINGUALITY
+Yinghao Luo!?, Lang Zhou!?, Amrish Jhingoer!?,
+
+Klaske Vliegenthart-Jongbloed*4, Carlijn Jordans‘,
+
+Ben Werkhoven®, Tom Seinen®, Erik van Mulligen®,
+
+Casper Rokx*, and Yunlei Li!*
+
+‘Department of Pathology & Clinical Bioinformatics, Erasmus University Medical Center Rotterdam
+?Department of Computer Science, Vrije Universiteit Amsterdam
+3Department of Internal Medicine, Erasmus University Medical Center Rotterdam
+4Department of Medical Microbiology & Infectious Diseases, Erasmus University Medical Center Rotterdam
+5Department of Data & Analytics, Erasmus University Medical Center Rotterdam
+®Department of Medical Informatics, Erasmus University Medical Center Rotterdam
+ABSTRACT
+In multilingual healthcare applications, the availability of domain-specific natural language process-
+ing(NLP) tools is limited, especially for low-resource languages. Although multilingual bidirectional
+encoder representations from transformers (BERT) offers a promising motivation to mitigate the
+language gap, the medical NLP tasks in low-resource languages are still underexplored. Therefore,
+this study investigates how further pre-training on domain-specific corpora affects model perfor-
+mance on medical tasks, focusing on three languages: Dutch, Romanian and Spanish. In terms
+of further pre-training, we conducted four experiments to create medical domain models. Then,
+these models were fine-tuned on three downstream tasks: Automated patient screening in Dutch
+clinical notes, named entity recognition in Romanian and Spanish clinical notes. Results show that
+domain adaptation significantly enhanced task performance. Furthermore, further differentiation
+of domains, e.g. clinical and general biomedical domains, resulted in diverse performances. The
+clinical domain-adapted model outperformed the more general biomedical domain-adapted model.
+Moreover, we observed evidence of cross-lingual transferability. Moreover, we also conducted
+further investigations to explore potential reasons contributing to these performance differences.
+
+These findings highlight the feasibility of domain adaptation and cross-lingual ability in medical
+NLP. Within the low-resource language settings, these findings can provide meaningful guidance
+for developing multilingual medical NLP systems to mitigate the lack of training data and thereby
+
+improve the model performance.
+
+Keywords Clinical NLP - BERT - Domain Adaption - Low-Resource Languages - Cross-Lingual Transfer - Named
+Entity Recognition
+1 Introduction
+1.1 Motivation
+Human immunodeficiency virus (HIV) remains a major challenge to public health on a global scale. Currently, although
+universal access to antiretroviral therapy has significantly reduced the mortality and transmission risk caused by HIV,
+many individuals still suffer health risks due to late diagnosis or a lack of timely treatment. Late HIV diagnosis is
+
+*y.1i.1@erasmusmc.nl
+
+
+============================================================
+PAGE 2
+============================================================
+
+Multilingual BERT Language Model for Medical Tasks: Evaluation on Domain-Specific Adaptation and
+Cross-linguality
+associated with adverse outcomes, including increased morbidity, mortality, and onward risk of transmission[1]. These
+negative consequences affect not only the individual but also the broader population [2]. Hence, it is essential to
+minimize missed opportunities for early HIV screening.
+With the rapid expansion of electronic health record (EHR) applications, there is great potential to use artificial
+intelligence tools to automatically identify patients who might be at risk or need testing. Traditionally, extracting useful
+information from unstructured data relies on manual chart review by experts, which would be extremely time-consuming
+and labor-intensive [3]. In recent years, natural language (NLP) techniques, particularly pre-trained language models
+such as BERT [4] and its domain-specific adaptations, have been widely applied to multiple healthcare tasks, such as
+disease information extraction, risk prediction, and treatment recommendations [5].
+Many healthcare settings involve multilingual contexts or under-resourced languages, such as Romanian and Spanish.
+It is worth mentioning that Romanian and Spanish both face significant challenges due to the scarcity of medical
+NLP resources [6, 7]. Multilingual language models are designed to understand and process multiple languages by
+sharing a common vocabulary across diverse linguistic unlabeled data. This property makes them particularly useful in
+cross-lingual transfer settings, especially applying to low-resource languages [8]. By combining language models with
+medical knowledge with the ability to work on different languages, they show potential to improve performance on
+medical tasks, in regions where relevant data is limited.
+However, despite these advancements, existing research for medical tasks has mostly focused on English-language
+medical data, with limited attention to under-resourced languages. Furthermore, the potential of pre-trained multilingual
+BERT-based models for supporting HIV screening in real-world EHR data remains underexplored. Moreover, the
+effectiveness of cross-lingual transfer for low-resource languages, using models trained on more abundant clinical
+corpus (such as in Dutch), is also underexplored. Addressing these gaps is crucial for extending the benefits of automated
+tools to more diverse healthcare settings.
+1.2. Problem statement
+Although the use of pre-trained language models has advanced benefits for medical tasks, several important challenges
+remain unresolved.
+First of all, there is limited understanding of how further pre-training on in-domain corpora affects the performance
+of mBERT on downstream medical NLP tasks. While domain specific models such as BioBERT [9], ClinicalBERT
+[10] have shown great progress in English, their performance remains poor in most low-resource languages. Therefore,
+we chose mBERT as our baseline model. Afterwards, the relative effectiveness of different types of domain-specific
+datasets (e.g., biomedical vs. clinical corpora) in improving model performance is still underexplored. Ultimately, the
+potential of cross-lingual transfer, which involves leveraging models pre-trained on more abundant clinical corpora
+(such as in Dutch) to support downstream tasks in low-resourced languages (Romanian and Spanish), remains an open
+research question.
+To address the gaps identified in previous research, this study proposes the following hypotheses. First, domain
+adaptation is expected to improve the performance of mBERT on medical NLP tasks. Second, further pre-training
+on clinical Dutch corpora is hypothesized to yield better performance on medical NLP tasks in Dutch compared to
+pre-training on general biomedical Dutch corpora. Third, pre-training on Dutch as a source language is anticipated to
+enhance performance on downstream tasks in other target languages, indicating cross-lingual transferability.
+1.3 Contributions
+This study developed a Dutch clinical language model and evaluated it on the HIV screening task. To our knowledge,
+this is the first Dutch clinical language model further pre-trained for HIV screening task. In addition, we systematically
+investigated how further pre-training on in-domain corpora affects model performance on downstream medical tasks. In
+particular, we also investigated how further pre-training on either general biomedical or clinical Dutch data influences
+model performance on the HIV classification task. Furthermore, we analyzed the cross-lingual ability of model that was
+pre-trained on Dutch clinical corpora and subsequently applied to Romanian and Spanish downstream tasks, providing
+insights into the potential and limitations of multilingual BERT-based models for cross-lingual ability. Through
+comprehensive empirical experiments and comparative analysis, this work contributed to a better understanding of
+multilingual language models in diverse and under-resourced healthcare tasks.
+1.4 Outline
+The remainder of this article is organized as follows. In section 2, we demonstrate the background and related work of
+language models, domain adaptation and cross-lingual transfer in the medical domain. Section 3 describes the materials
+2
+
+
+============================================================
+PAGE 3
+============================================================
+
+Multilingual BERT Language Model for Medical Tasks: Evaluation on Domain-Specific Adaptation and
+Cross-linguality
+and methods in every single experiment, which also includes the assumptions we propose. Then, section 4 gives a
+detailed analysis of the experimental results. Additionally, section 5 analyzes the findings with the comprehensive
+justification. Finally, section 6 concludes the findings, our limitations and future plan in this study.
+2 Related Work
+2.1 Transformer Architecture
+The transformer, proposed by Vaswani et al.[11], marks a major shift in natural language processing by replacing
+recurrent neural networks with a fully attention-based mechanism. It relies entirely on self-attention mechanisms to
+model dependencies between tokens, allowing for significantly improved parallelization and performance on sequence
+modeling tasks.
+As shown in Figure 1, the left side is the encoder, while the right is the decoder. The encoder structure is composed
+of a stack of six identical encoder layers, each layer comprises a multi-head attention sub-layer and the position-wise
+fully connected feed forward sub-layer. These two components are wrapped with residual connections and layer
+normalization, enabling better gradient flow and training stability. The difference of the decoder structure with encoder
+structure is the additional multi-head attention sub-layer. The additional multi-head sub-layer is connected to the output
+of each encoder, which allows the decoder to attend the encoder’s output representations. The encoder processes the
+input sequence and generates contextualized token representations. The decoder uses both previously generated tokens
+via self-attention and the encoder output via cross-attention to predict the next token in the output sequence, enabling
+effective sequence-to-sequence modeling.
+Output
+Probabilities
+Attention Nx
+w
+Nx wales
+Multi-Head
+Attention Attention
+RA A A_A A
+Positional (LY Positional (|)
+Encoding LY Encoding YP
+Inputs Outputs
+Figure 1: The architecture of the transformer. [4]
+3
+
+
+============================================================
+PAGE 4
+============================================================
+
+Multilingual BERT Language Model for Medical Tasks: Evaluation on Domain-Specific Adaptation and
+Cross-linguality
+2.1.1  Self-Attention Mechanism
+The self-attention mechanism of the transformer architecture is referred to as the scaled dot-product attention by
+Vaswani et al. [11]. The mechanism begins by projecting the input sequence into three matrices: queries (Q), keys (K)
+and values (V).These are obtained by multiplying the input embeddings with learned weight matrices. Conceptually, the
+query represents the token we are focusing on, the keys represent the tokens it is compared to, and the values contain
+the information that will be aggregated.
+The similarity between a query and each key is measured using a dot product, which captures how much attention one
+token should pay to another. These similarity scores are then scaled by the inverse square root of the key dimension
+to prevent the values from growing too large, which can lead to vanishing gradients during training. After scaling, a
+softmax function is applied to convert the similarity scores into a probability distribution. These probabilities serve
+as attention weights, indicating how much each token contributes to the representation of the current token. The final
+output is computed as a weighted sum of the value vectors, where the weights are the attention scores. Below is the
+mathematical expression:
+
+Attention(Q, K,V) ft (Cx yy (1)
+
+LLENtLON ’ ; = sojytmax| ——
+Va,
+
+This mechanism enables each position in the sequence to attend selectively to other positions, regardless of their
+distance, making it possible to model long-range dependencies more efficiently than with recurrent architectures.
+Furthermore, it is fully parallelizable, which greatly improves computational efficiency.
+2.1.2 Multi-Head attention Mechanism
+While a single attention layer can help models attend to relevant tokens based on contextual similarity, relying on a single
+space might limit the expressive power of models. To better train the model, the multi-head attention mechanism has
+been applied to the transformer, which allows transformer to jointly attend to information from different representation
+subspaces at different positions. Initially, Q, K and V are linearly projected h times to dg, dx and dy respectively.
+Then, queries, keys and values on each dimension will be input into the scaled dot-product attention layer in parallel.
+Finally, these outputs on h dimensions are concatenated and projected once more through a final linear layer.
+
+head; = Attention(QW2, KWK,VWy) (2)
+
+MultiHead(Q, K,V) = Concat(heady, ..., heady )W° (3)
+Where the projection matrices are defined as below:
+we wk € Rémodet X dic wy E€ Ramoder X dy we € Ride Xdmodet
+a? a ? v ?
+This mechanism allows the model to aggregate information from multiple dimensions simultaneously, greatly enhancing
+its capacity to represent complex linguistic patterns. By distributing attention across multiple heads, the Transformer
+can encode both local and global dependencies more effectively than a single-head architecture.
+2.2 BERT
+Bidirectional Encoder Representation transformer (BERT) is a pre-trained language model introduced by Devlin et
+al. [4], which has brought a wide range of state-of-the-art results in NLP tasks. The architecture of BERT consists of
+multiple layers of bidirectional self-attention and feed-forward networks, allowing it to capture contextual information
+from both the left and right of each token. BERT is pre-trained on large-scale unlabeled text using two unsupervised
+objectives: masked language models (MLM) and next sentence prediction (NSP).
+The concept of masked language modeling is inspired by the Cloze task, originally proposed by Taylor et al. [12], in
+which words are removed from a text and must be predicted based on context. As implemented in BERT, 15% of the
+input tokens from WordPiece are randomly selected for prediction. Of those selected tokens, 80% tokens are replaced
+with the special [MASK] token, 10% are substituted with a random token from the vocabulary, and the remaining
+10% are left unchanged. After this, the model is trained to predict the original identity of these masked tokens using
+bidirectional context, while ensuring that the model does not have access to the true identity of the masked token. This
+formulation allows the model to learn contextualized token representations based on both left and right context, without
+relying on sequential prediction.
+Apart from masked language modeling, BERT introduces the other pre-training objective known as Next Sentence
+Prediction (NSP), which is designed to model inter-sentential relationships. This task is particularly relevant for
+4
+
+
+============================================================
+PAGE 5
+============================================================
+
+Multilingual BERT Language Model for Medical Tasks: Evaluation on Domain-Specific Adaptation and
+Cross-linguality
+downstream tasks such as question answering and natural language inference, where understanding the relationship
+between sentences is of importance. Specifically, 50% of the sentence pairs consist of a consecutive sentence B that
+follows sentence A in the original corpus (labeled as IsNext), while the remaining 50% are randomly paired sentences
+that do not occur adjacent to one another (labeled as NotNext). The model is trained to predict if sentence B is the next
+sentence of sentence A using a classification layer, which enables the model to capture higher-level coherence between
+sentence pairs during pre-training.
+Although NSP is introduced in BERT to improve model’s ability to understand inter-sentential relationships, subsequent
+research has doubted its necessity [13, 14]. Liu et al. use MLM and remove NSP entirely, but the result still achieves
+superior performance on multiple downstream NLP tasks [14]. Most researchers apply MLM method to further pre-train
+their own BERT models [15, 13, 16]. Therefore, in terms of later experiments, MLM method is chosen for pre-training
+models to achieve better understanding from medical text representations. The multilingual BERT is pre-trained by
+using MLM as well, the introduction will be described in section 2.4.
+2.3 Domain-Specific pre-trained Language Models
+While BERT is proved to efficiently improve the performance compared to traditional NLP methods, it is pre-trained
+based on the large-scale general domain corpus, such as Wikipedia and BookCorpus [17]. When downstream tasks are
+situated within a specific domain context, learned representations of BERT might not align with the characteristics of
+domain-specific text. In such cases, downstream performance often suffers due to a mismatch in vocabulary and syntax.
+To address this gap, researchers often apply domain adaptation through a method known as further pre-training or
+domain-adaptive pre-training (DAPT). In terms of this approach, the language model is further trained on unlabeled data
+from the target domain using the same self-supervised method, typically masked language modeling (MLM). Domain
+adaptation via further pre-training has proven effective across a variety of specialized contexts. It provides a flexible
+solution when labeled data is scarce, as it relies solely on raw domain-specific text to improve the model’s capacity
+to generalize within the target domain, such as finance [16], biomedical [18], law [19], among others. Next, we will
+discuss the in-domain models related to the medical area.
+BioBERT is an English large-scaled pre-trained language model in the biomedical area, which is further pre-trained on
+bert-base-uncased model over the biomedical corpora from PubMed and PMC [9]. Importantly, it retains the original
+Wordpiece tokenization used in BERT, which can mitigate the out-of-vocabulary (OOV) issue [20]. Similarly, Clinical-
+BERT is specialized for English clinical notes of MIMIC-III. This model’s performance for predicting readmission
+of patients is better than BERT. However, this paper also points out that rather than using MIMIC-III ClinicalBERT
+embeddings, when utilizing ClinicalBERT in hospitals, the model should be retrained to improve its performance on
+larger EHR datasets [10].
+MedRoBERTa.nl * is one of the Dutch LLM based on BERT model, which is pre-trained from scratch by using Dutch
+medical dataset from Amsterdam Medical Centre (AMC) and Medical Centre of the Vrije Universiteit (VuMC) [21].
+Through an experiment on domain-specific models and general models, such as BERTje [13] and RoBERTa, in a NER
+dataset CoNLL-2002 *, which consists of news articles, it is found that the language in hospital notes is different, and it
+has a significant effect on the model it produces. Hence, constructing a domain-specific language model highly depends
+on the pre-training corpus, which indicates that quality, diversity and relevance are crucial.
+A BERT-based model for Arabic biomedical NER [22] has been proposed to solve the lack of Arabic biomedical
+resources utilizing a small-scale biomedical dataset. The model outperformed the NER task better compared to the
+mBERT and current Ara-BERT models, proving the validity of utilizing small-scale biomedical datasets in the pre-
+training phase to enhance model performance. Besides, this model was fine-tuned by using a customized silver standard
+Arabic biomedical corpus, which is tagged with IOB2 encoding format [23], so-called BIO format. In conclusion, this
+paper shows a detailed procedure of how to pre-train a language model in the absence-resource situation and fine-tune it
+to realize the NER task.
+Thomas et al. [24] presented a BioMed-RoBERTa model to perform the classification of physician notes, screening
+patients with active bleeding. In this study, they chose the BioMed-RoBERTa model as their language model, which
+adapts RoBERTa-base to 2.68 million scientific papers from the Semantic Scholar corpus via further pre-training,
+increasing the proficiency in the biology and medical domain. Patients who did not receive an anticoagulant at the time
+of admission have been selected from the open source dataset: MIMIC-III, which contains EHR-equivalent patient data.
+Then, the training set from this dataset was applied to fine-tune the BioMed-RoBERTa model. The results demonstrated
+that the applicability of alerts increases by 14.8%, while it also reduced the number of patients who would trigger the
+
+*https://huggingface.co/CLTL/MedRoBERTa.nl
+
+*https://www.clips.uantwerpen.be/conll2002/ner/
+
+5

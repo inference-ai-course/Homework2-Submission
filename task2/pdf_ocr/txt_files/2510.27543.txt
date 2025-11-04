@@ -1,0 +1,364 @@
+arXiv Paper: 2510.27543
+Title: DialectalArabicMMLU: Benchmarking Dialectal Capabilities in Arabic and Multilingual Language Models
+Authors: Malik H. Altakrori, Nizar Habash, Abdelhakim Freihat, Younes Samih, Kirill Chirkunov, Muhammed AbuOdeh, Radu Florian, Teresa Lynn, Preslav Nakov, Alham Fikri Aji
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27543
+OCR Date: 2025-11-03T16:26:30.543017
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+DIALECTALARABICMMLU: Benchmarking Dialectal Capabilities
+in Arabic and Multilingual Language Models
+Malik H. Altakrori', Nizar Habash??, Abdelhakim Freihat?,
+Younes Samih’, Kirill Chirkunov?, Muhammed AbuOdeh?,
+Radu Florian’, Teresa Lynn°, Preslav Nakov’, Alham Fikri Aji?
+IBM Research Al, ?New York University Abu Dhabi,
+3Mohamed bin Zayed University of Artificial Intelligence
+Abu Dhabi, UAE
+malik.altakrori@ibm.com, nizar.habash@nyu.edu, alham.fikri@mbzuai.ac.ae
+Abstract
+We present DIALECTALARABICMMLU, a new benchmark for evaluating the performance of large language models
+Se) (LLMs) across Arabic dialects. While recently developed Arabic and multilingual benchmarks have advanced LLM
+mS evaluation for Modern Standard Arabic (MSA), dialectal varieties remain underrepresented despite their prevalence in
+Pe everyday communication. DIALECTALARABICMMLU extends the MMLU-Redux framework through manual translation
+and adaptation of 3K multiple-choice question—answer pairs into five major dialects (Syrian, Egyptian, Emirati, Saudi,
+Do and Moroccan), yielding a total of 15K QA pairs across 32 academic and professional domains (22K QA pairs when
+O also including English and MSA). The benchmark enables systematic assessment of LLM reasoning and compre-
+hension beyond MSA, supporting both task-based and linguistic analysis. We evaluate 19 open-weight Arabic and
+— multilingual LLMs (1B—13B parameters) and report substantial performance variation across dialects, revealing persis-
+faa) tent gaps in dialectal generalization. DIALECTALARABICMMLU provides the first unified, human-curated resource for
+— measuring dialectal understanding in Arabic, thus promoting more inclusive evaluation and future model development.
+is Keywords: Arabic dialects, benchmark, question answering, large language models, evaluation, MMLU.
+A) 1. Introduction cally designed to evaluate the capabilities of LLMs
+°, across five major Arabic dialects: Syrian, Egyp-
+The rise of large language models (LLMs) has __ tian, Emirati, Saudi, and Moroccan. Building upon
+= been enabled by the development of robust eval- _ the English-based MMLU-Redux (Hendrycks et al.,
+on uation benchmarks capable of assessing not only 2020), we manually translate and adapt 3K ques-
++ the overall performance on Natural Language Pro- _ tion—answer pairs into each dialect, yielding 15K
+Vay cessing (NLP) tasks, but also linguistic adaptability. | human-curated instances.
+Cc To this end, many tasks have benefited from the By situating dialects, not MSA, as the primary
+N development of multilingual benchmarks that eval- _ target of evaluation, DIALECTALARABICMMLU es-
+on) uate model capabilities across multiple languages. _ tablishes a framework for quantifying dialectal un-
+— In question-answering (QA), such benchmarks derstanding, reasoning, and general knowledge in
+ne) have typically been first established for English Arabic, thus offering a reproducible foundation for
+N and later extended to multilingual settings through _ future research. Our contributions are as follows:
+. = translation-based adaptation, as seen in resources |
+Me such as MLQA (Lewis et al., 2020) and TyDi QA . We introduce DIALECTALARABICMMLU, the
+fa) (Clark et al., 2020). However, translation often first large-scale, human-curated benchmark
+os) obscures genuine linguistic competence in the tar- specifically designed to evaluate the reason-
+get language, particularly for under-resourced and ing and comprehension capabilities of LLMs
+diglossic languages such as Arabic, where a stan- across five major Arabic dialects.
+MSA) cooxiste sae Mere prandard Arabic + We provide a comprehensive dataset of more
+rieties ‘that diverge widely in morphology, syntax than 3,000 question-answer pairs per dialect
+lexicon, and usage (Ferguson, 1959) , , (plus MSA and English), spanning 32 aca-
+? ° , . demic and professional domains, all produced
+Existing Arabic benchmarks advance coverage and validated by native speakers to ensure
+and modeling for MSA, but provide little insight into linguistic fidelity and naturalness.
+LLM behavior on Arabic dialects. This limits our
+ability to measure real-world LLM performance in * We evaluate 19 open-weight Arabic and
+contexts where dialects dominate everyday com- multilingual LLMs (ranging from 1B to 13B
+munication, social media, and spoken interaction. parameters) under three experimental set-
+Here, we aim to bridge this gap by introducing Di- tings—default, oracle, and dialect identifica-
+ALECTALARABICMMLU, a new benchmark specifi- tion—to systematically assess the impact of
+
+
+============================================================
+PAGE 2
+============================================================
+
+dialectal variation on model performance. 2018; Bouamor et al., 2018; Abdelali et al., 2021;
+
+; ; Baimukan et al., 2022). Unlike this work, which
+
++ We conduct a detailed analysis of model be- hag focused on just two tasks, our focus here is on
+
+havior across dialects, revealing substantial general dialectal understanding.
+
+performance disparities and highlighting the Moreover, new benchmarks have begun to ad-
+need for dialect-aware evaluation and training 7 . : :
+
+strategies in Arabic NLP. dress dialectal and cultural dimensions in Arabic,
+
+albeit only partially. PALM (Alwajih et al., 2025)
+
+The remainder of the paper is structured as fol-__ introduced a year-long, human-curated dataset of
+lows: Section 2 reviews related work, Section 3 ver 10K instruction—response pairs covering all
+describes the process of data collection and quality 22 Arab countries in both MSA and dialects, across
+assurance, Section 4 introduces the experimental 20 culturally salient topics. While PALM effectively
+setup, and Section 5 presents the results and anal-  ©xPosed critical gaps in model performance on cul-
+ysis. Finally, Section 6 concludes and points to _‘tUrally grounded and dialectal instructions, its de-
+possible directions for future work. sign follows an instruction-tuning paradigm rather
+
+than a multitask reasoning framework.
+AraDiCE (Mousi et al., 2025) offers the most
+2. Related Work comprehensive attempt so far at LLM evaluation
+Several benchmarks have been introduced to en- for dialectal Arabic, contributing 45K post-edited di-
+able LLM evaluation for Arabic. ArabicMMLU alectal samples across Egyptian, Syrian, and Gulf
+(Koto et al., 2024) created an MMLU-like frame- varieties of Arabic and introducing a fine-grained
+work for Modern Standard Arabic (MSA), drawing cultural question—answering component. While
+on real school curricula and professional exams it marks a significant Step toward dialectal eval-
+from around the Arab world. LAraBench (Abde- uation by extending MMLU-style tasks to Arabic
+lali et al., 2024) collected a comprehensive suite dialectal varieties, its dataset is largely derived
+of 61 datasets spanning 33 diverse tasks across from machine-translated material, followed by post:
+text and speech, establishing a multi-domain, multi- editing. In contrast, our benchmark is entirely
+task evaluation platform for Arabic. More recently, human-translated by native speakers of the target
+BALSAM (Al-Matham et al., 2025) emerged as a Arabic dialects, and then double-checked again by
+community-driven, unified benchmark encompass- other native speakers. This ensures linguistic nat-
+ing 78 NLP tasks from 14 broad categories with uralness, idiomatic precision, and cultural authen-
+over 52K examples, with curated data covering ticity. Moreover, our benchmark is purpose-built
+diverse domains and various Arabic dialects. How- to establish Arabic Dialect Understanding as the
+ever, none of the above work had dialectal Arabic Primary evaluation axis, rather than as an English-
+evaluation of LLMs as its main focus. centric derivative.
+
+Complementing these efforts, 3LM (Boussaha Belebele (Bandarkar et al., 2024) extends cover-
+et al., 2025) focused on bridging Arabic, STEM, — 29@ to several Arabic dialects in a controlled read-
+and code, introducing a set of rigorous bench- ing comprehension setting. Yet, it remains limited
+marks to evaluate Arabic-enabled LLMs on sci- _ in terms of task scope and does not assess multi-
+entific reasoning and programming tasks. It ex- domain reasoning or knowledge access in Arabic
+tended prior efforts by targeting domains that re- dialects.
+quire structured problem-solving, such as mathe- JEEM (Kadaoui et al., 2025) expands bench-
+matics, physics, and computer science, where Ara- Marking into a multimodal setting by evaluating
+bic benchmarks have been notably lacking. These _—_ image captioning and visual question—answering
+initiatives, together with Arabic-centric models such across Jordanian, Emirati, Egyptian, and Moroccan
+as Jais (Sengupta et al., 2023), ALLaM (Barietal., Arabic dialects. The evaluation results revealed
+2025), and Fanar (Abbas et al., 2025) significantly that current Arabic vision—language models (VLMs)
+advanced evaluation for MSA. Yet, they remain __ struggle with dialect-specific visual understanding:
+overwhelmingly centered on Modern Standard Ara- | even GPT-4V (OpenAl et al., 2024), while outper-
+bic and offer only minimal insight into dialectal Ara- forming open-weight models, shows uneven com-
+bic performance. petence across dialects and lags behind in terms
+
+Extensive research, benchmarks, and shared _ of visual comprehension.
+tasks have targeted dialectal Arabic identifica- In contrast to the above work, we introduce a
+tion and translation (Bouamor et al., 2019; Abdul- _ large-scale, parallel benchmark explicitly designed
+Mageed et al., 2021, 2022, 2023, 2024), which _ for understanding dialectal Arabic as a primary
+was complemented by several datasets and evaluation axis. Unlike prior benchmarks on lan-
+tools (Zaidan and Callison-Burch, 2014; Bouamor = guage understanding that position dialects as sec-
+et al., 2014; Salama et al., 2014; Alsarsour et al., | ondary to Modern Standard Arabic, our benchmark
+2018; Abu Kwaik et al., 2018; Salameh et al., features balanced coverage across major regional
+
+
+============================================================
+PAGE 3
+============================================================
+
+Arabic dialectal varieties and relies exclusively on _ lation guidelines document (which will be included
+human-curated translation and dialectal adapta- _in the Appendix).
+tion. This methodology ensures semantic fidelity, The guidelines emphasized three core principles
+naturalness, and linguistic authenticity, enabling _ for translations:
+a principled evaluation of reasoning and compre- * Correctness: accurately reflect the source
+hension across dialect continua. Our contribution meaning;
+therefore complements and extends prior efforts, + Naturalness: sound authentic in the target
+building on the breadth of BALSAM, the dialectal dialect, even if close to MSA;
+emphasis of AraDiCE, and the multilingual reach + Simplicity: use concise, conversational lan-
+of Belebele, while addressing their shared limi- guage.
+tation of treating Arabic dialects as peripheral to Additional instructions included avoiding over-
+Modern Standard Arabic. dialectalization, using MSA terms where contextu-
+ally natural, and respecting natural spelling varia-
+3. Data Collection and Quality tion in the dialectal orthography.
+Assurance Each dialect team was composed of three roles:
+* Translator (Native/Near-native): produced
+DIALECTALARABICMMLU, is based on the trans- the initial translation;
+lation of over 3,135 English (ENG) multiple-choice * Reviewer (Native): reviewed and ac-
+question-answering (MCQA) pairs into five dialects cepted/rejected the annotations with justifica-
+representing the geographical spread of the Arab tion;
+World: Egypt (EGY), Morocco (MAG), Saudi Arabia + Adjudicator: resolved the disagreements and
+(KSA), Syria (SYR), and the United Arab Emirates ensured the final quality.
+(UAE). We also include MSA and English for a total Before starting, the translation teams attended
+of 21,945 MCQA pairs. two training sessions focusing on the workflow and
+; the guidelines. The goal was to clarify the expected
+Dataset Our dataset is based on MMLU-Redux- —_gutcome and to align practices across teams.
+v2 (Gema et al., 2025),' the high-quality re-
+annotated subset of MMLU. We selected 32 do- Quality Assurance To assess the translation
+mains from it and translated the corresponding ualit we carried out an in-house validation ste
+QA-pairs to the above five dialects. Below are the a Y; h dial led 32 QA pairs f P.
+fields and the domains in each field: or eac dia ect, we sample 2” pairs irom
+eight domains, and native speakers independently
+
++ Humanities: High School US History, High scored the translations on a Likert scale of 1-5:
+School World History, International Law, Moral
+Scenarios, Philosophy, Prehistory, Profes- 1. The translation is incorrect.
+sional Law, World Religions; 2. The translation is partially correct.
+
++ Stem: Abstract Algebra, Anatomy, Astron- (e.g., contains some inaccuracies, contains
+omy, College Computer Science, Concep- MSA where dialectal terms exist, etc.).
+tual Physics, Elementary Mathematics, High 3. The translation is acceptable
+School Chemistry; (e.g., contains the original meaning but could
+
+* Social Sciences: High School Geography, be improved in terms of formulation, fluency).
+High School Macroeconomics, High School 4. The translation is good
+Psychology, Professional Psychology, Public (but | would translate it differently).
+
+Relations, Security Studies, Sociology, US For- 5. The translation is very good.
+
+. Other Business Ethics, Clinical Knowledge, This evaluation step showed that only about 5%
+College Medicine, Global Facts, Human Aging, of the translations contained some inaccuracies.
+Management, Marketing, Nutrition, Virology. Almost all dialectical translations had average as-
+
+sessments between good (4) and very good (5)
+
+The translation was carried out in two main _|evels, except for the UAE dialect, which was only
+
+phases: manual translation and quality assurance. marginally below good (at 3.94).
+Linguistic analysis revealed that some of the
+Manual Translation The translations were out- _ UAE translations showed a bias towards the use
+sourced to a language service provider (LSP) and _ of Saudi dialectal words instead of more common
+carried out manually by teams of native or near- _ terms used in the region. For Syrian, some the
+native speakers of each dialect. To ensure consis- _ translations had the tendency to translate the con-
+tency, the process was guided by a detailed trans- _ cept rather than the original text. Additionally, some
+issues were detected with the translation of pro-
+
+‘Available from HuggingFace: mmlu-redux-2.0 nouns. This evaluation step effectively resulted in
+
+
+============================================================
+PAGE 4
+============================================================
+
+Dial SYR UAE KSA MSA MAG EGY Characteristic Value
+
+SYR 1.0 45 55 51 34 52 1. #of dialects 5, plus ENG & MSA
+
+UAE 1.0 59 61 37 51 2.  #of domains 32 domains (in 4 fields)
+
+KSA 1.0 .70 39 (61 3. # of Qs/domain ~ 98.0 Qs (68-100)
+
+MSA 1.0 AM 59 4. #of Qs/dialect 3,135 Qs
+
+MAG 1.0 .37 5. #ofQstranslated | 15,675 Qs (5 * 3,135)
+
+EGY 1.0 6. #of Qs in total 21,945 Qs (7 * 3,135)
+Table 1: Binary Jaccard word-level similarity be- Table 2: Dataset statistics.
+tween the dialectal Arabic pairs.
+
+Dialect Questions Choices
+F . a Chars Words Chars Words
+a second round of translation-review revision for 9§___-_
+the UAE and Syrian QA pairs, thus improving the EGY 171.5 = 29.5 130.4 22.1
+overall quality of the final dataset. KSA 170.3 29.8 129.9 21.8
+MAG 179.8 30.0 137.3 22.5
+
+Similarity between Dialects To further under- one egy ae tose eos
+stand the nature of the data, we examined the MSA 1775 30.3 1323 204
+lexical variations between the dialects using Jac- ENG 212.5 35.9 157.4 24.7
+card similarity. For this, we took the frequency. —§_ —-2#@-AA@
+counts for all words in both the question and the — Table 3: Average question and choice length (char-
+choice columns and passed them through a prepro- acters and words) across the dialects.
+cessing step using the CAMeL Tools (Obeid et al.,
+2020) for Unicode character normalization, dedia-
+critization, and whitespace tokenization. Table 1 These models are considered small- to medium-
+shows the Jaccard similarity between the various _ size compared to frontier models such as the 120B
+dialect pairs. version of OpenAl’s gpt-oss.
+
+When comparing our results to those of Salameh We based our choices for large language models
+et al. (2018), we make a few observations. First, experiments on Ouda (2025), which is an elabo-
+while we found MAG to be the most distant dialect _rate list of Arabic language models of various sizes,
+from MSA, they found it relatively closer. Addi- including both open-weight and closed ones; for
+tionally, they placed KSA much further from MSA, our experiments, we decided to use open-weight
+while we found KSA to be the closest. These dif- | LLMs only. We made sure we included Arabic-
+ferences could stem from the fact that their data enabled large language models that were devel-
+was on travel expressions, while the MMLU data _ oped in the Arab region, e.g., ALLaM (Bari et al.,
+is more technical in nature. Finally, in both cases, 2025), Fanar (Abbas et al., 2025), and Jais (Sen-
+EGY is closer to MSA than SYR. More similarity gupta et al., 2023), in addition to recent, multilin-
+measures will be provided in the Appendix. gual models of comparable sizes such as Google’s
+
+Gemma-3 (Team, 2025) and Cohere Labs’ Com-
+Dataset Statistics Table 2 shows some dataset mand R7B (Alnumay et al., 2025). Note that these
+statistics: number of dialects, domains, ques- models do not distinguish between MSA and di-
+tions, translations, including both average and total _alects; rather, all the dialects and MSA are consid-
+counts. Table 3 further zooms into the average _ ered as just Arabic. A list of these models, their
+length of the questions and the answers across __ sizes, and whether they support Arabic, English, or
+the investigated dialects/languages in our dataset: both is provided in Table 4.
+we can see that the lengths are similar across the
+Arabic varieties, with English being slightly longer. 4.2. QA Evaluation Tool
+. For our experiments, we adopted the LM-Eval-
+4. Experimental Setup Harness framework (Gao et al., 2024), which is
+. . . a community-supported tool that contains a suite
+In this section, we present our experimental setup, of evaluation tasks to measure the performance
+including the LLMs we experiment with and the of large language models. We developed custom
+evaluation tool we used. evaluation modules based on the available MMLU
+configuration and extended it for our evaluation
+4.1. Language Models
+We evaluated a wide spectrum of language models 2All the models in this work are available online via
+that vary in size between 1B and 13B parameters. | HuggingFace.com
+
+
+============================================================
+PAGE 5
+============================================================
+
+Family Model Size Ar En and the log-likelihood of that option appearing af-
+Oooo _ ter the given prompt is output by the model. The
+1 inceptionai —_jais-13b-chat 13.0 ¢ * option with the highest log-likelihood is chosen as
+2 google gemma-3-12b-it 12.2 6 6 the model’s answer, and this prediction is deemed
+3 MBZUAI-Paris Nile-Chat-12B 11.8 © ran ;
+
+4 silma-ai SILMA-9B-Instruct 9206. correct if it matches the correct answer for that
+5 QCRI Fanar-1-9B-Instruct 8.8 e e question. Finally, we repeat each experiment five
+6 CohereLabs command-r7b-arabic 8.0 e e times, and we report the average accuracy, com-
+7 CohereLabs aya-expanse-8b 80 ¢ « puted as the mean proportion of correctly predicted
+8 tiiuae Falcon-H1-7B-Instruct 7.6 e e instances across all test items in all five runs. For
+9 mistralai Mistral-7B-Instruct 7.20 ¢ each dialect/language, we average the accuracy
+10 ALLaM-Al ALLaM-7B-Instruct 70 ¢ ¢ over all 32 topics (unless stated otherwise). This
+11 Navid-Al —Yehia-7B 7.0 * © — design upholds transparency, comparability, and
+12 inceptionai _jais-6p7b-chat 68 ¢ © — reproducibility while providing a controlled and in-
+13 google gemma-3-4bit = 4.3. © — terpretable framework for analyzing the sensitivity
+14 Qwen Qwen3-4B Instruct” 4.0 6 « of Arabic-enabled models to dialectal variation and
+15 MBZUAI-Paris Nile-Chat-4B 3.9 « ee
+16 UBC-NLP _NileChat-3B 3.1 e e __ linguistic context.
+17 tiiuae Falcon-H1-3B-Instruct 3.1 e e
+18 inceptionai jais-2p7b-chat 2.7 ¢0¢ . .
+19 stabilityai ar-stablelm-2-chat_ «1.6 5. Experimental Results and Analysis
+Table 4: The evaluated language models. (* Based sie organised around three key Gucetions: analy
+on Qwen2 language support) , :
+5.1. MSA vs. DA in QA Performance
+scenarios: . |
+How do LLMs perform on Question—Answering
+* Default Setting This setting preserves the tasks in MSA compared to dialectal Arabic?
+
+original MMLU prompt without giving any di- | Table 5 shows the accuracy for various large lan-
+alectal cues. It varies, however, based on the = guage models when evaluated on the default Di-
+evaluated domain. For example, for the Ab- © ALECTALARABICMMLU setting for QA. For each
+stract Algebra domain, the prompt will be “The — model-dialect pair, we report the average accuracy
+following are multiple choice questions (with — over the 32 domains with the experiment repeated
+answers) about abstract algebra.” followed five times. Based on these results, we make a
+by the multiple choices, and concluded with = number of interesting observations:
+
+“Answer:” First, we demonstrate that our newly developed
+
+. . ao . dialectal Arabic evaluation dataset is effective for
+
+* Oracle Setting This setting introduces explicit tegting the dialectal capabilities of LLMs by high-
+dialectal conditioning by specifying the dialect lighting the performance gap between English on
+of the question as part of the prompt. AS @ one side vs. Modern Standard Arabic and dialec-
+result, the prompt is modified based on the di- tai Arabic on the other side, which is easy to see
+alects as well. For the same domain, Abstract given the parallel nature of the questions and the
+
+Algebra, the first part of the promptin the or- — angwers in the dataset.
+
+acle setting will be “The following are multi- Second, we use the performance results re-
+
+ple choice questions (with answers) about ab-  horted in Table 5 to answer the three questions
+
+stract algebra in an Egyptian dialect.” we posed above. We can see that the model per-
++ Dialect Identification The newly introduced formance varies depending on the language of the
+Dialect Identification setting tasks the mode! __ dialect of the question and the multiple choices for
+with inferring the dialect of an Arabic input from that question. More specifically, the performance
+six categorical options: the five dialects and Consistently declines across alll dialects compared
+MSA. Here, the topic is irrelevant and, asa  t0 MSA and English, and this trend holds consis-
+result, we have a fixed prompt: “The following _ tently across all Arabic-enabled LLMs we evaluated
+
+are multiple choice questions (with answers) |" Our experiments. a
+on Arabic dialect identification.’. Finally, while comparing and ranking the individ-
+ual LLMs we experimented with is unavoidable, we
+All the tasks use a multiple-choice format deliberately refrain from doing so in our analysis.
+to maintain strict methodological alignment with — Instead, we focused on the average performance
+MMLU. The model inference is performed using across all models. We argue that this offers a
+the log-likelihood evaluation mode, where each _— more holistic perspective on the current state of
+answer option is appended to the input prompt _ the art and may yield deeper insights than analyz-

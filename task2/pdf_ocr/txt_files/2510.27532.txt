@@ -1,0 +1,330 @@
+arXiv Paper: 2510.27532
+Title: SQLSpace: A Representation Space for Text-to-SQL to Discover and Mitigate Robustness Gaps
+Authors: Neha Srikanth, Victor Bursztyn, Puneet Mathur, Ani Nenkova
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27532
+OCR Date: 2025-11-03T16:26:58.783665
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+SQLSpace: A Representation Space for Text-to-SQL to
+Discover and Mitigate Robustness Gaps
+Neha Srikanth** Victor Bursztyn* Puneet Mathur* Ani Nenkova*
+y!
+*University of Maryland Adobe Research
+nehasrik@umd. edu
+Abstract Question SQL Query >_>
+SELECT r.restaurantName
+“I'm craving some FROM restaurants r
+. it JOIN menuitems mi
+Va) We introduce SQLSpace, =a _—_ human- Sec CD rAcRREMRETO) S CA. ROTATE
+N interpretable, generalizable, compact Brooklyn” WHERE r.cuisine = ‘Italian’
+-) . AND r.borough = ‘Brooklyn’
+P= representation for text-to-SQL examples (, GROUP BY r.restaurantName
+‘> derived with minimal human intervention. We i ee
+15) demonstrate the utility of these representations BAspect:Based Feature Discovery) ON
+oO in evaluation with three use cases: (i) closely (af (sax }
+comparing and contrasting the composition of Has nested prepositional phrases p000...00
+— paring ig ip {Has nested prepositional phrases } 0000...000
+oc popular text-to-SQL benchmarks to identify Blind Spot Analysis
+unique dimensions of examples they evaluate,
+— (ii) understanding model performance at 5 On
+= a granular level beyond overall accuracy , 86
+') scores, and (iii) improving model performance “09 “Ce
+N through targeted query rewriting based on
+oO learned correctness estimation. We show
+that SQLSpace enables analysis that would Figure 1: Our framework generates compact represen-
+Saal be difficult with raw examples alone: it tations of NL2SQL examples by ingesting a dataset,
+> reveals compositional differences between discovering shared properties of dataset items in natural
+N benchmarks, exposes performance patterns language, and evaluating these properties on examples
+obscured by accuracy alone, and supports to produce binary feature vectors. Clustering these fea-
+modeling of query success. ture vectors and examining a model’s cluster-level accu-
+é~ ig of query e ; ;
+N racy reveals classes of examples that it systematically
+So 1 Introduction struggles with, called blind spots.
+a)
+ra) Systems tasked with translating a natural language f
+N utterance to an executable SQL query (text-to-SQL, into ee leis ony ances trade-offs (Are there sub-
+; > ot NL2SOL for short) are typically evaluated for  °¢* of data on which cheaper models perform as
+= an ll ive models?)
+~< their accuracy on one or more benchmarks suchas “"' @8 More expensive mode's”). .
+= BIRD (Liet al., 2024) or SPIDER (Lei et al., 2024), 4 deeper, finer-grained understanding of text-
+While these accuracies can be used to rank mod-  '©-SQL examples could help us better understand
+els on a leaderboard in a coarse-grained way, this model performance and benchmark composition,
+evaluation paradigm obscures parts of evaluation making it easy for practitioners to compare their
+that are useful for researchers and practitioners to OW" data to existing benchmarks in order to se-
+know. It cannot answer naturally arising questions lect the top-performing model ona benchmark that
+around dataset composition (Why are the accura- best reflects their own data. Similarly, such under-
+cies for the same model so different on the two standing would help researchers looking to build
+benchmarks ?), open challenges for the field that "°¥ robustness benchmarks better analyze existing
+future work must address (What subsets of data are 88PS 10 datasets and systems in order to inform the
+easy or difficult for all models ?), and explorations design of new challenge evaluation sets.
+To facilitate informed decision-making in scenar-
+* Work on the SQLSpace representation was completed —_ gg like these, we introduce SQLSpace, a framework
+during an internship at Adobe Research. Analysis of model : sopeyey os
+performance for open-source models was done at the Univer- to increase visibility into benchmark composition
+sity of Maryland after the completion of the internship. and model behavior with minimal human interven-
+
+
+============================================================
+PAGE 2
+============================================================
+
+tion.! SQLSpace ingests one or more NL2SQL and standardized evaluation and are helpful in gaug-
+benchmarks and extracts human-interpretable fea- ing model performance. While some benchmarks
+tures of examples (e.g. “has an aggregate func- release accompanying analyses on the composi-
+tion”) in order to construct generalized vector rep- _ tion of examples (e.g. Yu et al. (2018) include
+resentations of any NL2SQL example (§3) ina SQL pattern coverage, or “difficulty” metadata),
+largely automated manner. these statistics are not standardized across datasets
+We demonstrate the utility of these vector repre- (Appendix C). In turn, it is challenging to identify
+sentations with three use cases that leverage the rep- qualitative differences between benchmarks and,
+resentations in different ways. First, we compare = more importantly, understand the specific strengths
+the distribution of examples in popular NL2SQL and weaknesses of the models evaluated on them.
+benchmarks (§4), allowing us to understand which Robustness-oriented benchmarks help address
+particular dimensions each dataset uniquely eval- _ this by targeting specific model weaknesses. Gan
+uates. Then, we compare the strengths and weak- et al. (2021a) create SPIDER-SYN to measure para-
+nesses of 13 models with greater detail than in phrastic robustness (Srikanth et al., 2024) after
+leaderboards by clustering examples across bench- finding models vulnerable to synonym substitu-
+marks that share similar features, and identifying tion (Utama et al., 2018; Ma and Wang, 2021).
+“blind spots”, or systematic classes of examples that Other SPIDER variants incorporate domain knowl-
+a model struggles with (§5). We identify two clus- edge (Gan et al., 2021b). Pi et al. (2022) study
+ters of universal blind spots and multiple clusters model robustness to table perturbations, and Chang
+for which cheaper models can outperform expen- et al. (2023) explore 17 perturbation types to both
+sive ones. Finally, show that learning a correctness _ questions and SQL queries. These types of robust-
+estimator for a given model to inform rewrites of ness benchmarks typically rely on hand-designed
+NL queries that are predicted to fail can improve _ perturbations informed by human priors, requiring
+accuracy (§6). significant manual effort. Experts must identify
+systematic model failures and craft challenge sets
+2 Background targeting those errors, as in Chang et al. (2023). As
+Task and Evaluation. Text-to-SQL involves models improve, this process resembles an itera-
+translating natural language question X toa valid _ tive cycle where researchers (1) identify remaining
+SQL query Y that is executable over a database | model weaknesses, (2) design challenge sets to tar-
+with schema S. Along with knowledge of S and get those weaknesses, after which (3) models are
+SQL, this task may require other domain knowl- optimized to saturate those challenge benchmarks.
+edge or forms of linguistic and inferential reason- _ Not only is this process costly, but it risks overlook-
+ing (Gan et al., 2021b). Generated queries Y are ing robustness gaps for particular combinations of
+typically evaluated by executing them and com- properties of NL2SQL examples, or more broadly,
+paring the resulting output with that produced by _ along other dimensions not explicitly included in
+executing the gold query (Li et al., 2024), and com- _ these benchmarks. SQLSpace addresses these gaps
+puting execution accuracy (EX), or the proportion in NL2SQL model robustness evaluation with min-
+of examples for which the results of the predicted — imal human intervention (Appendix A).
+and gold SQL queries match. While other met-
+rics, such as PCM-F1 (Hazoom et al., 2021), have 3 Representation Discovery
+been proposed to award partial credit, we report EX
+as our primary evaluation metric due to its wider Understanding the composition of NL2SQL
+adoption in well-established benchmarks (Li et al., datasets offers both theoretical and practical bene-
+2024; Lei et al., 2024). fits. It facilitates a deeper scientific understanding
+of the NL2SQL task by identifying requisite reason-
+Datasets. Datasets such as SPIDER (Yu et al., ing abilities as well as informed decision-making
+2018; Lei et al., 2024) and BIRD-BENCH (Lietal., about model and benchmark selection for differ-
+2024) are general-purpose benchmarks designed to ent use cases. We introduce a method, SQLSpace,
+reflect realistic queries and use-cases, spanning sev- tg discover interpretable feature-based representa-
+eral database schemas and domains. These bench- tions of NL2SQL examples which we use for down-
+marks maintain leaderboards to facilitate efficient — gtream analysis on benchmarks (§4) and model per-
+‘https: //github.com/nehasrikn/robust-sql. formance (§5).
+
+
+============================================================
+PAGE 3
+============================================================
+
+3.1 Motivation eee i eee
+Y PP ()
+We motivate SQLSpace with a simplified thought OS, x2 < © y
+experiment designed to illustrate the opacity of TER} SRR Te 2S
+accuracy-based leaderboard evaluation (Figure 2). QOQOQ) / —
+ay (Figure). |@ac00 |; Or Qe (Le
+Consider a model M that scores 80% accuracy QOD) OS © Dg:
+. v DAZ
+on benchmark B. Conventional NL2SQL leader- 29906), - QOYGC
+boards simply rank models by this accuracy, ob- a
+: ee Y Y ZF,
+scuring deeper performance characteristics of M. Coes ay) v9 sy
+However, grouping examples according to shared LOOP CY OY OSE
+. . oe Mixed acc in some example classes pracc = 80%
+properties (e.g., queries containing nested SELECT a
+clauses or ambiguous entity references) and ana- caer he aes a
+lyzing model predictions within and across these l l |
+groups could reveal more about the strengths and 2 Mall
+weaknesses of M/. For this thought experiment, . .
+. . Figure 2: Aggregate accuracy may obscure important
+we assume exclusive class membership, though we wos
+ee performance characteristics of models. Three models
+revisit this in §5. ; ; with identical 80% accuracy on benchmark B exhibit
+Fig. 2 illustrates three scenarios that all main- different error patterns across example classes, while
+tain the 80% accuracy of M while exhibiting fun- _ varying class distributions across benchmarks can ex-
+damentally different error distributions: (1) per- _ plain performance differences.
+fect accuracy on certain classes and complete fail-
+un on ones Q) tun form performane® across au et al., 2021a), CRITERIA2SQL (Yu et al., 2020),
+¢ veka an ° ve, ae acing, - imi " "SPARC (Yu et al., 2019b), COSQL (Yu et al.,
+ual classes, This breakdown helps us better under- 5) 9.) SpipeR-DK (Gan et al., 2021b), PARA-
+stand MM. Furthermore, the lower panel of Fig. 2
+illustrates that Je class distributi PHRASEBENCH (Utama et al., 2018), KAGGLED-
+vionifiontly ares bonchnuuke (84). Ifbonchmae BOA (Leeetal., 2021), ACL-SQL (Kaoshik etal.
+en cant ¥ feross Benchmarks (84). enchmirk 2021), SEOSS-QUERIES (Tomova et al., 2022),
+contains Cisp Topor tonately many examp es wit and FIBEN (Sen et al., 2020). Examples in these
+nested clauses relative to other evaluation sets, this :
+a : benchmarks span various natural language con-
+compositional bias could account for M/’s degraded .
+. structions, SQL patterns, and database schemas,
+performance on B, since the upper panel shows a . aoa P . .
+io in which M systematically fails on those making the compilation well-suited for discovering
+noc ot mw 1 Thos Ls y : generalizable features. Though we select UNITE-
+types ° examp es. : © SQL Space representations DEV, our method is dataset-agnostic, and in prac-
+we build in this section help us automatically iden- _. . .
+. : vee tice can be applied to any example collection.
+tify such shared properties, facilitating scalable
+benchmark and model analysis. Step 1: Description Generation. Building a
+. . human-interpretable example representation re-
+3.2 Representation Construction quires identifying diverse and meaningful proper-
+SQLSpace ingests a set of examples and involves __ ties of NL2SQL examples that may not necessarily
+four steps to semi-automatically produce general- _be captured by traditional embedding methods.”
+purpose vector representations of examples: (1) For an example e with natural language question
+aspect-based example description generation, (2) | X and gold SQL query Y, aDescriber model gen-
+feature discovery from descriptions, (3) feature _ erates five descriptions of e that focus on different
+deduplication, and lastly, (4) representation con- “aspects” related to the NL2SQL task:
+struction (inference) on examples. oo,
+1. Syntax (dyn): Commentary on the linguistic
+Development Example Set. We use a portion of syntax of X, including word order, grammati-
+the development set from the UNITE corpus (Lan cal relations, sentence structure, etc.
+et al., 2023) (UNITE-DEV) for automatic feature 2. SQL Syntax (dsqi-syn): Covers elements of
+discovery since it collates several public NL2SQL Y, including the structure and complexity of
+datasets. The portion we use includes a total of Wwe experimented with instruction-tuned embeddi 4
+€ experimented with instruction-tuned embedding mod-
+10,697 examples from SPIDER (Yu et al., 2018), els for generating representations, but found they focused on
+SQUALL (Shi et al., 2020), SPIDER-SYN (Gan ___ shallow features, even after masking schema-specific entities.
+
+
+============================================================
+PAGE 4
+============================================================
+
+Phase 1: Automatically Discover Example Representations
+First, the sentence makes use of a employs passive = —
+Text-to-SQL Example Corpus
+Phase 2: Analyzing Benchmarks and Models
+rs c OA
+ccs AL. | 2 es ld
+me 6 | ae, =e
+spt-ormini Detecs fea
+amipE UiaaeS GIES Sarees Cluster area eee ates
+Phase 3: Leverage Blind Spots for Better Performance
+¢ , 7
+8, ae Or
+@_o jarea than the USA ec than the USA SELECT T1.surface_area|
+Blind Spot Analysis imesnsosies g
+Figure 3: We discover representations of NL2SQL examples, and then use these representations in two applications:
+fine-grained analysis of models and benchmarks, and improving performance of models by rewriting NL questions
+to eliminate features associated with incorrect predictions.
+Schema (S): employee: id, nane, salary, dept_id | department: dept_id, name 5. Database Reasoning (day): Commentary on
+Question (X): How many employees earn more than their department's average salary? the relationship between X and the database
+SQL (Y): SELECT COUNT(*) FROM employee e WHERE salary > (SELECT AVG(salary) . . .
+FROM euployes WHERE dept_id = e.dept_id) schema S, including necessary reasoning re-
+Aspect # Example Predicates (p) Evaluated quired to map between entities in X and
+Sy 74 d 0 1
+a (40%) ont subordinate claves 1 columns in S, etc.
+contains nested conditionals 0
+SQL 41 ‘ludes a sub y a 7 - +
+Seutax (2%) —_has an apgrogere fonction i Inspired by aspect-based summarization (Ange-
+tains a CASE 0 sae . .
+FIs —____*____ lidis and Lapata, 2018), these descriptions are de-
+Example 27 involves nested logic 1 . . .
+Semantics (14%) has direct relationship 0 signed to capture fine-grained details about ex-
+requires domain knowledge 0 . . .
+“Wumatia aS empl diecspecchas a :~=«é‘éAMMi’S in the input dataset. The choice of as-
+eae minal abe ° pects above is informed by previous studies on
+Database 7 uses exact column names 1 the types of reasoning required to solve NL2SQL
+Reasoning (9%) requires commonsense reasoning 0
+mirrors schema structure 1 problems. We select gpt-40-2024-05-13 as our
+Poa?) 17 100%) Describer® and generate these five aspect-based
+. descriptions for all 10,697 examples in UNITE-
+Table 1: Our final set of natural language predicates, P, P : 69 P U
+spans multiple aspects of NL2SQL examples. Building DEV using Prompts D.1—D.5 (see Table 11 for ex-
+a representation of an example e involves evaluating ample descriptions).
+each predicate p on e to produce binary feature vector. . .
+Step 2: Feature Discovery. Long-form descrip-
+tions generated by the Describer in Step 1 serve
+the query as well as SQL keywords or other _as a repository of aspect-related facts about an ex-
+syntactic elements. ample. Examples similar in certain aspects may
+3. Example Semantics (dsem): Specific com- _ share phrases or sentences in their descriptions. To
+mentary on the relationship between X and __ discover shared properties across descriptions, we
+Y, such as parallel characteristics, types of | use a module from the goal-driven explainable clus-
+reasoning required to map between X and Y, _ tering pipeline in Wang et al. (2023b) designed to
+and other similarities and differences. propose binary natural language predicates from
+4. Pragmatics (dprag): Discussion of pragmatic _ descriptions. These predicates then serve as can-
+elements of X such as speech acts (Searle,  didate features of an NL2SQL example (hence-
+1975), adherence to Gricean maxims (Grice, forth, we use predicate and feature interchange-
+1975), uses of presupposition (Beaver, 1997) ably). Given a natural language predicate p and a
+and implicature (Grice, 1975), and relevance. | NL2SQL example e, p(e) = 1 when e expresses p,
+May also include commentary on any ambigu- }=§ —;————— : ;
+: W: t al., 2023a) or vagueness (Sapa- SQLSpace can be run using any Describer, open-source
+ity (Wang et al., ~ S' Pp: or proprietary. Future work may explore the effects of different
+rina and Lapata, 2024). Describers on generated features.
+
+
+============================================================
+PAGE 5
+============================================================
+
+and p(e) = 0 when e does not express p. a vector representation of an example e by eliciting
+We run a predicate proposal module from Wang _ binary judgments from a predicate Evaluator with
+et al. (2023b) which ingests a collection of texts | Prompts F.2-F.5 on {p(e) | p € P} (Wang et al.,
+and a natural language goal, and has a Proposer —__2023b), yielding a |P|-dimensional binary vector.
+LLM generate a list of candidate predicates, es- We use gpt-40-2024-08-@5 as our Evaluator.
+sentially performing “in-context clustering.” Con- _ For each aspect, we only include the relevant com-
+cretely, this process iteratively (1) samples aran- ponents of the example in the predicate evalua-
+dom subset of documents from the input collection _ tion prompt (e.g., syntax-based predicates are only
+and (2) prompts the Proposer to generate a struc- evaluated over the natural language question, or
+tured list of n predicates, repeating the process for database reasoning-predicates are only evaluated
+j iterations. over the natural language question and the schema).
+For each collection of aspect-based descrip- We estimate the accuracy of our chosen
+tions Caspect (€-8- Csyn = {dsyni +gynz,+-}), the Evaluator by randomly sampling 50 example-
+Proposer generates n = 40 predicates per itera- _ predicate pairs for each aspect (250 examples total)
+tion for 7 = 5 iterations (Appendix E). We use and have two authors independently evaluate the
+gpt-3.5-turbo-@125 as our Proposer (see Ta- predicate on the example. The average accuracy of
+ble 1 for example predicates). Note that describ- _ the Evaluator based on the two authors was 73%.
+ing examples in Step 1 before predicate pro- | We compute the agreement between the two annota-
+posal disentangles reasoning and understanding _ tors, obtaining Cohen’s kappa values of k = 60.2,
+examples from the task of finding commonal- _ indicating substantial agreement (Artstein and Poe-
+ities across examples in this step. We also use __sio, 2008) (see Table 6 for statistics per aspect).
+gpt-40-2024-08-06 as an additional Proposer to While we use a larger closed-source model to eval-
+diversify candidate predicates, as different mod- _ uate predicates for proof-of-concept, future work
+els prioritize different parts of descriptions when could explore using fine-tuning lighter-weight mod-
+proposing predicates (see Table 5 for counts of _ els on the task of predicate evaluation.
+proposed candidate predicates). .
+What do these example representations help
+Step 3: Feature Deduplication. The pool of | achieve? Our four-step pipeline (see Appendix B
+candidate predicates for each aspect generated by _ for ablation discussion and further intuitions) pro-
+the Proposers in the previous step contains dupli- duces |P|-dimensional binary vectors that serve as
+cates (“contains a nested JOIN” and “uses nested a general-purpose unified representation for any
+JOINS”). We remove them by filtering out those | NL2SQL example. These representations enable
+with high token similarity as measured by Leven- __ various analyses, including comparing dimensions
+shtein distance,* and then manually removing any — along which benchmarks significantly differ (§4)
+remaining paraphrases to ensure a clean set.” This as well as understanding fine-grained classes of
+process yields 187 general-purpose features across | examples across benchmarks on which NL2SQL
+five aspects (Table 1), henceforth denoted as P, models struggle (§5). They also allow us to build
+which we exhaustively list in Table 10 as an artifact a correctness classifier to estimate the likelihood
+of our work that other researchers may leverage. that a model will produce correct SQL for a natural
+. . language example, and in cases where an exam-
+Step 4: Example Representation Construction. ple exhibits features associated with blind spots,
+We now have a set of predicates that can serve as intervene to remove them ($6).
+descriptive features of NL2SQL examples and that
+span all components of the example: the natural 4 Comparing Text-to-SQL Benchmarks
+language question X, its relationship to the schema
+S, and the corresponding SQL query Y. We create Analyzing the composition of datasets can reveal
+distributions of example properties within datasets,
+4We use thefuzz with a token set similarity threshold of and highlight similarities and differences of exam-
+€ = 70. This method, based on the Levenshtein edit distance,
+compares sets of tokens, ignoring order and redundancies. ples across benchmarks. These analyses enhance
+It effectively removes predicates with similar wording (e.g., our understanding of the reasoning skills or knowl-
+contains a JOIN” and uses a JOIN”). edge needed to perform well on NL2SQL, and in
+We also experimented with automatic methods such as so oe
+instruction-tuned embedding models, but ultimately relied on turn, can help inform decisions about model de-
+manual deduplication to ensure a clean final predicate set. sign or new benchmark construction. For instance,

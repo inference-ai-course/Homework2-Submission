@@ -1,0 +1,305 @@
+arXiv Paper: 2510.27556
+Title: Data-Efficient Domain Adaptation for LLM-based MT using Contrastive Preference Optimization
+Authors: Inacio Vieira, Antonio Castaldo, James O'Doherty, Sheila Castilho
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27556
+OCR Date: 2025-11-03T16:25:58.478158
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+Data-Efficient Domain Adaptation for LLM-based MT using Contrastive
+Preference Optimization
+Inacio Vieira Antonio Castaldo
+Alpha CRC, Cambridge, UK University of Naples “L’Orientale”
+ivieira@alphacrc.com University of Pisa
+antonio.castaldo@phd.unipi.it
+James O’Doherty Sheila Castilho
+Independent Researcher SALIS / ADAPT Centre
+james jodoherty@gmail.com Dublin City University, Ireland
+sheila.castilho@adaptcentre.ie
+a)
+N
+= Abstract 2024) without incurring the high costs of large-
+wo scale retraining (Moslem et al., 2023).
+iS) LLMs often require adaptation to domain- However, questions remain regarding how best
+© specific requirements, a process that can be ex- to exploit TMs for fine-tuning. While Supervised
+_ pensive when relying solely on SFT. We present Fine-Tuning (SFT) is a common approach, recent
+ag) an empirical study on applying CPO to me work on preference optimization suggests that con-
+late a post-editing workflow for data-efficient : ° .
+— domain adaptation. Our approach synthesizes trastive methods can offer a more potent signal for
+— preference pairs by treating the base model’s alignment (Rafailov et al., 2024; Xu et al., 2024a).
+1S) own raw output as the ’rejected’ translation These methods train a model to distinguish between
+Nn and the human-approved TM entry as the ’cho- "chosen" (preferred) and "rejected" (dispreferred)
+YL, sen’ one. This method provides direct feed- outputs.
+back on the model’s current knowledge, guid- Inspired by this, we investigate a specific applica-
+— ing it to align with domain-specific standards. TSP y BMS, gate a specie app
+> Experiments in English—Brazilian Portuguese tion of Contrastive Preference Optimization (CPO)
+\O F ino j for MT domain adaptation. Our motivation draws
+Va and English-Korean show that, by using just ae Pp ; :
+Vay 14.7k preference pairs, the model achieves per- from constructivist learning theory (Piaget et al.,
+tC formance close to that of a model trained on 1952), where a learner’s prior knowledge is elicited
+N 160k+ samples with SFT, demonstrating signif- and then refined through corrective feedback. Anal-
+fo) icant data efficiency. Although we showcase ogously, we treat the LLM’s raw, out-of-the-box
+i its effectiveness in MT, this application of CPO translation as its "prior knowledge". We then create
+naturally generalizes to other generative tasks . : .
+N where a model’s initial drafts can serve as a a preference pair by contrasting this raw output (the
+> contrastive signal against a golden reference. ‘rejected’ candidate) with a high-quality, human-
+ap approved TM entry (the ‘chosen’ candidate). This
+r< 1 Introduction process simulates a post-editing workflow, where
+foe) the goal is to close the gap between the initial ma-
+Large Language Models (LLMs) have reshaped _ chine translation and the desired final output.
+many Natural Language Generation (NLG) tasks, Our approach differs from other preference-
+including Machine Translation (MT). They show __ based methods in a few key ways. Unlike work
+impressive performance in general domain content __ that learns a separate reward model with RLHF (Xu
+(Alves et al., 2023; Hendy et al., 2023; Robinson __ et al., 2024b), we use CPO for direct, single-stage
+et al., 2023; Zhu et al., 2023; Lyu et al., 2024), fine-tuning, which is simpler and more computa-
+but often falter in specialized domains or when _ tionally efficient. Furthermore, our method gen-
+tasked with meeting strict style and terminology _ erates preference pairs using the model’s current,
+demands (Zheng et al., 2024). In these scenarios, _ on-policy outputs, providing immediate feedback
+domain adaptation becomes vital. Organizations on its performance. This contrasts with approaches
+commonly leverage proprietary data, such as trans- _ that rely on historical, offline logs of post-edits
+lation memories (TMs), to tailor smaller, business- (Berger et al., 2025), and it opens the door for more
+friendly LLMs (Touvron et al., 2023; Llama Team, dynamic, iterative training cycles.
+
+
+============================================================
+PAGE 2
+============================================================
+
+Our main contributions are empirical: (Rafailov et al., 2024). Our work builds on CPO
+; ; from Xu et al. (2024a), which extends these ideas.
+* We demonstrate that applying CPO with syn- Several recent works have applied preference
+thetically generated pre-edits is a highly data- optimization to MT. Xu et al. (2024b) use an RLHF-
+efficient method for MT domain adaptation, style approach, training a reward model on pairs of
+achieving with 14.7k examples what SFT re- human and machine translations. In contrast, our
+quires over 160k examples for. method uses CPO for direct optimization, avoiding
+* We provide a direct, controlled comparison be- the need for a separate reward model and offering
+tween this CPO-based approach anda strong _@ Simpler, single-stage training pipeline.
+SFT baseline on two language pairs, quantify- Our work is closely related to Berger et al.
+ing the performance gains. (2025), who also use CPO on post-edited data.
+However, a key distinction lies in the source of
+¢ We show that this setup, which treats human- the preference data. They use historical, offline
+approved TMs as the definitive "chosen" ref- logs of MT outputs and their corresponding human
+erence, is effective for aligning an LLM with _ post-edits. Our approach, instead, generates the ’re-
+specific terminological and stylistic require- jected’ candidate using the *current* model’s out-
+ments. put (i.e., on-policy). This provides direct feedback
+. we . . . on the model’s present state, aligning with con-
+For direct comparability with prior work in structivist principles and enabling iterative training
+MT domain adaptation (Anonymous, 2024), paradigms where the model can be continuously
+we use identical dataset splits and subsets to improved with fresh outputs.
+compare our CPO-based approach against SFT Finally, our application of CPO differs slightly
+on Llama-3-8B-Instruct (Dubey et al., 2024). from the original formulation by Xu et al. (2024a).
+Our eXP\ eriments on English-Korean and En- Their method can use automatic metrics to decide
+glish—Brazilian Portuguese show that our method if a model-generated output is superior to a hu-
+achieves c omparable performance to a 160k+ SFT man reference, making the preference conditional.
+model with only 14.7k examples. For brevity, we We, however, operate under the assumption that
+summarize the full SFT training sets as "160k+"; for domain adaptation, the vetted, human-approved
+exact sizes are 217,555 (PTBR) and 162,360 (KO). TM is always the "chosen" gold-standard reference.
+In short, creating preference pairs from the model’s This grounds the model firmly in the specific termi-
+own outputs against existing TMs can substantially nology and style required by the domain.
+reduce the amount of data required for domain
+adaptation. 3 Methodology
+2 Related Work We propose a contrastive training approach that
+. . . simulates a PE workflow using triplets of source
+Domain adaptation has long been crucial for MT text, synthetic ’rejected’ translation, and human-
+systems (Chu and Wang, 2018; Sennrich et al., approved ’chosen’ translation. The method con-
+2017). Post-editing (PE) workflows, where hu- ast. the translation produced by the raw base
+man translators correct raw MT outputs, are stan- model with the final, domain-aligned reference
+dard practice for ensuring quality (Tatsumi, 2009; from a TM. Figure | summarizes the full pipeline,
+Moorkens et al., 2018; Gladkoff and Han, 2022). and Figure 2 illustrates how the synthetic ’rejected’
+Our work aims to leverage the insights from this candidate is generated.
+human-in-the-loop process to improve the underly-
+ing MT model more efficiently. 3.1 Simulating Post-Edits for Preference Pairs
+Recent years have seen a surge in preference- In a standard PE workflow, a human translator re-
+based fine-tuning methods for LLMs. Reinforce- fines a raw system output. We simulate this process
+ment Learning from Human Feedback (RLHF)  ,, generate our training data:
+learns a reward model from human preferences and
+then optimizes the LLM using RL (Christiano et al., 1. For each source segment x from the TM, we
+2017). Direct Preference Optimization (DPO) sim- run inference on the baseline LLM to get
+plifies this by directly optimizing the LLM to sat- its out-of-the-box translation, which we label
+isfy preferences without an explicit reward model Yrejected-
+
+
+============================================================
+PAGE 3
+============================================================
+
+Llama-3-8B-
+Instruct
+c=
+Gn
+Figure 1: End-to-end workflow showing (1) synthetic preference pair generation through base model inference, (2)
+CPO fine-tuning, and (3) automatic evaluation.
+Our method captures the correction required here
+a by training the model to prefer "armazenar as al-
+| | teracées" over "gravar mudangas". Each training
+vromtuon Machine Tanai : instance thus resembles a mini post-edit scenario
+where Yrejected is contrasted with Ychosen-
+3.1.1 Preference Data Construction
+Figure 2: Generating the synthetic ’rejected’ candidate Formally, for each source sentence «;, we generate
+by running inference with TM source text on the base two candidate translations,
+model.
+Y; = fypiecied yshosen
+2. We pair Yrejected with Ychosen, the trusted TM 5
+rejected . >
+entry for x. Here, y; is the LLM’s raw greedy output,
+and yS°s*" is a high-quality translation from our
+3. The CPO objective then trains the model to domain-specific TM. We then define a preference
+assign a higher probability to Ychosen than to —_ dataset
+Yrejectea» effectively teaching the model to pre- y
+fer the domain-specific translation over its ini- Dorep = { (xi, yl, yf) he
+tial, unaligned output. =
+: . . where
+By treating the LLM’s own "prior" translation
+as the rejected candidate, we explicitly model the yt = yreiected. ys = yshosen,
+correction process. This setup does not depend ’ ‘ 7 ,
+on any additional automatic metrics; we assume _ Thus, (y?, y$) forms a rejected/chosen pair for
+the domain-vetted TMs are intrinsically valid refer- each x;.
+ences that embody the required style and terminol-
+ogy. 3.2 Implementation Overview
+Example Workflow Consider the following sim- We train hee modi ‘an a single-stage ae
+plified example from our English—Brazilian Por- setup, where eac ata point 1s the trp et
+tuguese TM dataset: (2X, Ychosen; Yeejected) described above. We follow
+a procedure similar to prior work (Anonymous,
+* Source: "Press the Save button to store 2024) to generate Yejectea, ensuring consistent
+changes." prompts and post-processing. Afterwards, we fine-
+tune the Llama-3-8B-Instruct checkpoint using
+¢ Human-Approved TM Entry (‘chosen’): | LoRA-based low-rank adaptation (Hu et al., 2021)
+"Pressione o botao Salvar para armazenar and 4-bit quantization (Dettmers et al., 2023).
+as alteragées."
+Training Objective: The CPO loss encourages
+¢ Base Model Output (‘rejected’): "Pressione the model to rank Yehosen ADOVE Yrejectead While si-
+o botdo Salvar para gravar mudangas." multaneously maximizing the likelihood of Ychosen
+
+
+============================================================
+PAGE 4
+============================================================
+
+under the model’s distribution. Concretely, the ob- EN>PT-BR: COMET Scores Comparison
+jective is: 100
+2
+Lorpo = Lpret + Lsrr, S 99
+aS
+where Lyref is a preference-ranking term, and Lgryp By
+is the negative log-likelihood on Ychosen- 3 80
+1)
+Preference Loss: Formally, let a be our 70
+model’s conditional distribution. For each triplet SN Fr KS Red
+ry", yS) € D fine: = aN we
+(vi, yf, yf) © Dpret, we define: Rs . ost y
+a CPO
+N
+1 ro(yf | ai) GPT 35
+Loref = —— [logo ( log =)
+pref N » 8o( 8 log Ta (y? | a) — Highest Score
+() Figure 3: Comparison of COMET Scores for EN>PTBR
+1 N between SFT and CPO
+Lepr =~ 35 D_ [log tous | 21). (2)
+i=l EN>KO: COMET Scores Comparison
+Lopo = Lpret + Lsrr- (3) _
+2 80
+le}
+Here: a ara ae
+be 60
+* o(-) is the sigmoid function, Q
+B a0
+¢ 6 is a positive scaling hyperparameter, 1S)
+¢ N is the total number of triplets, - Na as &
+oy = yyciected (model output), y = yshose ° — ~—SOSFT
+(human reference). = CPO
+oo, — GPT3.5
+This objective enforces that y? should be ranked .
+. . see . — Highest Score
+higher than y?, while also maximizing the like-
+lihood of yf under 7@(-). Further details can be Figure 4: Comparison of COMET Scores for EN>KO
+found in Xu et al. (2024a). between SFT and CPO
+3.3 Dataset
+For direct comparability with a prior study in MT 3.5 Comparison with SFT
+domain adaptation (Anonymous, 2024), we bor- Our methodology mirrors the SFT setup described
+row the exact same train, dev, and test set splits in prior work (Anonymous, 2024), but replaces
+and divide our TM data into the same subsets of the standard cross-entropy objective with the CPO
+{1k, 2k, 5k, 10k, 14.7k} segments. objective. This contrastive signal, we hypothesize,
+3.4 Training Configuration can achieve stronger domain alignment with fewer
+examples than SFT alone.
+We adopt a batch size of 4 (with gradient accumu-
+lation = 8) and train for | epoch at a le-3 learning GPU Time and Sustainability. A prior ex-
+rate, saving checkpoints every 31 steps. This facili- | periment (Anonymous, 2024), trained on 14.7k
+tates using checkpoints at 31, 62, 155,310, and459 segments with SFT, required 820 seconds on 4
+steps to match the dataset sizes required for com- | NVIDIA A100 80GB GPUs (3,280 GPU-seconds
+parison. All runs use a single NVIDIA A100 GPU total). By contrast, our CPO run on a single
+(80GB). Further implementation details appear in | NVIDIA A100 80GB GPU required 1,598.90 GPU-
+Appendix A. seconds, a ~ 51% reduction in compute while
+3 achieving comparable or better effectiveness (see
+
+
+============================================================
+PAGE 5
+============================================================
+
+Table 4). Using the same hardware and carbon 4.2 A Practical LSP Scenario
+model, our CPO run consumed 516.06 Wh and Consider an organisation with 14.7k domain-
+173.39 gCO2e (~ 0.19 tree-months). Assuming specific sentences in a TM. Translators currently
+similar power draw and linear scaling, we estimate spend significant time post-editing raw MT out-
+the SFT baseline at ~1,058 Wh and ~355 gCO2e puts. Our CPO approach integrates the LLM’s
+for the 3,280 GPU-seconds. These figures indicate initial output as a “negative” example in each train-
+that, beyond being faster, the CPO recipe is also ing instance, effectively capturing how a translator
+more sustainable in practice. would correct typical mistakes. Over time, the
+model learns to align new outputs with the style
+4 Evaluation and terms in the curated TM, potentially reducing
+human PE overhead. With our proposed method,
+it is possible to achieve the MT performance that
+To evaluate model performance, we Teport BLEU previously required more than 160k segments us-
+@apineni et al., 2002), chrF++ (Popovic, 2017), ing SFT. Figure 5 illustrates this adaptive feedback
+TER (Snover et al., 2006), and COMET (Rei et al., loop
+2020). We use the same metrics as prior work :
+(Anonymous, 2024) for direct comparability. We 5 Conclusions
+select COMET as our primary metric for analy- ; ; ; . .
+sis given its strong correlation with human judg- This work investigated a data-efficient application
+ments (Zouhar et al., 2024). Full results are in of CPO to align LLMs to domain-specific stan-
+Appendix B. dards for MT. Our approach harnesses the concept
+oo. . of ‘unlearning’: by contrasting a rejected transla-
+As shown in Figure 3 and Figure 4, our CPO- > :
+. . tion (the model’s own raw output) against a cho-
+based approach provides substantial benefits for
+a. ~ sen one (a human reference from a TM), we teach
+both PT-BR and KO. While larger training sets : :
+. the model to replace suboptimal constructs with
+predictably lead to higher scores, our strategy of er : P
+: heti f irs significant! domain-aligned alternatives. This process lever-
+using na etic pre stably th signi ree nar ages preference feedback more directly than con-
+Tows U e ata gap. Notably, with only 147 pairs, ventional SFT, allowing the model to internalize
+we achieve performance levels that approximate or : . :
+. where and why certain translations fail.
+exceed those obtained with more than 160k exam- oO ‘ ‘
+~ . . . ur experiments demonstrate that creating pref-
+ples via SFT, demonstrating the data efficiency of irs fi hi del? ‘
+hi thod erence pairs from the model’s own outputs against
+this me . existing TMs can substantially reduce the amount
+of data required for domain adaptation. Using just
+41 Discussion 14.7k preference pairs, our models approach or sur-
+pass the performance of models trained with SFT
+The findings underscore that injecting carefully on over 160k in-domain examples, highlighting the
+crafted contrastive examples fosters domain- value of capturing rich preference information.
+sensitive improvements without requiring massive This CPO-based approach can be seamlessly in-
+data. By contrasting the model’s own ‘rejected’ _ tegrated into future PEMT workflows, where newly
+outputs with ‘chosen’ human-approved TM entries, _ post-edited translations yield a steady stream of
+our models learn to avoid undesirable constructs preference pairs for continual training. This cy-
+and internalizes stylistic and terminological nu- cle promotes cost-effectiveness, allowing smaller,
+ances. open-source models to be gradually shaped to ex-
+By generating on-policy negatives and combin- hibit near-custom quality without expensive, large-
+ing ranking with likelihood in a single stage, our scale taining from scratch. By incorporating con-
+CPO recipe halves the GPU seconds needed to trastive signals, this method enhances model adapt-
+reach strong in-domain quality and delivers > 6.61 ability, making translation systems more robust and
+COMET gains over SFT when both are trained on _‘T@SPonsive to professional demands.
+the same 14.7k segments (see Figure 3 and Fig- 6 Future Work
+ure 4). This constitutes a significant efficiency gain
+that shifts the cost curve for domain adaptation, Iterative CPO Investigate a fully online learning
+which is particularly valued by industry. pipeline whereby each new batch of post-edited

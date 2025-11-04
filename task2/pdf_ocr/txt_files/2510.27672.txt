@@ -1,0 +1,311 @@
+arXiv Paper: 2510.27672
+Title: Culture Cartography: Mapping the Landscape of Cultural Knowledge
+Authors: Caleb Ziems, William Held, Jane Yu, Amir Goldberg, David Grusky, Diyi Yang
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27672
+OCR Date: 2025-11-03T16:25:15.863167
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+Culture Cartography: Mapping the Landscape of Cultural Knowledge
+Caleb Ziems * William Held ® Jane Yu 2
+Amir Goldberg * David Grusky * Diyi Yang *
+stanford University ed Georgia Institute of Technology Meta AI
+{cziems, held, amirgo, grusky, diyi}@stanford.edu
+Abstract wax { Single-Initiative (Human or LLM Produces) } =
+© ety ° ots... At
+w«~ To serve global users safely and productively, Bs (@) Jy — Lamy > 002:...A2
+N LLMs need culture-specific knowledge that 3 2 @O XY w Gama
+=) might not be learned during pre-training. How 2a Humans Activel LLM Formats a
+N do we find knowledge that is (1) salient to in- = Produce Data Benchmark = SS
+Ss) group users, but (2) unknown to LLMs? The
+oe most common solutions are single-initiative: 3, Neh a ee
+either researchers define challenging questions 25 A °G2Ee Bo a Ae
+al that users passively answer (traditional anno- oe eo 6 REO EESS AG
+al . . GE LLM Produces Humans Passively
+tation), or users actively produce data that F Challenging Questions Answer Questions Pon
+— researchers structure as benchmarks (knowl- Mixed-Initiat! ; 6
+—] edge extraction). The process would bene- { xe Initiative Wointly Produce) }=4 yee
+. : rer . Human Guides to Model Steers to pig
+O fit from mixed-initiative collaboration, where Sy
+wa users guide the process to meaningfully re- 2 i
+oO flect their cultures, and LLMs steer the pro- 2 > st any customs or tations re~
+— cess to meet the researcher’s goals. We pro- of Grestres MENIGEM citsin [|S tums
+— pose CULTURE CARTOGRAPHY as a method- © rR Swi ‘ndonesian Javanese culture °
+> ology that operationalizes this mixed-initiative A
+N vision. Here, an LLM initializes annotation Ten na
+salam Tempel loney Gifts). Elders Parcel Lebaran (Parcels anc
+ti with questions for which it has low-confidence ave Tal avert, Sony Hampers). Tomes neighbors, or
+nd answers, making explicit both its prior knowl- Secs solv eeseeted i aealy Soe stan eontaan cookies,
+Ql edge and the gaps therein. This allows a hu- minted banknotes inside envelopes. syrup, or traditional cakes
+. man respondent to fill these gaps and steer the
+S model towards salient topics through direct ed- Figure 1: CULTURE CARTOGRAPHY is a new method
+Va) its. We implement CULTURE CARTOGRAPHY for identifying culturally-salient knowledge gaps in
+N as a tool called CULTURE EXPLORER. Com- LLMs. Prior methods are single-initiative: either a
+S pared to a baseline where humans answer LLM- human determines the distribution (Knowledge Extrac-
+a proposed questions, we find that CULTURE Ex- tion), which may not challenge models, or an LLM de-
+~< PLORER more effectively produces knowledge cides on challenging questions (Traditional Annotation),
+Ss that strong models like DeepSeek R1, Llama-4 which may not represent human interests. CULTURE
+and GPT-40 are missing, even with web search. CARTOGRAPHY is the first mixed-initiative method
+Fine-tuning on this data boosts the accuracy that combines four key ingredients: (1) an LLM pro-
+of Llama models by up to 19.2% on related poses challenging questions; (2) a human proposes
+culture benchmarks. salient questions; (3) human edits constrain subse-
+. quent LLM generations; and (4) the data forms a
+1 Introduction tree structure. Compared to prior methods, CULTURE
+CARTOGRAPHY identifies more LLM knowledge gaps.
+Large Language Models (LLMs) can empower
+users to be more knowledgeable, productive, and
+creative (Carmichael and Stinson, 2024; Adiguzel
+et al., 2023; Yang et al., 2024b; Chen et al., 2021; | 2024), due to data imbalances in pre-training (Li
+Si et al., 2024), but this utility is often diminished et al., 2024a) and post-training (Ryan et al., 2024).
+for under-represented groups (Cao et al., 2023; | LLM agents that Jack knowledge about their user’s
+Yong et al., 2024; Ziems et al., 2023b) and cultures _ cultures can be less helpful personal assistants (Qiu
+(Myung et al., 2024; Shi et al., 2024; Chiu et al., et al., 2024), less relevant recommender systems
+
+
+============================================================
+PAGE 2
+============================================================
+
+(Casillo et al., 2023), and less engaging conversa- _ holiday. This directly informs the LLM’s updated
+tion partners (Cao et al., 2024), while being more —_ answer suggestions, which are structured as a tree.
+prone to generate harmful stereotypes (Cheng et al., Research Tool. Annotation in such a broad
+2023) and violate social norms (Santy et al., 2023). and nebulous domain as culture could seem pro-
+Problem. A principal challenge is identify- _ hibitively inefficient, but we implement a tractable
+ing the cultural knowledge that is both necessary _ solution with an open-source web-tool called CUL-
+for language models to effectively serve in-group TURE EXPLORER (Figure 2). This tool not only
+users, and also absent from current models’ aware- solves the more mundane aspects of the annota-
+ness. The most common methods for finding _ tion task, like boilerplate and text formatting, but
+missing knowledge involve benchmarking with also visually facilitates the mixed-initiative inter-
+single-initiative datasets (Figure 1, top). These action. Unlike constrained and linear chat-based
+approaches generally follow one of two patterns: _ interfaces, CULTURE EXPLORER affords users a
+either researchers define questions that challenge —_ more interactive interface to consider and edit a
+LLMs (Li et al., 2023b) and have human anno- __ growing tree of knowledge. In this way, CULTURE
+tators provide answers (identifying hard but po- EXPLORER empowers users with a sense of direct
+tentially non-salient knowledge), or they convert — manipulation (Shneiderman, 1983). The user can
+existing cultural knowledge into benchmarks us- _ make edits rapidly, reversibly, and iteratively, while
+ing LLMs (capturing salient but potentially not the tool visually displays the ramifications of these
+challenging knowledge). Ideally, users and current- _ edits by generating parallel follow-up questions.
+LLMs should be involved in a mixed-initiative in- | By expanding and pruning branches, the user can
+teraction (Horvitz, 1999) (Figure 1, bottom) where _ consider multiple thematic directions and then fo-
+humans guide the process towards culturally salient cus on what most interests them.
+knowledge, and LLMs guide the process towards Findings. We use CULTURE EXPLORER to
+knowledge missing from existing training data. build cultural knowledge banks for two multicul-
+Proposed Solution. We propose CULTURE tural and multiethnic countries: Nigeria and In-
+CARTOGRAPHY as the first mixed-initiative anno-  donesia. By design, we expect CULTURE Ex-
+tation method to satisfy the above desiderata with — p_oRER will outperform single-initiative meth-
+all of the following ingredients: ods (Figure 1) at eliciting knowledge that is both
+1. An LLM proposes challenging questions salient and challenging. Indeed, compared to tradi-
+for which it has low confidence in its answers, tional annotation, CULTURE EXPLORER identifies
+thus exposing its knowledge eaps—the do- data that is at least 6% less likely to be known
+posing ge gap. .
+Lone by DeepSeek R1, and up to 42% less likely to
+main of interest for many researchers. ;
+be known by other models. Furthermore, unlike
+2. The human makes direct edits or proposes — Knowledge extraction, CULTURE EXPLORER pro-
+new questions that reflect their expertise and duces data that is not easily discoverable online.
+interests, thus introducing cultural salience. We find search-enabled models do not outperform
+Coo. . . search-disabled models at recalling our data. Fi-
+3. Human edits will guide and constrain sub- nally, we demonstrate how our methodology is
+sequent LLM generations, thus making the aligned with the objectives of the field via transfer
+interaction truly mixed-initiative. learning experiments. By fine-tuning on data pro-
+4. Knowledge is visualized in a tree data struc- duced with CULTURE EXPLORER, we can boost
+ture, thus affording humans more control the downstream performance of LLMs on other
+through parallel exploration. culture benchmarks by up to 19.2% accuracy.
+Contributions. In summary, we propose CUL-
+Figure 1 (bottom) exemplifies each of these yUyRE CARTOGR APHY, a new methodological
+ingredients. Here, the LLM proposes a low- framework for eliciting culturally-salient knowl-
+confidence question about Christmas gift-giving, edge gaps in LLMs. We implement the idea as
+which does not align with the annotator’s expertise. Cu, TURE EXPLORER and demonstrate its utility
+She is Muslim, like the vast majority of people over prior methods. We publicly release all arti-
+who live on the Indonesian island of Java, so she facts, including data, code, tooling, and models.!
+edits the question to ask instead about Javanese
+gift-giving during Eid al-Fitr, an important Islamic ‘github. com/SALT-NLP/culture-cartography
+
+
+============================================================
+PAGE 3
+============================================================
+
+© 325 OPIS orsensns GY Gestion Nodes anne EH Arswsrdonss O ore roto vers
+uncertain answers
+artistic “7 © ——GC#tD—_ ‘a
+dynamics Pay tdenesish Javanese aes Unllnetentest WEI eIGES: of professional services signi
+eine i (ae) Ss Me Ty @/ —Geam— | -
+identity “hantaran” (gift parcels) are now night choose professional L | stun
+events List any adaptations or changes in \ ) \ ae
+Indonesian gifting customs that have a |
+wedding @) @\ —-—Groa)— | -—
+practices technological advancements. GpetchStadinaareacnar shrthe onvasions, other \F oua
+“duit lebaran” in decorative than weddings, where fer
+oh htie Ste ractadesemne charteartinae bas ra
+7] WW influenced by popular online echoes both
+CultureExplorer >E: wen L J
+‘alee
+Figure 2: The CULTURE EXPLORER interface allows human experts to lead the annotation process, as they can # Edit,
+%@ Regenerate, or @ Delete nodes at any time. Cultural Knowledge annotation is initiated with (A) a seed topic (here: gifts),
+which the LLM uses to generate (B) Question nodes. Here, the annotator is editing the first Question node to make it more
+specific to her Islamic culture. Each Question will serve as a seed for the LLM to generate (C] Answer nodes. The user can then
+pick the questions and answers interests her, clarify through edits, or write her own from scratch, iteratively expanding the tree
+with (D] deeper follow-up questions and answers.
+2 Related Work TV (Fung et al., 2023), or social media (Shi et al.,
+2024). LLMs can also generate synthetic evalu-
+There are strong economic, social, and scientific ation data without seed knowledge (Wang et al.,
+motivations to build more culturally-competent lan- 2024a; Liu et al., 2024), which human annota-
+guage models that are capable of meaningfully tors prune and validate. But there are concerns
+engaging with users from different cultural back- _ of test set contamination (Oren et al., 2023) when
+grounds (Hershcovich et al., 2022). For com- distilled or synthetic data overlaps with LLM pre-
+mon ground, effective language technologies need _ training data, and such knowledge extraction is lim-
+knowledge of the behavioral norms (Shi et al., ited only to higher-resource cultures that are well-
+2024; Sky et al., 2023; Rao et al., 2024), linguis- _ represented on the web (Seth et al., 2024). Alterna-
+tic conventions (Shaikh et al., 2023), values (Cao __ tively, unstructured (Zhang and Wildemuth, 2009)
+et al., 2023), and preferences (Kirk et al., 2024) that or semi-structured interviews (Karatsareas, 2022)
+shape each user’s interactions with the model. This can provide knowledge from under-represented cul-
+motivates new culture-specific training and evalua- __ tures. However, these methods are not designed to
+tion datasets (Hershcovich et al., 2022). There are _ target the gaps in models’ knowledge.
+many datasets for advancing cultural competence in Traditional Annotation. For the sake of effi-
+specific NLP tasks (Shode et al., 2023; Muhammad ciency, it is standard for annotators to respond to
+et al., 2023, 2022; Tonneau et al., 2024; Ilevbare —_ pre-determined questions that target gaps in mod-
+et al., 2024; Vargas et al., 2024; Olamma et al., es’ knowledge. Questions can derive from sec-
+2019; Adelani et al., 2022; Olatunji et al., 2023; — ondary sources like templates (Yin et al., 2022;
+Owodunni et al., 2024), but in the current task- Myung et al., 2024), LLM generations (Liu et al.,
+agnostic paradigm, QA-style knowledge bench- 2924; Ziems et al., 2023a), social media (Sky et al.,
+marking is the most common (Adilazuarda et al., 2023; Huang and Yang, 2023), or human experts
+2024). Benchmarks are typically built via Knowl- (Masala et al., 2024). Games can serve as a more
+edge Extraction or Traditional Annotation. dynamic and interactive alternative to question-
+Knowledge Extraction. To scale up evalua- naires (Seth et al., 2024; Shaikh et al., 2023), but
+tion, LLMs can distill knowledge from web sources _ these also depend on fixed seed topics. In each case,
+(Nguyen et al., 2024, 2023) like Wikipedia (Fung __ the culture informer is not empowered to steer the
+et al., 2024; Li et al., 2024b; Naous et al., 2024), topical distribution of the data they are providing.
+
+
+============================================================
+PAGE 4
+============================================================
+
+3 CULTURE EXPLORER up to 5 Question nodes ( @ ). The user can then
+. pick a question that interests her, or clarify through
+3.1 Tool Design : . . :
+edits, or write her own. Once the user is satis-
+Cultural competence is not a generalizable objec- _ fied with a Question, the AI will generate as many
+tive. Like many other forms of alignment, the task as 5 Answer nodes ( (C] ). With Uncertainty Es-
+is ambiguous (Tamkin et al., 2022; Li et al., 2023a), _ timation (Kivlichan et al., 2021), CULTURE Ex-
+as its formalization depends on the culture and the = pLORER visually highlights answer nodes in which
+specific users in question. The problem we aim the LLM is not confident. CULTURE EXPLORER
+to solve is mixed-initiative elicitation: guiding —_ measures model confidence by prompting the same
+members of a cultural group to specify what cul- model, “Does this answer the question correctly?”
+tural competence means to them, and to do so in _It constrains the logits to True/False, and takes the
+an efficient manner. An efficient solution will not probability of True as the answer confidence. An-
+waste human effort to reproduce what language —_ swers with confidence below a threshold (< 0.4)
+models already know, but rather prioritize regions —_ are marked as uncertain.
+of knowledge that current models lack, following The user can edit, regenerate, or delete any node
+the literature on active learning (Cohn et al., 1994). at any time, and in response, the tool will generate
+CULTURE EXPLORER is our proposed solution new follow-up questions ( ® ), visually displaying
+that balances flexibility with efficiency, empower- the ramifications of the user’s changes. Moreover,
+ing users to co-construct with the LLM a branching = CULTURE EXPLORER explicitly encourages anno-
+tree of cultural knowledge. As shown in Figure 2, __tators to make significant edits and novel contribu-
+this tree is composed of related questions and an- __ tions, as it sums the edit distance over all contribu-
+swers, and users can edit, add, or delete elements tions and computes a scalar monetary reward.
+at any time. At each iteration, the LLM generates
+question and answer suggestions. Similar to Gener- Scoring Answers. A user may not choose to edit
+ative Active Task Elicitation (Li et al., 2023a), this | Very answer given by the LLM, but users can still
+allows CULTURE EXPLORER to act as a data scaf- provide a valuable preference signal by scoring
+folding and brainstorming tool that guides respon- - LLM answers for their relevance and personal ap-
+dents towards critical knowledge gaps. But moving __Plicability. CULTURE EXPLORER asks users to
+beyond a linear chat, CULTURE EXPLORER pre- Score AI answers on a 0-3 Likert Scale, where 3
+serves the respondents’ creative freedom to both awards “best” answers that can’t be improved, and
+refine specific answers through edits and define the 0 marks “bad” or incorrect answers.
+topic space by adding and removing nodes. .
+The CULTURE EXPLORER interface is builton 3-2 Data Collection
+FARSIGHT? (Wang et al., 2024b), and specially | CULTURE EXPLORER allows us to fill many of the
+tuned for the relevant culture domains (for details gaps identified in Related Work (§2). We can build
+on our specific prompting methodology, see Ap- _a participatory, multilingual knowledge bank of lo-
+pendix D). We now explain the pipeline in more __ calized cultural knowledge that complements what
+detail, in steps corresponding to Figure 2. LLMs already know. We focus our data collection
+. . on two culturally diverse yet under-resourced coun-
+Adding Knowledge. CULTURE EXPLORER is woe Nite yet . : :
+tries: Nigeria and Indonesia. Each nation contains
+organized asa tree data structure, with nodes Tep- hundreds of distinct ethnolinguistic groups, with
+resenting branching questions and their answers, wpe ge en
+: . oo” over 500 distinct indigenous languages in Nigeria
+which users expand recursively. Annotation is in (Campbell and Grondona, 2008), and over 600 eth-
+tiated bya pre-selected but editable seed topic” nic groups across Indonesia (Ananta et al., 2015).
+Figure 2, @ ), which the LLM uses to generate The following was approved by the Institutional
+?RARSIGHT was designed for visualizing AI harms. Review Board at the authors’ institution. We recruit
+*Seeds derive indirectly from Brown (2004) Human Uni- —_ annotators on Upwork, aiming for balance across
+versal categories. We feed each Brown Universal into CUL- . sos : ; .
+TURE EXPLORER, and generate for each seed a tree of depth ethnolinguistic groups (see Appendix A for details).
+6 (3 rounds of questions and answers). By semantically clus- | Annotations are collected in the national language
+tering the answers across 8 national cultures, we identify new for each respective country, since this language
+universals to seed the user-facing version of CULTURE Ex- : . se
+PLORER. We cluster across: Argentina, Australia, Germany, is shared across ethnolinguistic groups (Bahasa
+India, Indonesia, Nigeria, Saudi Arabia, and the United States. Indonesia for Indonesian annotators, and English
+
+
+============================================================
+PAGE 5
+============================================================
+
+Ethnolinguistic Synthetic Data Traditional Annotation CULTURE CARTOGRAPHY
+Country Groups Scored Answers ScoreICC Avg. Score | Fixed Answers Pref. Pairs | Free Answers Pref. Pairs
+Nigeria 7 1,913 0.58 2.6/3 944 157 521 262
+Indonesia 13 3,412 0.55 2.5/3 1,081 468 586 1,196
+Table 1: CULTURE CARTOGRAPHY Dataset Statistics demonstrate the size of the data we collected (~1k answers
+to fixed questions; ~500 free answers with CULTURE EXPLORER) and its reliability (ICC > 0.55 on Score
+annotations, which is moderate), as well as the cultural diversity of our annotator pool (7 distinct ethnolinguistic
+groups from Nigeria, and 13 distinct groups from Indonesia). Finally, we see that AI responses are quite reliable for
+these cultures, with quality scores that are better than “good” on average (e.g., avg = 2.5/3.0 for Nigeria).
+@—™ Synthetic Data @— Traditional Annotation Ml CultureCartography
+1.25 d=0.34* d=0.29* d=0.42"" d=0.37* d=0.38** d=0.49" Ind .
+1.00 d=0.17* d=0.20"" d=0.24% d=0.16** d=0.32"0 d=0.43%6 n ones la
+1.00 0.91 4, 0.87 0.89 0.85 0,88 0.89 079
+0.75 0.72 0.72
+0.75 10.66 0.68 0.67
+0.61 0.61 0.56
+0.50 0.46 10.43
+0.37
+S 0.25
+qd
+@) 0.00 ra ,
+= DeepSeek R1 GPT-40 Llama-4 Claude 3.5 03-Mini Qwen2-72B Mixtral-8x22B
+S 1.25 ns, ns, ns, ns ns, ns, Nigeria
+wv d=0. 29 d=0.32"0 d=0.21* ns d=0.16* ns
+cc 1.00 pizs0.92 0.86
+0.82 0.83 0:82 9 79 0.76
+0.75 0.720.74 0.73 0.71
+0.70 0.70
+0.75 0.68 0.66 0.68 » 64 0610.61
+0.50
+0.25
+0.00 Se Fi
+DeepSeek R1 GPT-40 Llama-4 Claude 3.5 03-Mini Qwen2-72B Mixtral-8x22B
+Figure 3: Performance on CULTURE CARTOGRAPHY. Powerful models like DeepSeek R1 can entirely solve
+Synthetic Data (RQ100 > 98%), and also perform well on Traditional Annotation data (R@Q100 <92%). Most
+importantly, CULTURE CARTOGRAPHY data is appreciably harder than these single-initiative data sources, with
+moderate and statistically significant effect sizes (ns = “not significant”; * p < 0.05; ** p < 0.01; *** p < 0.001;
+*““* » < 0.0001) for both R1 (d = 0.17 Indonesia; d = 0.29 Nigeria) and GPT-40 (d = 0.20 Indonesia; d = 0.32 Nigeria).
+for Nigerian annotators). To establish baselines for only high-quality AI answers: for a given question,
+the CULTURE CARTOGRAPHY methodology and __ we identified all pairs of AI answers whose quality
+test our principal hypothesis that it is better than _ scores were different with statistical significance by
+entirely model-driven approaches, we collect data _ t-test (a = 0.05) and kept only the better answer
+in three distinct, non-overlapping subsets: from each pair.
+(1) Synthetic Data: Humans validate the top-four
+answers given by the LLM to a pre-determined set (2) Traditional Annotation: With the same fixed
+of fixed questions about behavioral norms.’ For questions about behavioral norms, the respondents,
+each question, annotators scored the AI answers for _ having considered the top-four AJ Responses above,
+quality on the same 0-3 Likert Scale. We retained then provided up to four new answers that com-
+—___. plemented what the AI already gave. Annotators
+‘We created this set of questions by running CULTURE Ex- licitl d to think of iff
+PLORER to a tree depth of 6 and filtering for behavioral norms were explicitly encourage’ ° INK OF Specie €X-
+with a FastText classifier that we distilled from GPT-4. For | amples from their most specific and local cultures
+other aspects of data collection with CULTURE EXPLORER, about what AI wouldn’t already know. In this way,
+the underlying LLM was gpt-3.5-turbo. Thus we show the the Traditi LA ion di 1 : d th
+benefits of the CULTURE CARTOGRAPHY approach do not "he Zraditional Annotation directly mirrored the
+depend on the most recent advances in language modeling. incentive structure of CULTURE CARTOGRAPHY

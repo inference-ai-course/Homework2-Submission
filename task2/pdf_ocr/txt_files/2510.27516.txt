@@ -1,0 +1,309 @@
+arXiv Paper: 2510.27516
+Title: BiSparse-AAS: Bilinear Sparse Attention and Adaptive Spans Framework for Scalable and Efficient Text Summarization
+Authors: Desta Haileselassie Hagos, Legand L. Burge, Anietie Andy, Anis Yazidi, Vladimir Vlassov
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27516
+OCR Date: 2025-11-03T16:27:13.524223
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+eee ener eee e neers
+BiSparse-AAS: Bilinear Sparse Attention and
+Adaptive Spans Framework for Scalable and Efficient
+Text Summarization
+Desta Haileselassie Hagos Legand L. Burge Anietie Andy
+Howard University, USA Howard University, USA Howard University, USA
+Vay desta. hagos@howard.edu lburge@howard. edu anietie.andy@howard.edu
+N
+S Anis Yazidi Vladimir Vlassov
+N University of Oslo, Norway KTH Royal Institute of Technology, Sweden
+D anisy@ifi.uio.no vladv@kth.se
+©
+mH
+xa) Abstract
+mm Transformer-based architectures have advanced text summarization, yet their
+= quadratic complexity limits scalability on long documents. This paper introduces
+UO BiSparse-AAS (Bilinear Sparse Attention with Adaptive Spans), a novel framework
+Hn that combines sparse attention, adaptive spans, and bilinear attention to address
+(8) these limitations. Sparse attention reduces computational costs by focusing on
+— the most relevant parts of the input, while adaptive spans dynamically adjust the
+4 attention ranges. Bilinear attention complements both by modeling complex token
+> interactions within this refined context. BiSparse-AAS consistently outperforms
+oO state-of-the-art baselines in both extractive and abstractive summarization tasks,
+at achieving average ROUGE improvements of about 68.1% on CNN/DailyMail
+Vay and 52.6% on XSum, while maintaining strong performance on OpenWebText
+t™ and Gigaword datasets. By addressing efficiency, scalability, and long-sequence
+N modeling, BiSparse-AAS provides a unified, practical solution for real-world text
+r=) summarization applications.
+mH
+QI 1 Introduction
+. 2 Automatic text summarization has become a critical task in Natural Language Processing (NLP),
+~< driven by the exponential growth of digital content and the need to extract concise and coherent
+>) summaries from large amounts of information. Text summarization techniques are broadly categorized
+fae} into two types: abstractive and extractive [19]. Abstractive summarization generates original
+summaries by synthesizing, rephrasing, and paraphrasing information from the source text, leveraging
+advanced NLP techniques. Unlike extractive methods, abstractive summarization does not rely on
+replicating sentences directly from the source [19]. These techniques leverage transformers and Large
+Language Models (LLMs) to produce semantically meaningful and coherent text sequences [23] [24].
+However, abstractive summarization is computationally more demanding than extractive methods
+because it relies on advanced generative capabilities and decoder-based architectures [19] [5} [11].
+Extractive summarization, on the other hand, identifies and selects key sentences or phrases directly
+from the source text [19] [10]. By directly copying content, this approach ensures grammatical
+correctness and relevance but lacks the ability to rephrase or condense information effectively.
+Modern extractive techniques may leverage neural networks to identify key sentences, but avoid the
+complexities inherent to generative processes required by abstractive summarization.
+Traditional summarization approaches, such as statistical and rule-based techniques, have largely
+been replaced by neural network models, particularly those based on the Transformer architecture.
+Note: This paper has been accepted for publication at the IEEE ICDM 2025, Washington, DC, USA.
+
+
+============================================================
+PAGE 2
+============================================================
+
+The introduction of Transformer-based models by Vaswani et al. [26] revolutionized NLP with
+the self-attention mechanism, enabling parallel sequence processing and achieving state-of-the-art
+performance. However, despite their success, Transformer models face significant challenges due to
+the quadratic complexity O(n?) of the self-attention mechanism with respect to the input sequence
+length n. This results in memory usage scaling quadratically, meaning that memory requirements
+quadruple as sequence lengths double. Such scaling makes handling sentences or documents compu-
+tationally expensive and impractical in resource-constrained environments. Although models such
+as BART [11] and PEGASUS [28] have advanced pretraining and fine-tuning techniques, they do
+not fully resolve the computational inefficiencies of processing long inputs. These models often
+struggle to maintain context and coherence for longer sequences, and their high parameter counts
+require substantial computational resources, limiting their applicability in real-world scenarios with
+resource-constrained environments. Although parameter count and computational efficiency are
+related, they are not always strongly correlated. For example, a smaller Transformer with long input
+sequences still suffers from the quadratic complexity of the self-attention mechanism, whereas a
+larger Transformer with sparse attention can handle long sequences more efficiently. Thus, efficiency
+depends more on the sequence length, attention mechanisms, and architectural optimizations than
+on the parameter count alone. Addressing these challenges is crucial for developing efficient and
+scalable summarization systems while preserving the integrity of the input text.
+Model performance often degrades for sequences beyond 1024 tokens due to the limitations in
+modeling long-range dependencies and maintaining contextual coherence. This limitation has
+prompted the development of various techniques aimed at extending the model’s context window
+without sacrificing efficiency. Techniques like RoPE [21], employed in modern LLMs [12], enhance
+positional encoding for longer sequences, addressing the limitations of fixed position encodings in
+earlier Transformer models. These advancements improve performance on tasks that require extended
+context windows. However, while RoPE scaling effectively extends the context length, it does not
+fully resolve the challenges associated with computational efficiency and parameter optimization. As
+a result, tasks involving long inputs continue to face challenges in scalability and efficiency.
+This ongoing gap highlights the need for comprehensive solutions that balance context extension,
+computational efficiency, and scalability in Transformer-based models. Addressing these challenges
+motivates the development of methods that not only improve long-sequence handling but also
+optimize performance in resource-constrained environments, enabling more practical and effective
+text summarization systems. Compared to previous work on summarization [28}{13|[11], BiSparse-
+AAS addresses key limitations in efficiency (quadratic complexity), scalability (fixed attention spans),
+and context preservation (limited handling of long-range dependencies). These advances enable
+improved performance on long-document summarization tasks, as detailed in Section[3]
+2 Motivation
+The limitations of existing state-of-the-art Transformer-based models in text summarization tasks,
+particularly in handling long sequences, preserving context, and optimizing computational efficiency,
+highlight the need for innovative approaches to address these challenges. While advancements such as
+Rotary Position Embedding (RoPE) scaling have extended the context window of models, they do
+not fully address computational inefficiencies and context preservation challenges. Existing models,
+including Transformer [26], BART [11], and PEGASUS [28], demonstrate strong performance
+in many scenarios but struggle to summarize long documents due to their quadratic complexity.
+Recent models like Longformer [1], BigBird [27], and Longformer-Encoder-Decoder (LED) [I],
+are specifically designed for efficient long-sequence handling using sparse attention mechanisms.
+However, although these methods are computationally efficient, they often face trade-offs in context
+preservation and model expressiveness, which are critical for accurate and meaningful summarization.
+Other efficient attention variants, such as Performer [2], approximate the self-attention mechanism
+with linear complexity through kernel-based methods rather than sparse attention, but still struggle to
+model long-range dependencies effectively.
+To address these limitations, we propose BiSparse-AAS, a novel framework that integrates parameter-
+efficient bilinear attention, sparse attention, and adaptive attention spans. Bilinear attention optimizes
+the self-attention mechanism by reducing the parameter count while capturing complex token rela-
+tionships. Sparse attention improves efficiency by focusing computational resources on the most
+relevant parts of the input, and adaptive spans dynamically adjust attention ranges to preserve critical
+2
+
+
+============================================================
+PAGE 3
+============================================================
+
+contextual information in long documents. For this task, our approach reduces the parameter count
+from 124 million (GPT-2) to approximately 102 million, improving efficiency while maintaining
+strong performance. Together, these components enable efficient processing of long sequences,
+providing a scalable and context-aware solution for text summarization. Unlike existing methods
+such as RoPE scaling, which primarily extends the context window, BiSparse-AAS ensures that this
+extended capacity is utilized effectively, enhancing both performance and scalability in real-world
+applications.
+
+In this paper, we demonstrate the applicability of BiSparse-AAS to text summarization and propose a
+unified framework that is suitable for both extractive and abstractive models. The proposed framework
+is well-suited for real-world applications with constrained computational resources, enabling practical
+deployment across diverse scenarios. Our implementation adopts a base context window of 1024
+tokens, which is consistent with the original GPT-2 model [9]. We aimed to develop a GPT-2-style
+model due to its lower resource demands, ease of deployment, and suitability for fine-tuning. In
+our opinion, GPT-2 provides a practical and cost-effective solution for this task. Although current
+experiments do not explicitly extend this window, the sparse attention and adaptive span mechanisms
+are designed to efficiently handle longer sequences, with the potential to extend the effective context
+window beyond 1024 tokens through further optimizations and hardware capabilities. BiSparse-AAS
+represents a significant advancement in text summarization by combining adaptability, computational
+efficiency, and contextual awareness to address the longstanding limitations of Transformer-based
+models.
+
+Beyond text summarization, BiSparse-AAS provides a general framework for improving the computa-
+tional efficiency and scalability of sequence modeling. By addressing the challenges of long-sequence
+handling and computational costs, it offers a structured solution that is applicable to both extractive
+and abstractive summarization tasks.
+
+Contributions. Our paper makes the following contributions.
+
+¢ We propose BiSparse-AAS, a novel framework that integrates bilinear attention, sparse
+attention, and adaptive spans, offering an efficient and scalable solution for language
+modeling and text summarization.
+
+* We evaluate BiSparse-AAS on diverse datasets, including CNN/DailyMail [8], XSum [14],
+OpenWebText [6], and Gigaword [18] [7], using word-level tokenization, providing com-
+prehensive insights into its performance across various text domains and summarization
+tasks.
+
+¢ We perform a comparative analysis of BiSparse-AAS within a GPT-2-style model, demon-
+strating its ability to efficiently capture long-range dependencies while maintaining a base
+context window of 1024 tokens.
+
+¢ We evaluate model performance using various evaluation metrics, including perplexity,
+token-level F1 score, precision, recall, ROUGE scores, and BERTScore.
+
+¢ We demonstrate the practical feasibility and applicability of the BiSparse-AAS frame-
+work in real-world, resource-constrained scenarios by highlighting its ability to balance
+computational efficiency and performance on large-scale datasets.
+
+¢ We establish a foundation to extend BiSparse-AAS to longer context windows and more
+complex attention patterns, which will facilitate future advancements in efficient and scalable
+sequence modeling.
+
+3 Proposed Mechanisms
+
+State-of-the-art Transformer-based summarization models face challenges including high computa-
+tional cost, quadratic complexity, and limited context preservation. To address these limitations, we
+propose BiSparse-AAS, a framework that improves efficiency, scalability, and contextual awareness
+for long-sequence processing. A central component is bilinear attention, a computationally efficient
+alternative that reduces parameter count and optimizes resource usage. BiSparse-AAS integrates
+three mechanisms: Sparse Attention, which allocates computational focus to the most relevant tokens;
+Adaptive Attention Spans, which dynamically adjust attention ranges to better preserve context; and a
+Hybrid Approach that combines both techniques. These mechanisms form a cohesive framework for
+
+3
+
+
+============================================================
+PAGE 4
+============================================================
+
+summarizing lengthy documents. We conclude by highlighting their unified advantages in efficiency,
+scalability, and real-world applicability.
+3.1 Bilinear Attention
+Bilinear attention reduces the parameter count while preserving the ability to model complex token
+relationships. By optimizing the self-attention mechanism, this approach improves computational
+efficiency and enables the model to process input with fewer resources. The standard self-attention
+mechanism in Transformers scales quadratically with the sequence length NV because it requires
+pairwise computations between the query and key vectors. For input queries Q € RN*¢, kK € RN*¢
+and values V € R% *, the attention scores are computed using a dot product, as shown in Equation{I]
+The scores are scaled by Tm where d;, is the dimensionality of the key vectors [26], to stabilize the
+gradients during training.
+Attention(Q, K,V) ft Okt Vv qd)
+ention 5 = soitmax | ———
+, i,
+This approach results in O(N? x d) complexity, which makes it computationally expensive for long
+sequences [26]. To address this limitation, we propose a bilinear attention mechanism that introduces
+a learnable weight matrix W, € R?*¢ to replace the standard dot product with a bilinear form, as
+shown in Equation[2]
+WK?
+BilinearAttention(Q, K,V) = softmax () V (2)
+Vay
+The formulation shown in Equation 2|maintains the structure of standard attention but introduces
+pairwise interactions through W,. Generally, the bilinear attention mechanism can be expressed as
+shown in Equation[3]where B(Q, K) represents a bilinear transformation of Q and K. For example,
+if B(Q, K) is defined as QW, Kk, Equation|2Jand Equation[3]become mathematically equivalent.
+Alternatively, omitting the softmax normalization step simplifies the attention mechanism, as shown
+in Equation|4]
+. BQ, K
+BilinearAttention(Q, K,V) = softmax Ac”) Vv (3)
+Vdx
+BilinearAttention(Q, K,V) = B(Q, K)V (4)
+The bilinear mechanism scales linearly with N, reducing computational complexity to O(N x d)
+by projecting inputs into lower-dimensional spaces and using efficient matrix operations, enabling
+long-sequence modeling with lower memory and compute costs.
+3.2 Sparse Attention
+Sparse attention reduces computational overhead by focusing only on the most relevant parts of the
+sequence. It introduces a sparsity threshold parameter, which determines the cutoff point for relevance.
+Attention scores below this threshold are masked (set to zero), reducing unnecessary computations
+and prioritizing tokens with higher relevance. This mechanism effectively reduces cross-token
+computations by focusing on a smaller set of relevant tokens, where only meaningful connections
+are retained. The sparsity threshold is dynamically tuned during training, with values in the range of
+0.05 to 0.1 that provide stable performance across all datasets. This selective approach improves the
+scalability of long documents by assigning computational resources to critical relationships within
+the input. For summarization tasks, the sparse attention ensures that the model concentrates on the
+most relevant segments required to generate effective summaries. By integrating sparse attention
+with the bilinear attention mechanism, we optimized computational efficiency while preserving the
+model’s ability to capture complex relationships. The sparse attention can be formulated as shown
+in Eequation|5} where M €0,1%** is a binary mask matrix based on the sparsity threshold. The
+entries of MV are defined in Equation|6] and © represents element-wise multiplication. The mask
+4
+
+
+============================================================
+PAGE 5
+============================================================
+
+selectively retains only the most relevant attention scores, which ensures computational focus on
+important parts of the sequence. The complexity is reduced to O (s x N x d,,), where s < N is the
+average number of elements attended per query. The scaling factor (Fp) stabilizes the attention
+score computation, which is consistent with the standard transformer mechanism.
+7 KT) OM
+Sparse(Q, K,V) = softmax (ee) Vv (5)
+ke
+1 if Qik} > sparsity threshold
+Mij = Vi. = SParsuty tres (6)
+0 otherwise
+3.3 Adaptive Attention Spans
+Adaptive attention spans dynamically adjust the attention window for each attention head based on
+the context, rather than relying on a fixed window size. For a given token i, the learned attention
+span 1; determines the range of indices to which it can attend. This mechanism focuses on the most
+relevant context in long sequences, reducing computational overhead while maintaining performance.
+The adaptive attention mechanism learns an attention span matrix A, where each element is processed
+through a sigmoid activation to derive a mask that dynamically scales attention scores. This is
+expressed conceptually in Equation[7] where W, represents the bilinear transformation matrix used
+to compute interactions between queries and keys, and M is a mask that restricts attention to a subset
+of adaptive span tokens. The mask M;,; is dynamically determined using a learned span matrix
+processed through sigmoid activation and can be expressed as shown in Equation} To allow smooth
+transitions and eliminate hard binary cutoffs, the mask, 1/;,;, in our implementation, is softened
+through a sigmoid-based mechanism, as shown in Equation) This approach ensures that attention
+scores are continuously scaled, and tokens below the span_drop threshold are effectively excluded
+from the computation. The span_drop hyperparameter is tuned within the range of 0.05 to 0.2
+to achieve stable performance across tasks and datasets. Using sigmoid-based sparsity, the model
+dynamically controls attention spans, achieving computational efficiency without requiring explicit
+regularization terms to enforce sparsity. When integrated with the bilinear attention mechanism,
+adaptive spans further enhance efficiency by aligning the dynamic adjustment of attention ranges with
+the model’s ability to capture complex token relationships. The bilinear component (W,,) ensures that
+computational resources are focused not only on task-relevant tokens, but also on their meaningful
+interactions, making the mechanism computationally efficient and performance-driven.
+7 KT ,
+Adaptive(Q, K,V) = softmax (QWaK™) 0M Vv (7)
+vdk
+My = {0 if j > max (0,4 1,) and j <i, (8)
+0, otherwise.
+M,,; = Sigmoid (A;,;) > span_drop (9)
+3.4 Hybrid Approach
+The proposed hybrid approach integrates sparse attention and adaptive attention spans to leverage
+their complementary strengths, enhancing both computational efficiency and model performance.
+Sparse attention reduces computational overhead by masking irrelevant parts of the input. In contrast,
+adaptive spans dynamically adjust the attention window for each head based on the context, ensuring
+that attention spans are fine-tuned to the requirements of the task and input structure. These mecha-
+nisms are applied sequentially within the same attention heads: sparse attention first masks out less
+relevant tokens based on the sparsity threshold, and adaptive attention spans refine the focus further
+by dynamically adjusting the attention range within the remaining relevant tokens. This sequential
+integration ensures that computational resources are efficiently allocated to the most relevant and
+contextually important parts of the input. This approach is particularly advantageous for tasks that
+5

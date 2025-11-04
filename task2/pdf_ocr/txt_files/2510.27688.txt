@@ -1,0 +1,300 @@
+arXiv Paper: 2510.27688
+Title: Continuous Autoregressive Language Models
+Authors: Chenze Shao, Darren Li, Fandong Meng, Jie Zhou
+Date: [Submitted on 31 Oct 2025]
+URL: https://arxiv.org/abs/2510.27688
+OCR Date: 2025-11-03T16:24:59.076493
+
+============================================================
+OCR EXTRACTED TEXT
+============================================================
+
+
+============================================================
+PAGE 1
+============================================================
+
+Preprint
+CONTINUOUS AUTOREGRESSIVE LANGUAGE MODELS
+Chenze Shao!, Darren Li!:?, Fandong Meng!’, Jie Zhou!
+TWeChat AI, Tencent Inc ?Qiuzhen College, Tsinghua University
+ABSTRACT
+The efficiency of large language models (LLMs) is fundamentally limited by their
+sequential, token-by-token generation process. We argue that overcoming this
+bottleneck requires a new design axis for LLM scaling: increasing the semantic
+ra) bandwidth of each generative step. To this end, we introduce Continuous Autore-
+N gressive Language Models (CALM), a paradigm shift from discrete next-token
+o prediction to continuous next-vector prediction. CALM uses a high-fidelity au-
+N toencoder to compress a chunk of K tokens into a single continuous vector, from
+D which the original tokens can be reconstructed with over 99.9% accuracy. This
+O allows us to model language as a sequence of continuous vectors instead of dis-
+crete tokens, which reduces the number of generative steps by a factor of K. The
+el paradigm shift necessitates a new modeling toolkit; therefore, we develop a com-
+loa) prehensive likelihood-free framework that enables robust training, evaluation, and
+controllable sampling in the continuous domain. Experiments show that CALM
+=) significantly improves the performance-compute trade-off, achieving the perfor-
+. mance of strong discrete baselines at a significantly lower computational cost.
+O More importantly, these findings establish next-vector prediction as a powerful
+N and scalable pathway towards ultra-efficient language models.
+YL, Code: https://github.com/shaochenze/calm
+— Project: https://shaochenze.github.io/blog/2025/CALM
+>
+o8 1 INTRODUCTION
+\O
+t™ Large Language Models (LLMs) have revolutionized the field of artificial intelligence, demonstrat-
+N ing unprecedented capabilities in understanding, generating, and reasoning with human language
+oO [2025). However, this remarkable success is
+— shadowed by a critical challenge: their immense computational demands. The training and in-
+Vay ference of state-of-the-art LLMs demand massive computational resources, leading to prohibitive
+N expenses and significant environmental concerns (Strubell ot al 2019} [Bender et al) 2021). At the
+aed heart of this inefficiency lies the foundational paradigm of these models: an autoregressive genera-
+. = tion process that operates on a sequence of discrete tokens. Because the computational cost scales
+~< with the length of the sequence, generating long-form text or processing extensive contexts remains
+S a fundamental bottleneck, limiting the scalability and accessibility of these powerful models.
+The now-ubiquitous use of discrete tokens in LLMs is the result of a pivotal evolution from ear-
+lier modeling paradigms. Initially, models that operated at the character level struggled with the
+computational burden of extremely long sequences (Sutskever et al.] {Kim et al.|/2016). The
+subsequent shift to modern subword tokenization (Geant ea 301) ws driven by a crucial in-
+sight: increasing the information density of each text unit reduces sequence length and dramatically
+boosts model efficiency. This historical success suggests a clear path for unlocking the next order of
+magnitude in efficiency: continue to increase the semantic bandwidth of each predictive unit.
+We argue, however, that this path has reached a fundamental limit, constrained by the very nature
+of discrete representation. With typical vocabularies in modern LLMs ranging from approximately
+32,000 to 256,000 entries, each token carries a surprisingly small amount of information—merely
+15 to 18 bits (e.g., logy(32768) = 15). To increase this capacity—for instance, to represent a whole
+phrase—the vocabulary size would need to grow exponentially, making the final softmax computa-
+tion over this vocabulary an untenable bottleneck. This reveals a critical limitation: the information
+“Corresponding author.
+1
+
+
+============================================================
+PAGE 2
+============================================================
+
+Preprint
+Autoencoder (K=3 tokens to 1 vector)
+FO ed ee ed ee:
+[= be bls Le: PL Lo]
+i a) '
+Sequence Length = T Sequence Length = T/K
+Conventional LM: Next-Token Prediction CALM: Next-Vector Prediction
+Figure 1: Comparison between conventional token-by-token generation and our proposed vector-by-
+vector framework (CALM). By compressing K tokens into a single vector, we reduce the sequence
+length K-fold, fundamentally improving computational efficiency.
+density of discrete tokens is not scalable. Consequently, a profound mismatch has emerged: while
+model capacity has scaled to unprecedented levels, the task itself—predicting low-information dis-
+crete units one at a time—has not evolved. We are now deploying models of immense representa-
+tional power on a task that fundamentally limits their throughput, forcing them to laboriously predict
+simple, low-information tokens one by one.
+In this work, we confront this limitation directly by introducing a paradigm shift from discrete to-
+kens to a continuous-domain representation. Central to our approach is an autoencoder trained to
+compress a chunk of K tokens into a single, dense continuous vector and, crucially, reconstruct the
+original tokens from this vector with high fidelity. Unlike the discrete paradigm, where increasing
+information density requires an exponential growth in vocabulary size, our continuous representa-
+tion offers a scalable path forward: the vector’s information capacity can be gracefully expanded
+by simply increasing its dimensionality to accommodate a larger K. This design directly reduces
+the number of autoregressive steps by a factor of K. Ultimately, it allows us to reframe language
+modeling from a task of next-token prediction on discrete token sequences to next-vector prediction
+on continuous vector sequences, as conceptually illustrated in Figure[]]
+However, shifting to the continuous domain introduces a significant challenge: without a finite vo-
+cabulary, a model cannot compute an explicit probability distribution over all possible outcomes
+using a standard softmax layer. To address this, we develop a comprehensive, likelihood-free frame-
+work for our Continuous Autoregressive Language Models (CALM). Our primary contributions,
+which structure the remainder of this paper, are as follows:
+¢ A Powerful and Lightweight Autoencoder (Section 22): We first introduce an efficient
+autoencoder architecture designed to produce robust vector representations. We demonstrate
+that this model can be both compact and powerful, ensuring high-fidelity reconstruction of
+the original tokens, which is a prerequisite for the downstream language modeling task.
+¢ Likelihood-Free Language Modeling (Section|3): To perform generative modeling in the
+continuous vector space, we employ a lightweight generative head that conditions on the last
+hidden state to generate the output vector. While the generative head can be any continuous
+generative model, options like Diffusion 2020 2024) or Flow Match-
+ing (Lipman et al.|/2023) rely on an iterative sampling process, re-introducing a significant
+inference bottleneck. Our framework therefore specifically adopts the Energy Transformer
+(Shao et al.|/2025b), a recent architecture designed for efficient, single-step generation of
+continuous vectors, while empirically demonstrating superior generation quality.
+¢ Likelihood-Free LM Evaluation (Section (Ap: The absence of explicit likelihoods makes
+traditional metrics like Perplexity inapplicable. We address this by proposing BrierLM, a
+novel metric for language modeling based on the Brier score 1950). We show that
+BrierLM is strictly proper, theoretically ensuring a fair comparison of model capabilities.
+Crucially, BrierLM can be estimated unbiasedly by only drawing samples from the model,
+making it perfectly suited for CALM where likelihoods are intractable.
+2
+
+
+============================================================
+PAGE 3
+============================================================
+
+Preprint
+¢ Likelihood-Free Temperature Sampling (Section |5): Controlled generation via temper-
+ature sampling is an indispensable feature of modern LLMs, yet it relies on the explicit
+manipulation of a probability distribution. We introduce a principled, likelihood-free sam-
+pling algorithm that can, in theory, draw samples from the exact temperature distribution,
+and we accompany it with a highly efficient batch approximation.
+We empirically validate our CALM framework on standard language modeling benchmarks, which
+demonstrates a superior performance-compute trade-off. For instance, a CALM grouping K=4 to-
+kens delivers performance comparable to strong discrete baselines, but at a significantly lower com-
+putational cost. This findings highlight a new design axis for language models: rather than solely
+scaling parameters and data for performance, one can now scale the information capacity of each
+step as a powerful new lever for computational efficiency.
+2 AUTOENCODER
+2.1 HIGH-FIDELITY RECONSTRUCTION
+The foundational component of our CALM framework is an autoencoder tasked with learning a
+bijective mapping between a chunk of K discrete tokens and a continuous vector. Formally, we
+seek an encoder fence : V* — R! and a decoder gue : R' + V*, where V is the vocabulary, such
+that for a given token sequence x}.4 = (%1,...,U4), the reconstruction gdec( fenc(X1:K )) closely
+approximates x).x. For simplicity and computational efficiency, we design our autoencoder to be
+context-free, meaning it processes each token chunk independently of its surrounding sequence. A
+context-aware autoencoder that also conditions on previous vector representations is a natural and
+promising next step, which we leave for future exploration.
+The encoder begins by mapping the input sequence x;.~% to AK embeddings. Each embedding is
+independently processed by a position-wise feed-forward network (FFN). The resulting A hidden
+states are then flattened and compressed by a linear layer: RX? —> R¢. This unified representation
+is passed through a second FFN and a linear projection to produce the /-dimensional latent vector z.
+The decoder architecture mirrors the encoder. It first transforms z using a linear layer and an FFN
+to obtain a d-dimensional hidden state, which is then expanded by another linear layer to dimension
+J<d and reshaped into a sequence of K hidden states. Each of these states is passed through a second
+FEN, followed by a projection to vocabulary logits using the tied input embedding matrix. Finally,
+the tokens are reconstructed by applying an argmax operation over these logits.
+The autoencoder is trained to minimize the reconstruction error by optimizing the standard cross-
+entropy loss across all K token positions:
+K
+Loe(X1:K) = — Plog paee(wilz = fene(X1:K))- ()
+i=l
+We empirically validate this architecture and find it to be both highly effective and efficient. For
+instance, when grouping K = 4 tokens, a latent vector of just 1 = 10 dimensions is sufficient to
+achieve high-fidelity reconstruction, with a token-level accuracy of over 99.9%. Moreover, the au-
+toencoder is exceptionally lightweight; with a shallow architecture and a modest hidden dimension
+of d = 512, its computational overhead is nearly negligible compared to that of language model.
+2.2 ROBUST VECTOR REPRESENTATION
+While the autoencoder described above achieves near-perfect reconstruction, we found that it is
+practically impossible to effectively train a continuous language model based on the vector space it
+produces. The root cause of this challenge is that an autoencoder optimized solely for reconstruction
+learns an exceptionally brittle representation. Lacking any incentive to form a smooth latent man-
+ifold, the encoder learns to pack information with maximum efficiency, creating a highly irregular
+mapping. In such a space, a minor perturbation to a latent vector z—such as the small, inevitable
+errors made by a generative model can cause the decoder to reconstruct a completely unrelated token
+sequence. Therefore, for our CALM framework to be viable, the autoencoder must satisfy another
+critical objective: its vector representation should be robust.
+3
+
+
+============================================================
+PAGE 4
+============================================================
+
+Preprint
+
+Variational Regularization. To build a robust latent space, our primary strategy is to smooth the la-
+tent manifold by moving from a deterministic autoencoder to a variational one (Kingma & Welling
+(2014), aligning our approach with prominent generative models (Rombach et al.}/2022|
+2023) that operate within a smooth and structured latent space. Instead of mapping an input chunk
+directly to a vector z, the encoder now outputs the parameters of a diagonal Gaussian distribution,
+wand o, from which the latent vector is sampled: z ~ N’(jz,071). This change is accompanied
+by a new objective term, a KL divergence loss that penalizes the deviation of the encoded distribu-
+tion from a standard normal prior, (0,1). The total loss function is thus a weighted sum of the
+reconstruction and regularization terms:
+
+Lrowt = Lae + B+ Ler, (2)
+where / is a hyperparameter balancing the two objectives (we set 6 = 0.001), and Lx, is the KL
+divergence, defined as:
+
+ic
+i) 2 2
+Luv (pe (2/x1:%) |.) = 5 So(1 + logo? = 07 = 127). (3)
+i=l
+This variational objective discourages the encoder from relying on arbitrarily precise or large-
+magnitude values in z, thereby promoting a smoother and more regularized latent manifold that
+is more amenable to generative modeling.
+Preventing Posterior Collapse. A significant challenge in training VAEs is posterior collapse. This
+issue manifested in our model as a tendency for some latent dimensions to fully collapse to the
+standard normal prior. While collapsing a dimension drives its KL divergence to zero, it renders that
+dimension uninformative for reconstruction. More critically, these pure noise dimensions introduce
+a chaotic signal that interferes with the training of the downstream language model, destabilizing
+the learning process. To mitigate this, we adopt the KL clipping strategy from|Kingma et al.|(2016),
+which modifies the objective by clipping each dimension’s KL loss at a constant floor:
+l
+clit
+La? = So max(Awr, Le); (4)
+i=l
+where Lxr,; is the KL divergence for the i-th dimension and Axx is the threshold (we use
+AKL = 0.5). This technique ensures that every dimension is encouraged to actively participate
+in reconstruction, thus preventing collapse and fostering a dense, structured representation.
+Dropout for Enhanced Robustness. Beyond structuring the latent space with variational methods,
+we further enhance its robustness by injecting noise during training using two complementary forms
+of dropout. First, we apply dropout with a rate of p = 0.15 to the latent vector z before it is passed
+to the decoder. This forces the autoencoder to learn a redundant representation, making it robust to
+minor prediction errors from the downstream generative model. Second, we apply dropout to input
+tokens by randomly masking a fraction (p = 0.15) of tokens. Analogous to the Continuous Bag-of-
+Words (CBOW) method (Mikolov et al.}/2013), this compels the autoencoder to infer masked tokens
+from their context, thereby enriching the latent vector with the chunk’s semantic context rather
+than just performing a simple token-index compression. Crucially, these dropout techniques are
+employed exclusively during the autoencoder’s training phase to build a robust latent representation;
+they are disabled during the subsequent training and inference of the continuous language model.
+The synthesis of these techniques produces a powerful and robust autoencoder. For a chunk of
+kk = 4 tokens, we now employ a latent vector of 1 = 128 dimensions, providing the necessary
+capacity to encode information redundantly. The encoder learns a posterior distribution where the
+standard deviations, o;, converge to approximately 0.3. This means that sampling the latent vector z
+effectively perturbs the predicted mean ys with a substantial Gaussian noise o ~ 0.31. Despite this
+significant latent perturbation, the decoder still maintains a token-level accuracy exceeding 99.9%.
+This vector representation, which combines high fidelity with high robustness, lays a solid founda-
+tion for the subsequent learning of Continuous Autoregressive Language Models (CALM).
+4
+
+
+============================================================
+PAGE 5
+============================================================
+
+Preprint
+3 LIKELIHOOD-FREE LANGUAGE MODELING
+3.1 NEXT-VECTOR PREDICTION
+The autoencoder developed in Section 2] establishes a robust and high-fidelity mapping between a
+chunk of KK’ discrete tokens and a single continuous vector, which allow us to reframe language
+modeling from a task of next-token prediction on discrete token sequences to next-vector prediction
+on continuous vector sequences. Specifically, a sequence of T tokens, X = (x1,..., x7), is first
+grouped into L = T/K non-overlapping chunks. The encoder, fenc, then transforms the original
+sequence into a new, more compact sequence of continuous vectors:
+Z= (a1,22,..-,21), where 2; = fene(@(i—-1yK41;---, Vik): (5)
+Consequently, the autoregressive objective evolves to predicting the next vector in the sequence:
+L
+p(Z) = | [ peilz<i). (6)
+i=l
+While this autoregressive structure is preserved, the underlying mechanism for predicting the next
+element must be redesigned. Unlike standard language models, which rely on a softmax layer to
+compute a probability distribution over a finite vocabulary, our model must predict a vector within
+the infinite space R!. The softmax function is not applicable over this uncountable set, rendering the
+explicit probability density p(z;|z<;) intractable. This introduces two critical challenges:
+¢ Training: The likelihood p(z;|z<;) becomes intractable, precluding the use of maximum
+likelihood estimation (i.e., minimizing cross-entropy loss) for training.
+¢ Evaluation: Standard evaluation metrics like Perplexity, which are derived directly from
+the model’s likelihood, can no longer be computed to measure model performance.
+We address both of these challenges in turn. For the training problem, we introduce our approach to
+likelihood-free language modeling in the remainder of this section. For the evaluation problem, we
+propose a likelihood-free evaluation methodology in Section/4]
+3.2 GENERATIVE HEAD
+Generative modeling of continuous data (Kingma & Welling} {2014} [Goodfellow et al.| 2014} |Ho|
+2020) is a well-established field, foundational to domains such as image and audio synthesis
+where data is inherently continuous. A promising recent paradigm (Tschannen et al.|/2023}|Li et al.|
+2024] 2025b) combines these approaches with autoregressive models: a Transformer
+backbone predicts a conditioning hidden state, which is used by a subsequent generative model to
+produce the continuous output for each step. Our Continuous Autoregressive Language Models
+(CALM) adapts this paradigm, but with a critical focus on computational efficiency that constrains
+the design of this generative component. We therefore conceptualize this component as a lightweight
+generative head. Formally, the generative head is a stochastic function that takes the Transformer’s
+hidden state, h;_; € R®%, and draws a sample z; € R’ from the conditional distribution:
+h;_1 = Transformer(z1,;-1), 2: ~ p(-|hi—1). (7)
+While the generative head can be any continuous generative model, prominent options like Dif-
+fusion (Ho et al.] [2020 2024 2025) or Flow Matching (Lipman et al.| {2023
+2025a\b) are misaligned with our goal of efficiency. These models rely on an iterative
+sampling process—requiring dozens or even hundreds of network evaluations to produce a single
+vector—which directly counteracts the speedup gained from reducing the number of autoregres-
+sive steps. The CALM architecture therefore demands a generative head capable of high-quality,
+single-step generation, a challenge we address next with an energy-based objective.
+3.3. ENERGY TRANSFORMER
+3.3.1 STRICTLY PROPER SCORING RULES
+To meet the demand for a generative head capable of high-quality, single-step generation, we draw
+inspiration from (2024} |/2025b), which frames the generative task as the optimization of
+5
