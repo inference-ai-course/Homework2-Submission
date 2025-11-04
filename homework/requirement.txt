@@ -1,0 +1,11 @@
+tesseract
+trafilatura
+pdf2image
+yt-dlp
+openai-whisper
+datasketch
+langdetect
+beautifulsoup4
+pillow
+numpy
+scikit-learn
