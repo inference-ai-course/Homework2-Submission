@@ -1,0 +1,2908 @@
+[
+    {
+        "url": "http://arxiv.org/abs/2510.27688v1",
+        "title": "Continuous Autoregressive Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27688v1 (cs)\n\n{Submitted on 31 Oct 2025]\nContinuous Autoregressive Language Models\n\nChenze Shao, Darren Li, Fandong Meng, Jie Zhou\n\nView PDF\nHTML (experimental)\nThe efficiency of large language models (LLMs) is fundamentally limited by their sequential, token-by-\ntoken generation process. We argue that overcoming this bottleneck requires a new design axis for LLM\nscaling: increasing the semantic bandwidth of each generati",
+        "authors": [
+            "Chenze Shao",
+            "Darren Li",
+            "Fandong Meng",
+            "Jie Zhou"
+        ],
+        "date": "2025-10-31T17:58:11Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27672v1",
+        "title": "Culture Cartography: Mapping the Landscape of Cultural Knowledge",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27672v1 (cs)\n\n{Submitted on 31 Oct 2025]\nCulture Cartography: Mapping the Landscape of Cultural\nKnowledge\n\nCaleb Ziems, William Held, Jane Yu, Amir Goldberg, David Grusky, Diyi Yang\n\nView PDF\n\nTo serve global users safely and productively, LLMs need culture-specific knowledge that might not be\nlearned during pre-training. How do we find such knowledge that is (1) salient to in-group users, but (2)\nunknown to LLMs? The mos",
+        "authors": [
+            "Caleb Ziems",
+            "William Held",
+            "Jane Yu",
+            "Amir Goldberg",
+            "David Grusky",
+            "Diyi Yang"
+        ],
+        "date": "2025-10-31T17:37:34Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27641v1",
+        "title": "SpecAttn: Speculating Sparse Attention",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27641v1 (cs)\n[submitted on 31 Oct 2025]\n\nSpecAttn: Speculating Sparse Attention\n\nHarsh Shah\n\nView PDF\n\nHTML (experimental)\n\nLarge Language Models (LLMs) face significant computational bottlenecks during inference due to the\nquadratic complexity of self-attention mechanisms, particularly as context lengths increase. We introduce\nSpecAttn, a novel training-free approach that seamlessly integrates with existing speculative d",
+        "authors": [
+            "Harsh Shah"
+        ],
+        "date": "2025-10-31T17:12:34Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27623v1",
+        "title": "Visual Backdoor Attacks on MLLM Embodied Decision Making via Contrastive\n  Trigger Learning",
+        "abstract": "nell University\n\nComputer Science > Arfcal intelligence\narxiv:2510.27623v1 (cs)\n\n{Submitted on 31 Oct 2025]\nVisual Backdoor Attacks on MLLM Embodied Decision\nMaking via Contrastive Trigger Learning\n\nQiusi Zhan, Hyeonjeong Ha, Rui Yang, Sirui Xu, Hanyang Chen, Liang-Yan Gui, Yu-Xiong Wang, Huan Zhang, Heng Ji, Daniel\nKang\n\nView PDF\nHTML (experimental)\n\nMultimodal large language models (MLLMs) have advanced embodied agents by enabling direct perception,\nreasoning, and planning task-oriented action",
+        "authors": [
+            "Qiusi Zhan",
+            "Hyeonjeong Ha",
+            "Rui Yang",
+            "Sirui Xu",
+            "Hanyang Chen",
+            "Liang-Yan Gui",
+            "Yu-Xiong Wang",
+            "Huan Zhang",
+            "Heng Ji",
+            "Daniel Kang"
+        ],
+        "date": "2025-10-31T16:50:49Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27571v1",
+        "title": "Towards Universal Video Retrieval: Generalizing Video Embedding via\n  Synthesized Multimodal Pyramid Curriculum",
+        "abstract": "nell University\n\nComputer Science > Computer Vision and Pattern Recognition\narXiv:2510.27571v1 (cs)\n\n[Submitted on 31 Oct 20\n\nTowards Universal Video Retrieval: Generalizing Video\nEmbedding via Synthesized Multimodal Pyramid Curriculum\n\nZhuoning Guo, Mingxin Li, Yanzhao Zhang, Dingkun Long, Pengjun Xie, Xiaowen Chu\n\nView PDF\nHTML (experimental)\n\nThe prevailing video retrieval paradigm is structurally misaligned, as narrow benchmarks incentivize\ncorrespondingly limited data and single-task traini",
+        "authors": [
+            "Zhuoning Guo",
+            "Mingxin Li",
+            "Yanzhao Zhang",
+            "Dingkun Long",
+            "Pengjun Xie",
+            "Xiaowen Chu"
+        ],
+        "date": "2025-10-31T15:54:48Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27569v1",
+        "title": "MARAG-R1: Beyond Single Retriever via Reinforcement-Learned Multi-Tool\n  Agentic Retrieval",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27569v1 (cs)\n\n[submitted on 31 Oct 2025]\n\nMARAG-RI1: Beyond Single Retriever via Reinforcement-\nLearned Multi-Tool Agentic Retrieval\n\nQi Luo, Xiaonan Li, Yuxin Wang, Tingshuo Fan, Yuan Li, Xinchi Chen, Xipeng Qiu\n\nView PDF\nHTML (experimental)\n\nLarge Language Models (LLMs) excel at reasoning and generation but are inherently limited by static\npretraining data, resulting in factual inaccuracies and weak adaptability to new in",
+        "authors": [
+            "Qi Luo",
+            "Xiaonan Li",
+            "Yuxin Wang",
+            "Tingshuo Fan",
+            "Yuan Li",
+            "Xinchi Chen",
+            "Xipeng Qiu"
+        ],
+        "date": "2025-10-31T15:51:39Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27568v1",
+        "title": "SIGMA: Search-Augmented On-Demand Knowledge Integration for Agentic\n  Mathematical Reasoning",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.27568v1 (cs)\n\n[submitted on 31 Oct 2025]\n\nSIGMA: Search-Augmented On-Demand Knowledge\nIntegration for Agentic Mathematical Reasoning\n\nAli Asgarov, Umid Suleymanov, Aadyant Khatri\n\nView PDF\nHTML (experimental)\n\nSolving mathematical reasoning problems requires not only accurate access to relevant knowledge but also\ncareful, multi-step thinking. However, current retrieval-augmented models often rely on a single\nperspective, foll",
+        "authors": [
+            "Ali Asgarov",
+            "Umid Suleymanov",
+            "Aadyant Khatri"
+        ],
+        "date": "2025-10-31T15:51:00Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27556v1",
+        "title": "Data-Efficient Domain Adaptation for LLM-based MT using Contrastive\n  Preference Optimization",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.27556v1 (cs)\n\n{Submitted on 31 Oct\nData-Effic' ent Domain Adaptation for LLM-based MT using\nContrastive Preference Optimization\n\nInacio Vieira, Antonio Castaldo, James O'Doherty, Sheila Castilho\n\nView PDF\nHTML (experimental)\nLLMs often require adaptation to domain-specific requirements, a process that can be expensive when\nrelying solely on SFT. We present an empirical study on applying CPO to simulate a post-editing workf",
+        "authors": [
+            "Inacio Vieira",
+            "Antonio Castaldo",
+            "James O'Doherty",
+            "Sheila Castilho"
+        ],
+        "date": "2025-10-31T15:34:41Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27552v1",
+        "title": "Multilingual BERT language model for medical tasks: Evaluation on\n  domain-specific adaptation and cross-linguality",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27552v1 (cs)\n\n[Submitted on 31 Oct 2025]\n\nMultilingual BERT language model for medical tasks:\nEvaluation on domain-specific adaptation and cross-\nlinguality\n\nYinghao Luo (1 and 2), Lang Zhou (1 and 2), Amrish Jhingoer (1 and 2), Klaske Vliegenthart Jongbloed (3 and 4), Carlijn Jordans\n(4), Ben Werkhoven (5), Tom Seinen (6), Erik van Mulligen (6), Casper Rokx (3 and 4), Yunlei Li (1) ((1) Department of Pathology\n& Clinical",
+        "authors": [
+            "Yinghao Luo",
+            "Lang Zhou",
+            "Amrish Jhingoer",
+            "Klaske Vliegenthart Jongbloed",
+            "Carlijn Jordans",
+            "Ben Werkhoven",
+            "Tom Seinen",
+            "Erik van Mulligen",
+            "Casper Rokx",
+            "Yunlei Li"
+        ],
+        "date": "2025-10-31T15:28:01Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27543v1",
+        "title": "DialectalArabicMMLU: Benchmarking Dialectal Capabilities in Arabic and\n  Multilingual Language Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27543v1 (cs)\n\n[submitted on 31 Oct 2025]\n\nDialectalArabicMMLU: Benchmarking Dialectal Capabilities\nin Arabic and Multilingual Language Models\n\nMalik H. Altakrori, Nizar Habash, Abdelhakim Freihat, Younes Samih, Kirill Chirkunov, Muhammed AbuOdeh, Radu Florian,\nTeresa Lynn, Preslav Nakov, Alham Fikri Aji\n\nView PDF\n\nHTML (experimental)\n\nWe present DialectalArabicMMLU, a new benchmark for evaluating the performance of large la",
+        "authors": [
+            "Malik H. Altakrori",
+            "Nizar Habash",
+            "Abdelhakim Freihat",
+            "Younes Samih",
+            "Kirill Chirkunov",
+            "Muhammed AbuOdeh",
+            "Radu Florian",
+            "Teresa Lynn",
+            "Preslav Nakov",
+            "Alham Fikri Aji"
+        ],
+        "date": "2025-10-31T15:17:06Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27535v1",
+        "title": "Patient-Centered Summarization Framework for AI Clinical Summarization:\n  A Mixed-Methods Design",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27535v1 (cs)\n\n[submitted on 31 Oct 2025]\n\nPatient-Centered Summarization Framework for Al Clinical\nSummarization: A Mixed-Methods Design\n\nMaria Lizarazo Jimenez, Ana Gabriela Claros, Kieran Green, David Toro-Tobon, Felipe Larios, Sheena Asthana, Camila\nWenczenovicz, Kerly Guevara Maldonado, Luis Vilatuna~Andrango, Cristina Proano-Velez, Satya Sai Sri Bandi, Shubhangi\nBagewadi, Megan E. Branda, Misk Al Zahidy, Saturnino Lu",
+        "authors": [
+            "Maria Lizarazo Jimenez",
+            "Ana Gabriela Claros",
+            "Kieran Green",
+            "David Toro-Tobon",
+            "Felipe Larios",
+            "Sheena Asthana",
+            "Camila Wenczenovicz",
+            "Kerly Guevara Maldonado",
+            "Luis Vilatuna-Andrango",
+            "Cristina Proano-Velez",
+            "Satya Sai Sri Bandi",
+            "Shubhangi Bagewadi",
+            "Megan E. Branda",
+            "Misk Al Zahidy",
+            "Saturnino Luz",
+            "Mirella Lapata",
+            "Juan P. Brito",
+            "Oscar J. Ponce-Ponte"
+        ],
+        "date": "2025-10-31T15:08:18Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27532v1",
+        "title": "SQLSpace: A Representation Space for Text-to-SQL to Discover and\n  Mitigate Robustness Gaps",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27532v1 (cs)\n\n[submitted on 31 Oct 2025]\n\nSQLSpace: A Representation Space for Text-to-SQL to\nDiscover and Mitigate Robustness Gaps\n\nNeha Srikanth, Victor Bursztyn, Puneet Mathur, Ani Nenkova\n\nView PDF\nHTML (experimental)\n\nWe introduce SQLSpace, a human-interpretable, generalizable, compact representation for text-to-SQL\nexamples derived with minimal human intervention. We demonstrate the utility of these representations in",
+        "authors": [
+            "Neha Srikanth",
+            "Victor Bursztyn",
+            "Puneet Mathur",
+            "Ani Nenkova"
+        ],
+        "date": "2025-10-31T15:05:11Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27516v1",
+        "title": "BiSparse-AAS: Bilinear Sparse Attention and Adaptive Spans Framework for\n  Scalable and Efficient Text Summarization",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27516v1 (cs)\n\n{Submitted on 31 Oct 2025]\nBiSparse-AAS: Bilinear Sparse Attention and Adaptive Spans\nFramework for Scalable and Efficient Text Summarization\n\nDesta Haileselassie Hagos, Legand L. Burge, Anietie Andy, Anis Yazidi, Vladimir Viassov\n\nView PDF\nHTML (experimental)\n\nTransformer-based architectures have advanced text summarization, yet their quadratic complexity limits\nscalability on long documents. This paper intro",
+        "authors": [
+            "Desta Haileselassie Hagos",
+            "Legand L. Burge",
+            "Anietie Andy",
+            "Anis Yazidi",
+            "Vladimir Vlassov"
+        ],
+        "date": "2025-10-31T14:42:19Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27512v1",
+        "title": "Effect of Domain Generalization Techniques in Low Resource Systems",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27512v1 (cs)\n\n{Submitted on 31 Oct 2025]\n\nEffect of Domain Generalization Techniques in Low\nResource Systems\n\nMahi Aminu, Chisom Chibuike, Fatimo Adebanjo, Omokolade Awosanya, Samuel Oyeneye\n\nView PDF\nHTML (experimental)\n\nMachine learning models typically assume that training and test data follow the same distribution, an\nassumption that often fails in real-world scenarios due to distribution shifts. This issue is especially",
+        "authors": [
+            "Mahi Aminu",
+            "Chisom Chibuike",
+            "Fatimo Adebanjo",
+            "Omokolade Awosanya",
+            "Samuel Oyeneye"
+        ],
+        "date": "2025-10-31T14:38:27Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27484v1",
+        "title": "Thought Branches: Interpreting LLM Reasoning Requires Resampling",
+        "abstract": "nell University\n\narxivi2510.27484v1 (cs)\n{Submitted on 31 Oct 2025]\nThought Branches: Interpreting LLM Reasoning Requires\nResampling\n\nUzay Macar, Paul C. Bogdan, Senthooran Rajamanoharan, Neel Nanda\n\nView PDF\nHTML (experimental)\n\nMost work interpreting reasoning models studies only a single chain-of-thought (CoT), yet these models\ndefine distributions over many possible CoTs. We argue that studying a single sample is inadequate for\nunderstanding causal influence and the underlying computation. T",
+        "authors": [
+            "Uzay Macar",
+            "Paul C. Bogdan",
+            "Senthooran Rajamanoharan",
+            "Neel Nanda"
+        ],
+        "date": "2025-10-31T14:02:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27477v1",
+        "title": "The aftermath of compounds: Investigating Compounds and their Semantic\n  Representations",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27477v1 (cs)\n\n{Submitted on 31 Oct 2025]\n\nThe aftermath of compounds: Investigating Compounds\nand their Semantic Representations\n\n\u2018Swarang Joshi\n\nView PDF\nHTML (experimental)\nThis study investigates how well computational embeddings align with human semantic judgments in the\nprocessing of English compound words. We compare static word vectors (GloVe) and contextualized\n\nembeddings (BERT) against human ratings of lexeme meani",
+        "authors": [
+            "Swarang Joshi"
+        ],
+        "date": "2025-10-31T13:58:41Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27469v1",
+        "title": "Diffuse Thinking: Exploring Diffusion Language Models as Efficient\n  Thought Proposers for Reasoning",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.27469v1 (cs)\n\n[Submitted on 32 Oct\nDiffuse Th nking: Exploring Diffusion Language Models as\nEfficient Thought Proposers for Reasoning\n\nChenyang Shao, Sijian Ren, Fengli Xu, Yong Li\n\nView PDF\nHTML (experimental)\nIn recent years, large language models (LLMs) have witnessed remarkable advancements, with the test-time\nscaling law consistently enhancing the reasoning capabilities. Through systematic evaluation and\n\nexploration ",
+        "authors": [
+            "Chenyang Shao",
+            "Sijian Ren",
+            "Fengli Xu",
+            "Yong Li"
+        ],
+        "date": "2025-10-31T13:41:30Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27462v1",
+        "title": "VCORE: Variance-Controlled Optimization-based Reweighting for\n  Chain-of-Thought Supervision",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27462v1 (cs)\n\n[Submitted on 32 Oct\nVCORE: Var ance- -Controlled Optimization-based\nReweighting for Chain-of-Thought Supervision\n\nXuan Gong, Senmiao Wang, Hanbo Huang, Ruoyu Sun, Shiyu Liang\n\nView PDF\nHTML (experimental)\n\nSupervised fine-tuning (SFT) on long chain-of-thought (CoT) trajectories has emerged as a crucial\ntechnique for enhancing the reasoning abilities of large language models (LLMs). However, the standard\n\ncros",
+        "authors": [
+            "Xuan Gong",
+            "Senmiao Wang",
+            "Hanbo Huang",
+            "Ruoyu Sun",
+            "Shiyu Liang"
+        ],
+        "date": "2025-10-31T13:19:24Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27419v1",
+        "title": "DeepCompress: A Dual Reward Strategy for Dynamically Exploring and\n  Compressing Reasoning Chains",
+        "abstract": "nell University\n\nComputer Science > Arfcal intelligence\narxiv:2510.27419v1 (cs)\n\n{Submitted on 31 Oct 2025]\nDeepCompress: A Dual Reward Strategy for Dynamically\nExploring and Compressing Reasoning Chains\n\nTian Liang, Wenxiang Jiao, Zhiwel He, Jiahao Xu, Haitao Mi, Dong Yu\n\nView PDF\nHTML (experimental)\n\nLarge Reasoning Models (LRMs) have demonstrated impressive capabilities but suffer from cognitive\ninefficiencies like **overthinking\" simple problems and *\u201cunderthinking\" complex ones. While exist",
+        "authors": [
+            "Tian Liang",
+            "Wenxiang Jiao",
+            "Zhiwei He",
+            "Jiahao Xu",
+            "Haitao Mi",
+            "Dong Yu"
+        ],
+        "date": "2025-10-31T12:13:11Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27418v1",
+        "title": "Dynamic Affective Memory Management for Personalized LLM Agents",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27418v1 (cs)\n\n{Submitted on 31 Oct 2025]\nDynamic Affective Memory Management for Personalized\nLLM Agents\n\nJunfeng Lu, Yueyan Li\n\nView PDF\nHTML (experimental)\nAdvances in large language models are making personalized Al agents a new research focus. While current\nagent systems primarily rely on personalized external memory databases to deliver customized\n\nexperiences, they face challenges such as memory redundancy, memory sta",
+        "authors": [
+            "Junfeng Lu",
+            "Yueyan Li"
+        ],
+        "date": "2025-10-31T12:12:51Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27413v1",
+        "title": "Atlas-Alignment: Making Interpretability Transferable Across Language\n  Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.27413v1 (cs)\n\n[Submitted on 31 Oct 2025]\n\nAtlas-Alignment: Making Interpretability Transferable\nAcross Language Models\n\nBruno Puri, Jim Berend, Sebastian Lapuschkin, Wojciech Samek\n\nView PDF\nHTML (experimental)\nInterpretability is crucial for building safe, reliable, and controllable language models, yet existing\ninterpretability pipelines remain costly and difficult to scale. Interpreting a new model typically requires\n\ncostly tra",
+        "authors": [
+            "Bruno Puri",
+            "Jim Berend",
+            "Sebastian Lapuschkin",
+            "Wojciech Samek"
+        ],
+        "date": "2025-10-31T12:02:54Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27407v1",
+        "title": "Awal -- Community-Powered Language Technology for Tamazight",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.27407v1 (cs)\n\n{Submitted on 31 Oct 2025]\n\nAwal -- Community-Powered Language Technology for\nTamazight\n\nAlp Oktem, Farida Boudichat\n\nView PDF\n\nThis paper presents Awal, a community-powered initiative for developing language technology resources\nfor Tamazight. We provide a comprehensive review of the NLP landscape for Tamazight, examining recent\nprogress in computational resources, and the emergence of community-driven appro",
+        "authors": [
+            "Alp \u00d6ktem",
+            "Farida Boudichat"
+        ],
+        "date": "2025-10-31T11:53:05Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27400v1",
+        "title": "Balancing Knowledge Updates: Toward Unified Modular Editing in LLMs",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27400v1 (cs)\n\n{Submitted on 31 Oct 2025]\nBalancing Knowledge Updates: Toward Unified Modular\nEditing in LLMs\n\nJiahao Liu, Zijian Wang, Kuo Zhao, Dong Hu\n\nView PDF\nHTML (experimental)\n\nKnowledge editing has emerged as an efficient approach for updating factual knowledge in large language\nmodels (LLMs). It typically locates knowledge storage modules and then modifies their parameters.\nHowever, most existing methods focus on th",
+        "authors": [
+            "Jiahao Liu",
+            "Zijian Wang",
+            "Kuo Zhao",
+            "Dong Hu"
+        ],
+        "date": "2025-10-31T11:37:39Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27378v1",
+        "title": "Measuring Chain-of-Thought Monitorability Through Faithfulness and\n  Verbosity",
+        "abstract": "ornell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.27378v1 (cs)\n\n[Submitted on 31 Oct 2025]\n\nMeasuring Chain-of-Thought Monitorability Through\nFaithfulness and Verbosity\n\nAustin Meek, Eitan Sprejer, Ivan Arcuschin, Austin J. Brockmeier, Steven Basart\n\nView PDF\n\nChain-of-thought (CoT) outputs let us read a model's step-by-step reasoning. Since any long, serial\nreasoning process must pass through this textual trace, the quality of the CoT is a direct window into what\nthe model is t",
+        "authors": [
+            "Austin Meek",
+            "Eitan Sprejer",
+            "Iv\u00e1n Arcuschin",
+            "Austin J. Brockmeier",
+            "Steven Basart"
+        ],
+        "date": "2025-10-31T11:14:39Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27369v1",
+        "title": "From the Rock Floor to the Cloud: A Systematic Survey of\n  State-of-the-Art NLP in Battery Life Cycle",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27369v1 (cs)\n\n{Submitted on 31 Oct 2025]\nFrom the Rock Floor to the Cloud: A Systematic Survey of\nState-of-the-Art NLP in Battery Life Cycle\n\nTosin Adewumi, Martin Karlsson, Marcus Liwicki, Mikael Sj\u00e9dahl, Lama Alkhaled, Rihab Gargouri, Nudrat Habib, Franz Hennie\n\nView PDF\nHTML (experimental)\nWe present a comprehensive systematic survey of the application of natural language processing (NLP)\nalong the entire battery life cy",
+        "authors": [
+            "Tosin Adewumi",
+            "Martin Karlsson",
+            "Marcus Liwicki",
+            "Mikael Sj\u00f6dahl",
+            "Lama Alkhaled",
+            "Rihab Gargouri",
+            "Nudrat Habib",
+            "Franz Hennie"
+        ],
+        "date": "2025-10-31T11:00:39Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27355v1",
+        "title": "ThoughtProbe: Classifier-Guided LLM Thought Space Exploration via\n  Probing Representations",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27355v1 (cs)\n\n{Submitted on 31 Oct 2025)\nThoughtProbe: Classifier-Guided LLM Thought Space\nExploration via Probing Representations\n\nZijian Wang, Chang Xu\n\nView PDF\nHTML (experimental)\n\nThis paper introduces ThoughtProbe, a novel inference time framework that leverages the hidden reasoning\nfeatures of Large Language Models (LLMs) to improve their reasoning performance. Unlike previous works\nthat manipulate the hidden represen",
+        "authors": [
+            "Zijian Wang",
+            "Chang Xu"
+        ],
+        "date": "2025-10-31T10:40:19Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27337v1",
+        "title": "TransAlign: Machine Translation Encoders are Strong Word Aligners, Too",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27337v1 (cs)\n\n025]\n\n{Submitted on 31 Oct\nTransAlign: Machine Translation Encoders are Strong Word\nAligners, Too\n\nBenedikt Ebing, Christian Goldschmied, Goran Glavas\n\nView PDF\nHTML (experimental)\nIn the absence of sizable training data for most world languages and NLP tasks, translation-based\nstrategies such as translate-test -- evaluating on noisy source language data translated from the target\n\nlanguage -- and translate-tr",
+        "authors": [
+            "Benedikt Ebing",
+            "Christian Goldschmied",
+            "Goran Glava\u0161"
+        ],
+        "date": "2025-10-31T10:14:51Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27328v1",
+        "title": "A Unified Representation Underlying the Judgment of Large Language\n  Models",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27328v1 (cs)\n\n{Submitted on 31 Oct 2025]\n\nA Unified Representation Underlying the Judgment of Large\nLanguage Models\n\nYi-Long Lu, Jiajun Song, Wei Wang\n\nView PDF\nHTML (experimental)\nA central architectural question for both biological and artificial intelligence is whether judgment relies on\nspecialized modules or a unified, domain-general resource. While the discovery of decodable neural\n\nrepresentations for distinct concept",
+        "authors": [
+            "Yi-Long Lu",
+            "Jiajun Song",
+            "Wei Wang"
+        ],
+        "date": "2025-10-31T09:57:19Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27313v1",
+        "title": "Un-Attributability: Computing Novelty From Retrieval & Semantic\n  Similarity",
+        "abstract": "ornell University\n\narxiv:2510.27313v1 (cs)\n{Submitted on 31 Oct 2025]\nUn-Attributability: Computing Novelty From Retrieval &\nSemantic Similarity\n\nPhilipp Davydov, Ameya Prabhu, Matthias Bethge, Elisa Nguyen, Seong Joon Oh\n\nView PDF\nHTML (experimental)\nUnderstanding how language-model outputs relate to the pretraining corpus is central to studying model\nbehavior. Most training data attribution (TDA) methods ask which training examples causally influence a\n\ngiven output, often using leave-one-out ",
+        "authors": [
+            "Philipp Davydov",
+            "Ameya Prabhu",
+            "Matthias Bethge",
+            "Elisa Nguyen",
+            "Seong Joon Oh"
+        ],
+        "date": "2025-10-31T09:39:12Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27269v1",
+        "title": "Why Do Multilingual Reasoning Gaps Emerge in Reasoning Language Models?",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27269v1 (cs)\n\n{Submitted on 31 Oct 20\nWhy Do Mult ngual Reasoning Gaps Emerge in Reasoning\nLanguage Models?\n\nDeokhyung Kang, Seonjeong Hwang, Daehui Kim, Hyounghun Kim, Gary Geunbae Lee\n\nView PDF\nHTML (experimental)\n\nReasoning language models (RLMs) achieve strong performance on complex reasoning tasks, yet they still\nsuffer from a multilingual reasoning gap, performing better in high-resource languages than in low-\n\nresour",
+        "authors": [
+            "Deokhyung Kang",
+            "Seonjeong Hwang",
+            "Daehui Kim",
+            "Hyounghun Kim",
+            "Gary Geunbae Lee"
+        ],
+        "date": "2025-10-31T08:17:59Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27267v1",
+        "title": "MedCalc-Eval and MedCalc-Env: Advancing Medical Calculation Capabilities\n  of Large Language Models",
+        "abstract": "nell University\n\narXiv:2510.27267v1 (cs)\n\n[Submitted on 31 Oct 2025]\n\nMedCalc-Eval and MedCalc-Env: Advancing Medical\nCalculation Capabilities of Large Language Models\n\nKangkun Mao, Jinru Ding, Jiayuan Chen, Mouxiao Bian, Ruiyao Chen, Xinwei Peng, Sijie Ren, Linyang Li, ie Xu\n\nView PDF\n\nHTML (experimental)\n\nAs large language models (LLMs) enter the medical domain, most benchmarks evaluate them on question\nanswering or descriptive reasoning, overlooking quantitative reasoning critical to clinical",
+        "authors": [
+            "Kangkun Mao",
+            "Jinru Ding",
+            "Jiayuan Chen",
+            "Mouxiao Bian",
+            "Ruiyao Chen",
+            "Xinwei Peng",
+            "Sijie Ren",
+            "Linyang Li",
+            "Jie Xu"
+        ],
+        "date": "2025-10-31T08:07:16Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27258v1",
+        "title": "Higher-order Linear Attention",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.27258v1 (cs)\n[Submitted on 31 Oct 2025]\n\nHigher-order Linear Attention\n\nYifan Zhang, Zhen Qin, Quanquan Gu\n\nView PDF\nHTML (experimental)\n\nThe quadratic cost of scaled dot-product attention is a central obstacle to scaling autoregressive language\nmodels to long contexts. Linear-time attention and State Space Models (SSMs) provide scalable alternatives\nbut are typically restricted to first-order or kernel-based approximations, whi",
+        "authors": [
+            "Yifan Zhang",
+            "Zhen Qin",
+            "Quanquan Gu"
+        ],
+        "date": "2025-10-31T07:54:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27254v1",
+        "title": "Languages are Modalities: Cross-Lingual Alignment via Encoder Injection",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27254v1 (cs)\n\n{Submitted on 31 Oct 2025]\nLanguages are Modalities: Cross-Lingual Alignment via\nEncoder Injection\n\nRajan Agarwal, Aarush Gupta\n\nView PDF\nHTML (experimental)\n\nInstruction-tuned Large Language Models (LLMs) underperform on low resource, non-Latin scripts due to\ntokenizer fragmentation and weak cross-lingual coupling. We present LLINK (Latent Language Injection for\nNon-English Knowledge), a compute efficient lang",
+        "authors": [
+            "Rajan Agarwal",
+            "Aarush Gupta"
+        ],
+        "date": "2025-10-31T07:43:21Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27246v1",
+        "title": "Beyond a Million Tokens: Benchmarking and Enhancing Long-Term Memory in\n  LLMs",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27246v1 (cs)\n\n[Submitted on 31 Oct\n\nBeyond a Million Tokens: Benchmarking and Enhancing\nLong-Term Memory in LLMs\n\nMohammad Tavakoli, Alireza Salemi, Carrie Ye, Mohamed Abdalla, Hamed Zamani, J Ross Mitchell\n\nView PDF\nHTML (experimental)\nEvaluating the abilities of large language models (LLMs) for tasks that require long-term memory and thus\nlong-context reasoning, for example in conversational settings, is hampered by the e",
+        "authors": [
+            "Mohammad Tavakoli",
+            "Alireza Salemi",
+            "Carrie Ye",
+            "Mohamed Abdalla",
+            "Hamed Zamani",
+            "J Ross Mitchell"
+        ],
+        "date": "2025-10-31T07:29:52Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27241v1",
+        "title": "Identifying the Periodicity of Information in Natural Language",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv2510.27241v1 (cs)\n\n[Submitted on 31 Oct 2025)\nIdentifying the Periodicity of Information in Natural\nLanguage\n\nYulin Ou, Yu Wang, Yang Xu, Hendrik Buschmeier\n\nView PDF\nHTML (experimental)\n\nRecent theoretical advancement of information density in natural language has brought the following\nquestion on desk: To what degree does natural language exhibit periodicity pattern in its encoded\n\ninformation? We address this question by introd",
+        "authors": [
+            "Yulin Ou",
+            "Yu Wang",
+            "Yang Xu",
+            "Hendrik Buschmeier"
+        ],
+        "date": "2025-10-31T07:10:30Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27238v1",
+        "title": "DRAMA: Unifying Data Retrieval and Analysis for Open-Domain Analytic\n  Queries",
+        "abstract": "nell University\n\narxiv2510.27238v1 (cs)\n[Submitted on 31 Oct 2025)\nDRAMA: Unifying Data Retrieval and Analysis for Open-\nDomain Analytic Queries\n\nChuxuan Hu, Maxwell Yang, James Weiland, Yeji Lim, Suhas Palawala, Daniel Kang\n\nView PDF\nHTML (experimental)\n\nManually conducting real-world data analyses is labor-intensive and inefficient. Despite numerous\nattempts to automate data science workflows, none of the existing paradigms or systems fully demonstrate\nall three key capabilities required to su",
+        "authors": [
+            "Chuxuan Hu",
+            "Maxwell Yang",
+            "James Weiland",
+            "Yeji Lim",
+            "Suhas Palawala",
+            "Daniel Kang"
+        ],
+        "date": "2025-10-31T07:00:21Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27196v1",
+        "title": "MemeArena: Automating Context-Aware Unbiased Evaluation of Harmfulness\n  Understanding for Multimodal Large Language Models",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27196v1 (cs)\n\n[Submitted on 31 Oct 2025]\n\nMemeArena: Automating Context-Aware Unbiased\nEvaluation of Harmfulness Understanding for Multimodal\nLarge Language Models\n\nZixin Chen, Hongzhan Lin, Kaixin Li, Ziyang Luo, Yayue Deng, Jing Ma\n\nView PDF\nHTML (experimental)\n\nThe proliferation of memes on social media necessitates the capabilities of multimodal Large Language\nModels (mLLMs) to effectively understand multimodal harmf",
+        "authors": [
+            "Zixin Chen",
+            "Hongzhan Lin",
+            "Kaixin Li",
+            "Ziyang Luo",
+            "Yayue Deng",
+            "Jing Ma"
+        ],
+        "date": "2025-10-31T05:39:03Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27195v1",
+        "title": "Can MLLMs Read the Room? A Multimodal Benchmark for Verifying\n  Truthfulness in Multi-Party Social Interactions",
+        "abstract": "nell University\n\nComputer Science > Computer Vision and Pattern Recognition\narXiv:2510.27195v1 (cs)\n\n[Submitted on 31 Oct 2025]\n\nCan MLLMs Read the Room? A Multimodal Benchmark for\nVerifying Truthfulness in Multi-Party Social Interactions\n\nCaixin Kang, Yifei Huang, Liangyang Ouyang, Mingfang Zhang, Yoichi Sato\n\nView PDF\nHTML (experimental)\n\nAs Al systems become increasingly integrated into human lives, endowing them with robust social\nintelligence has emerged as a critical frontier. A key aspect",
+        "authors": [
+            "Caixin Kang",
+            "Yifei Huang",
+            "Liangyang Ouyang",
+            "Mingfang Zhang",
+            "Yoichi Sato"
+        ],
+        "date": "2025-10-31T05:36:36Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27183v1",
+        "title": "Simple Additions, Substantial Gains: Expanding Scripts, Languages, and\n  Lineage Coverage in URIEL+",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27183v1 (cs)\n\n{Submitted on 31 Oct\nimple Additions, Substantial Gains: Expanding Scripts,\nLanguages, and Lineage Coverage in URIEL+\n\nMason Shipton, York Hay Ng, Aditya Khan, Phuong Hanh Hoang, Xiang Lu, A. Seza Dogru\u00e9z, En-Shiun Annie Lee\n\nView PDF\nHTML (experimental)\nThe URIEL+ linguistic knowledge base supports multilingual research by encoding languages through\ngeographic, genetic, and typological vectors. However, data ",
+        "authors": [
+            "Mason Shipton",
+            "York Hay Ng",
+            "Aditya Khan",
+            "Phuong Hanh Hoang",
+            "Xiang Lu",
+            "A. Seza Do\u011fru\u00f6z",
+            "En-Shiun Annie Lee"
+        ],
+        "date": "2025-10-31T05:11:10Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27176v1",
+        "title": "Glia: A Human-Inspired AI for Automated Systems Design and Optimization",
+        "abstract": "reasoning in empirical feedback. Unlike prior ML-for-systems methods that optimize black-box policies,",
+        "authors": [
+            "Pouya Hamadanian",
+            "Pantea Karimi",
+            "Arash Nasr-Esfahany",
+            "Kimia Noorbakhsh",
+            "Joseph Chandler",
+            "Ali ParandehGheibi",
+            "Mohammad Alizadeh",
+            "Hari Balakrishnan"
+        ],
+        "date": "2025-10-31T04:58:00Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27118v1",
+        "title": "Probability Distributions Computed by Hard-Attention Transformers",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv2510.27118v1 (cs)\n\n[Submitted on 31 Oct 2025)\nProbability Distributions Computed by Hard-Attention\nTransformers\n\n\u2018Andy Yang, Anej Svete, Jiaoda Li, Anthony Widjaja Lin, Jonathan Rawski, Ryan Cotterell, David Chiang\n\nView PDF\nHTML (experimental)\nMost expressivity results for transformers treat them as language recognizers (which accept or reject\nstrings), and not as they are used in practice, as language models (which generate st",
+        "authors": [
+            "Andy Yang",
+            "Anej Svete",
+            "Jiaoda Li",
+            "Anthony Widjaja Lin",
+            "Jonathan Rawski",
+            "Ryan Cotterell",
+            "David Chiang"
+        ],
+        "date": "2025-10-31T02:41:05Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27106v1",
+        "title": "Rating Roulette: Self-Inconsistency in LLM-As-A-Judge Frameworks",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27106v1 (cs)\n\n{Submitted on 31 Oct 2025]\n\nRating Roulette: Self-Inconsistency in LLM-As-A-Judge\nFrameworks\n\nRajarshi Haldar, Julia Hockenmaier\n\nView PDF\nHTML (experimental)\n\nAs Natural Language Generation (NLG) continues to be widely adopted, properly assessing it has become\nquite difficult. Lately, using large language models (LLMs) for evaluating these generations has gained\ntraction, as they tend to align more closely wit",
+        "authors": [
+            "Rajarshi Haldar",
+            "Julia Hockenmaier"
+        ],
+        "date": "2025-10-31T02:06:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27087v1",
+        "title": "Characterizing Selective Refusal Bias in Large Language Models",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.27087v1 (cs)\n\n{Submitted on 31 Oct 2025]\nCharacterizing Selective Refusal Bias in Large Language\nModels\n\n\u2018Adel Khorramrouz, Sharon Levy\n\nView PDF\nHTML (experimental)\nSafety guardrails in large language models(LLMs) are developed to prevent malicious users from generating\ntoxic content at a large scale. However, these measures can inadvertently introduce or reflect new biases,\n\nas LLMs may refuse to generate harmful content",
+        "authors": [
+            "Adel Khorramrouz",
+            "Sharon Levy"
+        ],
+        "date": "2025-10-31T01:17:28Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27077v1",
+        "title": "Contrastive Knowledge Transfer and Robust Optimization for Secure\n  Alignment of Large Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27077v1 (cs)\n\n[submitted on 31 Oct 2025\n\nContrastive Knowledge Transfer and Robust Optimization\nfor Secure Alignment of Large Language Models\n\nJiasen Zheng, Huajun Zhang, Xu Yan, Ran Hao, Chong Peng\n\nView PDF\n\nThis paper addresses the limitations of large-scale language models in safety alignment and robustness by\nproposing a fine-tuning method that combines contrastive distillation with noise-robust training. The\nmethod ",
+        "authors": [
+            "Jiasen Zheng",
+            "Huajun Zhang",
+            "Xu Yan",
+            "Ran Hao",
+            "Chong Peng"
+        ],
+        "date": "2025-10-31T00:54:33Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27063v1",
+        "title": "Towards a Measure of Algorithm Similarity",
+        "abstract": "ornell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.27063v1 (cs)\n\n{Submitted on 31 Oct 2025]\nTowards a Measure of Algorithm Similarity\n\nShairoz Sohail, Taher Ali\n\nView PDF\nHTML (experimental)\nGiven two algorithms for the same problem, can we determine whether they are meaningfully different? In\nfull generality, the question is uncomputable, and empirically it is muddied by competing notions of\nsimilarity. Yet, in many applications (such as clone detection or program synthesis) a p",
+        "authors": [
+            "Shairoz Sohail",
+            "Taher Ali"
+        ],
+        "date": "2025-10-31T00:20:54Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27055v1",
+        "title": "Detecting Data Contamination in LLMs via In-Context Learning",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27055v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nDetecting Data Contamination in LLMs via In-Context\nLearning\n\nMichat Zawalski, Meriem Boubdir, Klaudia Batazy, Besmira Nushi, Pablo Ribalta\n\nView PDF\nHTML (experimental)\nWe present Contamination Detection via Context (CoDeC), a practical and accurate method to detect and\nquantify training data contamination in large language models. CoDeC distinguishes between data\n\nmemorized duri",
+        "authors": [
+            "Micha\u0142 Zawalski",
+            "Meriem Boubdir",
+            "Klaudia Ba\u0142azy",
+            "Besmira Nushi",
+            "Pablo Ribalta"
+        ],
+        "date": "2025-10-30T23:50:05Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27054v1",
+        "title": "LLM-Centric RAG with Multi-Granular Indexing and Confidence Constraints",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27054v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nLLM-Centric RAG with Multi-Granular Indexing and\nConfidence Constraints\n\nXiaofan Guo, Yaxuan Luan, Yue Kang, Xiangchen Song, Jinxu Guo\n\nView PDF\n\nThis paper addresses the issues of insufficient coverage, unstable results, and limited reliability in\nretrieval-augmented generation under complex knowledge environments, and proposes a confidence\ncontrol method that integrates multi-g",
+        "authors": [
+            "Xiaofan Guo",
+            "Yaxuan Luan",
+            "Yue Kang",
+            "Xiangchen Song",
+            "Jinxu Guo"
+        ],
+        "date": "2025-10-30T23:48:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27052v1",
+        "title": "VISTA Score: Verification In Sequential Turn-based Assessment",
+        "abstract": "\u2018ornell University\n\nComputer Science > Computation and Language\narxiv:2510.27052v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nVISTA Score: Verification In Sequential Turn-based\nAssessment\n\nAshley Lewis, Andrew Perrault, Eric Fosler-Lussier, Michael White\n\nView PDF\n\nHallucination--defined here as generating statements unsupported or contradicted by available evidence or\nconversational context--remains a major obstacle to deploying conversational Al systems in settings that\ndemand factual reliability. Exis",
+        "authors": [
+            "Ashley Lewis",
+            "Andrew Perrault",
+            "Eric Fosler-Lussier",
+            "Michael White"
+        ],
+        "date": "2025-10-30T23:45:13Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27049v1",
+        "title": "Recursive numeral systems are highly regular and easy to process",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.27049v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nRecursive numeral systems are highly regular and easy to\nprocess\n\nPonrawee Prasertsom, Andrea Silvi, Jennifer Culbertson, Moa Johansson, Devdatt Dubhashi, Kenny Smith\n\nView PDF\nHTML (experimental)\nPrevious work has argued that recursive numeral systems optimise the trade-off between lexicon size and\naverage morphosyntatic complexity (Deni\u00e9 and Szymanik, 2024). However, showing th",
+        "authors": [
+            "Ponrawee Prasertsom",
+            "Andrea Silvi",
+            "Jennifer Culbertson",
+            "Moa Johansson",
+            "Devdatt Dubhashi",
+            "Kenny Smith"
+        ],
+        "date": "2025-10-30T23:34:41Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27045v1",
+        "title": "Quantitative Intertextuality from the Digital Humanities Perspective: A\n  Survey",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.27045v1 (cs)\n\n{Submitted on 30 Oct 2025]\nQuantitative Intertextuality from the Digital Humanities\nPerspective: A Survey\n\nSiyu Duan\nView PDF\nHTML (experimental)\n\nThe connection between texts is referred to as intertextuality in literary theory, which served as an\nimportant theoretical basis in many digital humanities studies. Over the past decade, advancements in\nnatural language processing have ushered intertextuality studie",
+        "authors": [
+            "Siyu Duan"
+        ],
+        "date": "2025-10-30T23:19:20Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27038v1",
+        "title": "Dataset Creation and Baseline Models for Sexism Detection in Hausa",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.27038v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nDataset Creation and Baseline Models for Sexism Detection\nin Hausa\n\nFatima Adam Muhammad, Shamsuddeen Muhammad Hassan, Isa Inuwa-Dutse\n\nView PDF\nHTML (experimental)\nSexism reinforces gender inequality and social exclusion by perpetuating stereotypes, bias, and\ndiscriminatory norms. Noting how online platforms enable various forms of sexism to thrive, there is a\n\ngrowing need for ef",
+        "authors": [
+            "Fatima Adam Muhammad",
+            "Shamsuddeen Muhammad Hassan",
+            "Isa Inuwa-Dutse"
+        ],
+        "date": "2025-10-30T22:57:35Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27037v1",
+        "title": "Elastic Architecture Search for Efficient Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27037v1 (cs)\n\n{Submitted on 30 Oct 2025]\nElastic Architecture Search for Efficient Language Models\n\n\u2018Shang Wang\n\nView PDF\nHTML (experimental)\nAs large pre-trained language models become increasingly critical to natural language understanding (NLU)\ntasks, their substantial computational and memory requirements have raised significant economic and\nenvironmental concerns. Addressing these challenges, this paper introduces th",
+        "authors": [
+            "Shang Wang"
+        ],
+        "date": "2025-10-30T22:57:30Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27017v1",
+        "title": "Kad: A Framework for Proxy-based Test-time Alignment with Knapsack\n  Approximation Deferral",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27017v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nKad: A Framework for Proxy-based Test-time Alignment\nwith Knapsack Approximation Deferral\n\nAyoub Hammal, Pierre Zweigenbaum, Calo Corro\n\nView PDF\n\nSeveral previous works concluded that the largest part of generation capabilities of large language models\n(LLM) are learned (early) during pre-training. However, LLMs still require further alignment to adhere to\ndownstream task require",
+        "authors": [
+            "Ayoub Hammal",
+            "Pierre Zweigenbaum",
+            "Caio Corro"
+        ],
+        "date": "2025-10-30T21:38:45Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.27016v1",
+        "title": "Semantically-Aware LLM Agent to Enhance Privacy in Conversational AI\n  Services",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.27016v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nSemantically-Aware LLM Agent to Enhance Privacy in\nConversational Al Services\n\nJayden Serenari, Stephen Lee\n\nView PDF\nHTML (experimental)\n\nWith the increasing use of conversational Al systems, there is growing concern over privacy leaks,\nespecially when users share sensitive personal data in interactions with Large Language Models (LLMs).\nConversations shared with these models may c",
+        "authors": [
+            "Jayden Serenari",
+            "Stephen Lee"
+        ],
+        "date": "2025-10-30T21:34:23Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26978v1",
+        "title": "Semantic Frame Aggregation-based Transformer for Live Video Comment\n  Generation",
+        "abstract": "nell University\n\n\u2018Computer Science > Computer Vision and Pattern Recognition\narxiv:2510.26978v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nSemantic Frame Aggregation-based Transformer for Live\nVideo Comment Generation\n\n\u2018Anam Fatima, Yi Yu, Janak Kapuriya, Julien Lalanne, Jainendra Shukla\n\nView PDF\nHTML (experimental)\nLive commenting on video streams has surged in popularity on platforms like Twitch, enhancing viewer\nengagement through dynamic interactions. However, automatically generating contextually a",
+        "authors": [
+            "Anam Fatima",
+            "Yi Yu",
+            "Janak Kapuriya",
+            "Julien Lalanne",
+            "Jainendra Shukla"
+        ],
+        "date": "2025-10-30T20:01:04Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26974v1",
+        "title": "Overview of the MEDIQA-OE 2025 Shared Task on Medical Order Extraction\n  from Doctor-Patient Consultations",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26974v1 (cs)\n\n{Submitted on 30 Oct 2025]\nOverview of the MEDIQA-OE 2025 Shared Task on Medical\nOrder Extraction from Doctor-Patient Consultations\n\nJean-Philippe Corbeil, Asma Ben Abacha, Jerome Tremblay, Phillip Swazinna, Akila Jeeson Daniel, Miguel Del-Agua, Francois\nBeaulieu\n\nView PDF\nHTML (experimental)\n\nClinical documentation increasingly uses automatic speech recognition and summarization, yet converting\nconversations i",
+        "authors": [
+            "Jean-Philippe Corbeil",
+            "Asma Ben Abacha",
+            "Jerome Tremblay",
+            "Phillip Swazinna",
+            "Akila Jeeson Daniel",
+            "Miguel Del-Agua",
+            "Francois Beaulieu"
+        ],
+        "date": "2025-10-30T19:56:05Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26969v1",
+        "title": "Frame Semantic Patterns for Identifying Underreporting of Notifiable\n  Events in Healthcare: The Case of Gender-Based Violence",
+        "abstract": "\u2018ornell University\n\nComputer Science > Computation and Language\narxiv2510.26969v1 (cs)\n\n[Submitted on 30 Oct 2025)\n\nFrame Semantic Patterns for Identifying Underreporting of\nNotifiable Events in Healthcare: The Case of Gender-Based\nViolence\n\nLivia Dutra, Arthur Lorenzi, Lais Berno, Franciany Campos, Karoline Biscardi, Kenneth Brown, Marcelo Viridiano, Frederico\nBelcavello, Ely Matos, Olivia Guaranha, Erik Santos, Sofia Reinach, Tiago Timponi Torrent\n\nView PDF\nHTML (experimental)\n\nWe introduce a ",
+        "authors": [
+            "L\u00edvia Dutra",
+            "Arthur Lorenzi",
+            "La\u00eds Berno",
+            "Franciany Campos",
+            "Karoline Biscardi",
+            "Kenneth Brown",
+            "Marcelo Viridiano",
+            "Frederico Belcavello",
+            "Ely Matos",
+            "Ol\u00edvia Guaranha",
+            "Erik Santos",
+            "Sofia Reinach",
+            "Tiago Timponi Torrent"
+        ],
+        "date": "2025-10-30T19:52:24Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26935v1",
+        "title": "RepV: Safety-Separable Latent Spaces for Scalable Neurosymbolic Plan\n  Verification",
+        "abstract": "nell University\n\n\u2018Computer Science > Robotics\narxiv:2510.26935v1 (cs)\n{Submitted on 30 Oct 2025]\nRepV: Safety-Separable Latent Spaces for Scalable\nNeurosymbolic Plan Verification\n\nYunhao Yang, Neel P. Bhatt, Pranay Samineni, Rohan Siva, Zhanyang Wang, Ufuk Topcu\n\nView PDF\nHTML (experimental)\nAs Al systems migrate to safety-critical domains, verifying that their actions comply with well-defined rules\nremains a challenge. Formal methods provide provable guarantees but demand hand-crafted temporal-",
+        "authors": [
+            "Yunhao Yang",
+            "Neel P. Bhatt",
+            "Pranay Samineni",
+            "Rohan Siva",
+            "Zhanyang Wang",
+            "Ufuk Topcu"
+        ],
+        "date": "2025-10-30T18:46:34Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26912v1",
+        "title": "Understanding and Enhancing Mamba-Transformer Hybrids for Memory Recall\n  and Language Modeling",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26912v1 (cs)\n\n[submitted on 30 Oct\n\n1\nUnderstanding and Enhancing Mamba-Transformer\nHybrids for Memory Recall and Language Modeling\n\nHyunji Lee, Wenhao Yu, Hongming Zhang, Kaixin Ma, Jiyeon kim, Dong Yu, Minjoon Seo\n\nView PDF\nHTML (experimental)\nHybrid models that combine state space models (SSMs) with attention mechanisms have shown strong\nperformance by leveraging the efficiency of SSMs and the high recall ability of atte",
+        "authors": [
+            "Hyunji Lee",
+            "Wenhao Yu",
+            "Hongming Zhang",
+            "Kaixin Ma",
+            "Jiyeon Kim",
+            "Dong Yu",
+            "Minjoon Seo"
+        ],
+        "date": "2025-10-30T18:19:52Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26887v1",
+        "title": "The Denario project: Deep knowledge AI agents for scientific discovery",
+        "abstract": "ornell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.26887v1 (cs)\n\n[Submitted on 30 Oct 2025]\n\nThe Denario project: Deep knowledge Al agents for\nscientific discovery\n\nFrancisco Villaescusa-Navarro, Boris Bolliet, Pablo Villanueva-Domingo, Adrian E. Bayer, Aidan Acquah, Chetana Amancharla,\nAlmog Barzilay-Siegal, Pablo Bermejo, Camille Bilodeau, Pablo Cardenas Ramirez, Miles Cranmer, Urbano L. Franca, ChangHoon\nHahn, Yan-Fel Jiang, Raul Jimenez, Jun-Young Lee, Antonio Lerario, ",
+        "authors": [
+            "Francisco Villaescusa-Navarro",
+            "Boris Bolliet",
+            "Pablo Villanueva-Domingo",
+            "Adrian E. Bayer",
+            "Aidan Acquah",
+            "Chetana Amancharla",
+            "Almog Barzilay-Siegal",
+            "Pablo Bermejo",
+            "Camille Bilodeau",
+            "Pablo C\u00e1rdenas Ram\u00edrez",
+            "Miles Cranmer",
+            "Urbano L. Fran\u00e7a",
+            "ChangHoon Hahn",
+            "Yan-Fei Jiang",
+            "Raul Jimenez",
+            "Jun-Young Lee",
+            "Antonio Lerario",
+            "Osman Mamun",
+            "Thomas Meier",
+            "Anupam A. Ojha",
+            "Pavlos Protopapas",
+            "Shimanto Roy",
+            "David N. Spergel",
+            "Pedro Taranc\u00f3n-\u00c1lvarez",
+            "Ujjwal Tiwari",
+            "Matteo Viel",
+            "Digvijay Wadekar",
+            "Chi Wang",
+            "Bonny Y. Wang",
+            "Licong Xu",
+            "Yossi Yovel",
+            "Shuwen Yue",
+            "Wen-Han Zhou",
+            "Qiyao Zhu",
+            "Jiajun Zou",
+            "\u00cd\u00f1igo Zubeldia"
+        ],
+        "date": "2025-10-30T18:00:12Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26802v1",
+        "title": "Are Video Models Ready as Zero-Shot Reasoners? An Empirical Study with\n  the MME-CoF Benchmark",
+        "abstract": "nell University\n\nComputer Science > Computer Vision and Pattern Recognition\narXiv:2510.26802v1 (cs)\n\n{Submitted on 30 Oct 2025]\nAre Video Models Ready as Zero-Shot Reasoners? An\nEmpirical Study with the MME-CoF Benchmark\n\nZiyu Guo, Xinyan Chen, Renrui Zhang, Ruichuan An, Yu Qi, Dongzhi Jiang, Xiangtai Li, Manyuan Zhang, Hongsheng Li, Pheng-\n\u2018Ann Heng\n\nView PDF\nHTML (experimental)\n\nRecent video generation models can produce high-fidelity, temporally coherent videos, indicating that they\nmay encod",
+        "authors": [
+            "Ziyu Guo",
+            "Xinyan Chen",
+            "Renrui Zhang",
+            "Ruichuan An",
+            "Yu Qi",
+            "Dongzhi Jiang",
+            "Xiangtai Li",
+            "Manyuan Zhang",
+            "Hongsheng Li",
+            "Pheng-Ann Heng"
+        ],
+        "date": "2025-10-30T17:59:55Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26790v1",
+        "title": "Gistify! Codebase-Level Understanding via Runtime Execution",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26790v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nGistify! Codebase-Level Understanding via Runtime\nExecution\n\nHyunji Lee, Minseon Kim, Chinmay Singh, Matheus Pereira, Atharv Sonwane, Isadora White, Elias Stengel-Eskin, Mohit Bansal,\nZhengyan Shi, Alessandro Sordoni, Marc-Alexandre C\u00e9t\u00e9, Xingdi Yuan, Lucas Cacia\n\nView PDF\nHTML (experimental)\n\nAs coding agents are increasingly deployed in large codebases, the need to automatically de",
+        "authors": [
+            "Hyunji Lee",
+            "Minseon Kim",
+            "Chinmay Singh",
+            "Matheus Pereira",
+            "Atharv Sonwane",
+            "Isadora White",
+            "Elias Stengel-Eskin",
+            "Mohit Bansal",
+            "Zhengyan Shi",
+            "Alessandro Sordoni",
+            "Marc-Alexandre C\u00f4t\u00e9",
+            "Xingdi Yuan",
+            "Lucas Caccia"
+        ],
+        "date": "2025-10-30T17:58:26Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26788v1",
+        "title": "Defeating the Training-Inference Mismatch via FP16",
+        "abstract": "ornell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.26788v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nDefeating the Training-Inference Mismatch via FP16\n\nPenghui Qi, Zichen Liu, Xiangxin Zhou, Tianyu Pang, Chao Du, Wee Sun Lee, Min Lin\n\nView PDF\nHTML (experimental)\nReinforcement learning (RL) fine-tuning of large language models (LLMs) often suffers from instability due\nto the numerical mismatch between the training and inference policies. While prior work has attempted to\nmitigate this i",
+        "authors": [
+            "Penghui Qi",
+            "Zichen Liu",
+            "Xiangxin Zhou",
+            "Tianyu Pang",
+            "Chao Du",
+            "Wee Sun Lee",
+            "Min Lin"
+        ],
+        "date": "2025-10-30T17:58:11Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26787v1",
+        "title": "Remote Labor Index: Measuring AI Automation of Remote Work",
+        "abstract": "ornell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.26787v1 (cs)\n\n{Submitted on 30 Oct 2025]\nRemote Labor Index: Measuring Al Automation of Remote\nWork\n\nMantas Mazeika, Alice Gatti, Cristina Menghini, Udari Madhushani Sehwag, Shivam Singhal, Yury Orlovskiy, Steven Basart,\nManasi Sharma, Denis Peskoff, Elaine Lau, Jaehyuk Lim, Lachlan Carroll, Alice Blair, Vinaya Sivakumar, Sumana Basu, Brad\nKenstler, Yuntao Ma, Julian Michael, Xiaoke Li, Oliver Ingebretsen, Aditya Mehta, Jean Mott",
+        "authors": [
+            "Mantas Mazeika",
+            "Alice Gatti",
+            "Cristina Menghini",
+            "Udari Madhushani Sehwag",
+            "Shivam Singhal",
+            "Yury Orlovskiy",
+            "Steven Basart",
+            "Manasi Sharma",
+            "Denis Peskoff",
+            "Elaine Lau",
+            "Jaehyuk Lim",
+            "Lachlan Carroll",
+            "Alice Blair",
+            "Vinaya Sivakumar",
+            "Sumana Basu",
+            "Brad Kenstler",
+            "Yuntao Ma",
+            "Julian Michael",
+            "Xiaoke Li",
+            "Oliver Ingebretsen",
+            "Aditya Mehta",
+            "Jean Mottola",
+            "John Teichmann",
+            "Kevin Yu",
+            "Zaina Shaik",
+            "Adam Khoja",
+            "Richard Ren",
+            "Jason Hausenloy",
+            "Long Phan",
+            "Ye Htet",
+            "Ankit Aich",
+            "Tahseen Rabbani",
+            "Vivswan Shah",
+            "Andriy Novykov",
+            "Felix Binder",
+            "Kirill Chugunov",
+            "Luis Ramirez",
+            "Matias Geralnik",
+            "Hern\u00e1n Mesura",
+            "Dean Lee",
+            "Ed-Yeremai Hernandez Cardona",
+            "Annette Diamond",
+            "Summer Yue",
+            "Alexandr Wang",
+            "Bing Liu",
+            "Ernesto Hernandez",
+            "Dan Hendrycks"
+        ],
+        "date": "2025-10-30T17:58:04Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26768v1",
+        "title": "AMO-Bench: Large Language Models Still Struggle in High School Math\n  Competitions",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26768v1 (cs)\n\n{Submitted on 30 Oct 2025]\nAMO-Bench: Large Language Models Still Struggle in High\nSchool Math Competitions\n\nShengnan An, Xunliang Cai, Xuezhi Cao, Xiaoyu Li, Yehao Lin, Junlin Liu, Xinxuan Lv, Dan Ma, Xuanlin Wang, Ziwen Wang,\nShuang Zhou (Alphabetical order by last name)\n\nView PDF\nHTML (experimental)\n\nWe present AMO-Bench, an Advanced Mathematical reasoning benchmark with Olympiad level or even\nhigher difficu",
+        "authors": [
+            "Shengnan An",
+            "Xunliang Cai",
+            "Xuezhi Cao",
+            "Xiaoyu Li",
+            "Yehao Lin",
+            "Junlin Liu",
+            "Xinxuan Lv",
+            "Dan Ma",
+            "Xuanlin Wang",
+            "Ziwen Wang",
+            "Shuang Zhou"
+        ],
+        "date": "2025-10-30T17:52:02Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26745v1",
+        "title": "Deep sequence models tend to memorize geometrically; it is unclear why",
+        "abstract": "ed as a",
+        "authors": [
+            "Shahriar Noroozizadeh",
+            "Vaishnavh Nagarajan",
+            "Elan Rosenfeld",
+            "Sanjiv Kumar"
+        ],
+        "date": "2025-10-30T17:40:22Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26732v1",
+        "title": "Cross-Platform Evaluation of Reasoning Capabilities in Foundation Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.26732v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nCross-Platform Evaluation of Reasoning Capabilities in\nFoundation Models\n\nJ. de Curtd, |. de Zarza, Pablo Garcia, Jordi Cabot\n\nView PDF\nHTML (experimental)\n\nThis paper presents a comprehensive cross-platform evaluation of reasoning capabilities in contemporary\nfoundation models, establishing an infrastructure-agnostic benchmark across three computational\nparadigms: HPC supercomputing ",
+        "authors": [
+            "J. de Curt\u00f2",
+            "I. de Zarz\u00e0",
+            "Pablo Garc\u00eda",
+            "Jordi Cabot"
+        ],
+        "date": "2025-10-30T17:31:03Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26707v1",
+        "title": "Value Drifts: Tracing Value Alignment During LLM Post-Training",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.26707v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nValue Drifts: Tracing Value Alignment During LLM Post-\nTraining\n\nMehar Bhatia, Shravan Nayak, Gaurav Kamath, Marius Mosbach, Karolina Staficzak, Vered Shwartz, Siva Reddy\n\nView PDF\nHTML (experimental)\nAs LLMs occupy an increasingly important role in society, they are more and more confronted with\nquestions that require them not only to draw on their general knowledge but also to al",
+        "authors": [
+            "Mehar Bhatia",
+            "Shravan Nayak",
+            "Gaurav Kamath",
+            "Marius Mosbach",
+            "Karolina Sta\u0144czak",
+            "Vered Shwartz",
+            "Siva Reddy"
+        ],
+        "date": "2025-10-30T17:09:09Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26697v2",
+        "title": "The End of Manual Decoding: Towards Truly End-to-End Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26697v2 (cs)\n\n[Submitted on 30 Oct 2025 (v1), last revised 31 Oct 2025 (this version, v2)]\n\nThe End of Manual Decoding: Towards Truly End-to-End\nLanguage Models\n\nZhichao Wang, Dongyang Ma, Xinting Huang, Deng Cai, Tian Lan, Jiahao Xu, Haitao Mi, Xiaoying Tang, Yan Wang\n\nView PDF\nHTML (experimental)\nThe \"end-to-end\" label for LLMs is a misnomer. In practice, they depend on a non-differentiable decoding\nprocess that require",
+        "authors": [
+            "Zhichao Wang",
+            "Dongyang Ma",
+            "Xinting Huang",
+            "Deng Cai",
+            "Tian Lan",
+            "Jiahao Xu",
+            "Haitao Mi",
+            "Xiaoying Tang",
+            "Yan Wang"
+        ],
+        "date": "2025-10-30T17:01:43Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26692v2",
+        "title": "Kimi Linear: An Expressive, Efficient Attention Architecture",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26692v2 (cs)\n\n[Submitted on 30 Oct 2025 (1) last revised 1 Nov 2025 (ths version, v2)]\nKimi Linear: An Expressive, Efficient Attention Architecture\n\nkimi Team: Yu Zhang, Zongyu Lin, Xingcheng Yao, Jiaxi Hu, Fanging Meng, Chengyin Liu, Xin Men, Songlin Yang, Zhiyuan Li,\nWentao Li, Enzhe Lu, Weizhou Liu, Yanru Chen, Weixin Xu, Longhui Yu, Yejie Wang, Yu Fan, Longguang Zhong, Enming Yuan,\nDehao Zhang, Yizhi Zhang, T.Y. Liu,",
+        "authors": [
+            " Kimi Team",
+            "Yu Zhang",
+            "Zongyu Lin",
+            "Xingcheng Yao",
+            "Jiaxi Hu",
+            "Fanqing Meng",
+            "Chengyin Liu",
+            "Xin Men",
+            "Songlin Yang",
+            "Zhiyuan Li",
+            "Wentao Li",
+            "Enzhe Lu",
+            "Weizhou Liu",
+            "Yanru Chen",
+            "Weixin Xu",
+            "Longhui Yu",
+            "Yejie Wang",
+            "Yu Fan",
+            "Longguang Zhong",
+            "Enming Yuan",
+            "Dehao Zhang",
+            "Yizhi Zhang",
+            "T. Y. Liu",
+            "Haiming Wang",
+            "Shengjun Fang",
+            "Weiran He",
+            "Shaowei Liu",
+            "Yiwei Li",
+            "Jianlin Su",
+            "Jiezhong Qiu",
+            "Bo Pang",
+            "Junjie Yan",
+            "Zhejun Jiang",
+            "Weixiao Huang",
+            "Bohong Yin",
+            "Jiacheng You",
+            "Chu Wei",
+            "Zhengtao Wang",
+            "Chao Hong",
+            "Yutian Chen",
+            "Guanduo Chen",
+            "Yucheng Wang",
+            "Huabin Zheng",
+            "Feng Wang",
+            "Yibo Liu",
+            "Mengnan Dong",
+            "Zheng Zhang",
+            "Siyuan Pan",
+            "Wenhao Wu",
+            "Yuhao Wu",
+            "Longyu Guan",
+            "Jiawen Tao",
+            "Guohong Fu",
+            "Xinran Xu",
+            "Yuzhi Wang",
+            "Guokun Lai",
+            "Yuxin Wu",
+            "Xinyu Zhou",
+            "Zhilin Yang",
+            "Yulun Du"
+        ],
+        "date": "2025-10-30T16:59:43Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26683v1",
+        "title": "Evontree: Ontology Rule-Guided Self-Evolution of Large Language Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26683v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nEvontree: Ontology Rule-Guided Self-Evolution of Large\nLanguage Models\n\nMingchen Tu, Zhigiang Liu, Juan Li, Liangyurui Liu, Junjie Wang, Lei Liang, Wen Zhang\n\nView PDF\nHTML (experimental)\nLarge language models (LLMs) have demonstrated exceptional capabilities across multiple domains by\nleveraging massive pre-training and curated fine-tuning data. However, in data-sensitive fields su",
+        "authors": [
+            "Mingchen Tu",
+            "Zhiqiang Liu",
+            "Juan Li",
+            "Liangyurui Liu",
+            "Junjie Wang",
+            "Lei Liang",
+            "Wen Zhang"
+        ],
+        "date": "2025-10-30T16:53:45Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26861v2",
+        "title": "Evaluating Perspectival Biases in Cross-Modal Retrieval",
+        "abstract": "\u2018ornell University\n\nComputer Science > Information Retrieval\narXiv:2510.26861v2 (cs)\n\n[Submitted on 30 Oct 2025 (v1), last revised 3 Nov 2025 (this version, v2)}\n\nEvaluating Perspectival Biases in Cross-Modal Retrieval\n\nTeerapol Saengsukhiran, Peerawat Chomphooyod, Narabodee Rodjananant, Chompakorn Chaksangchaichot, Patawee\nPrakrankamanant, Witthawin Sripheanpol, Pak Lovichit, Sarana Nutanong, Ekapol Chuangsuwanich\n\nView PDF\nHTML (experimental)\nMultimodal retrieval systems are expected to operat",
+        "authors": [
+            "Teerapol Saengsukhiran",
+            "Peerawat Chomphooyod",
+            "Narabodee Rodjananant",
+            "Chompakorn Chaksangchaichot",
+            "Patawee Prakrankamanant",
+            "Witthawin Sripheanpol",
+            "Pak Lovichit",
+            "Sarana Nutanong",
+            "Ekapol Chuangsuwanich"
+        ],
+        "date": "2025-10-30T16:31:36Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26658v1",
+        "title": "The Era of Agentic Organization: Learning to Organize with Language\n  Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.26658v1 (cs)\n\n{Submitted on 30 Oct 2025]\nThe Era of Agentic Organization: Learning to Organize with\nLanguage Models\n\nZewen Chi, Li Dong, Qingxiu Dong, Yaru Hao, Xun Wu, Shaohan Huang, Furu Wei\n\nView PDF\nHTML (experimental)\n\nWe envision a new era of Al, termed agentic organization, where agents solve complex problems by\nworking collaboratively and concurrently, enabling outcomes beyond individual intelligence. To realize this\n",
+        "authors": [
+            "Zewen Chi",
+            "Li Dong",
+            "Qingxiu Dong",
+            "Yaru Hao",
+            "Xun Wu",
+            "Shaohan Huang",
+            "Furu Wei"
+        ],
+        "date": "2025-10-30T16:25:10Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26622v1",
+        "title": "Encoder-Decoder or Decoder-Only? Revisiting Encoder-Decoder Large\n  Language Model",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26622v1 (cs)\n\n{Submitted on 30 Oct 2025]\nEncoder-Decoder or Decoder-Only? Revisiting Encoder-\nDecoder Large Language Model\n\nBiao Zhang, Yong Cheng, Siamak Shakeri, Xinyi Wang, Min Ma, Orhan Firat\n\nView PDF\nHTML (experimental)\n\nRecent large language model (LLM) research has undergone an architectural shift from encoder-decoder\nmodeling to nowadays the dominant decoder-only modeling. This rapid transition, however, comes witho",
+        "authors": [
+            "Biao Zhang",
+            "Yong Cheng",
+            "Siamak Shakeri",
+            "Xinyi Wang",
+            "Min Ma",
+            "Orhan Firat"
+        ],
+        "date": "2025-10-30T15:48:28Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26615v2",
+        "title": "SlideAgent: Hierarchical Agentic Framework for Multi-Page Visual\n  Document Understanding",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26615v2 (cs)\n\n[submitted on 30 Oct\n\nSlideAgent: Hierarchical Agentic Framework for Multi-Page\nVisual Document Understanding\n\nYigiao Jin, Rachneet Kaur, Zhen Zeng, Sumitra Ganesh, Srijan Kumar\n\n(WD), last revised 1 Nov 2025 (this version, v2)]\n\nView PDF\nHTML (experimental)\nMulti-page visual documents such as manuals, brochures, presentations, and posters convey key\ninformation through layout, colors, icons, and cross-slide r",
+        "authors": [
+            "Yiqiao Jin",
+            "Rachneet Kaur",
+            "Zhen Zeng",
+            "Sumitra Ganesh",
+            "Srijan Kumar"
+        ],
+        "date": "2025-10-30T15:41:15Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26606v2",
+        "title": "Normative Reasoning in Large Language Models: A Comparative Benchmark\n  from Logical and Modal Perspectives",
+        "abstract": "nell University\n\narXiv:2510.26606v2 (cs)\n\n[Submitted on 30 Oct 2025 (v1), last revised 31 Oct 2025 (this version, v2)]\n\nNormative Reasoning in Large Language Models: A\nComparative Benchmark from Logical and Modal\nPerspectives\n\nKentaro Ozeki, Risako Ando, Takanobu Morishita, Hirohiko Abe, Koji Mineshima, Mitsuhiro Okada\n\nView PDF\nHTML (experimental)\n\nNormative reasoning is a type of reasoning that involves normative or deontic modality, such as obligation\nand permission. While large language mode",
+        "authors": [
+            "Kentaro Ozeki",
+            "Risako Ando",
+            "Takanobu Morishita",
+            "Hirohiko Abe",
+            "Koji Mineshima",
+            "Mitsuhiro Okada"
+        ],
+        "date": "2025-10-30T15:35:13Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26852v1",
+        "title": "CATArena: Evaluation of LLM Agents through Iterative Tournament\n  Competitions",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\n\narXiv:2510.26852v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nCATArena: Evaluation of LLM Agents through Iterative\nTournament Competitions\n\nLingyue Fu, Xin Ding, Yaoming Zhu, Shao Zhang, Lin Qiu, Weiwen Liu, Weinan Zhang, Xuezhi Cao, Xunliang Cai, Jiaxin Ding,\nYong Yu\n\nView PDF\nHTML (experimental)\n\nLarge Language Model (LLM) agents have evolved from basic text generation to autonomously completing\ncomplex tasks through interaction with external",
+        "authors": [
+            "Lingyue Fu",
+            "Xin Ding",
+            "Yaoming Zhu",
+            "Shao Zhang",
+            "Lin Qiu",
+            "Weiwen Liu",
+            "Weinan Zhang",
+            "Xuezhi Cao",
+            "Xunliang Cai",
+            "Jiaxin Ding",
+            "Yong Yu"
+        ],
+        "date": "2025-10-30T15:22:53Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26577v1",
+        "title": "Inference-Cost-Aware Dynamic Tree Construction for Efficient Inference\n  in Large Language Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26577v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nInference-Cost-Aware Dynamic Tree Construction for\nEfficient Inference in Large Language Models\n\nYinrong Hong, Zhiquan Tan, Kai Hu\n\nView PDF\nHTML (experimental)\n\nLarge Language Models (LLMs) face significant inference latency challenges stemming from their\nautoregressive design and large size. To address this, speculative decoding emerges as a solution, enabling\nthe simultaneous gen",
+        "authors": [
+            "Yinrong Hong",
+            "Zhiquan Tan",
+            "Kai Hu"
+        ],
+        "date": "2025-10-30T15:04:36Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26575v1",
+        "title": "InfoFlow: Reinforcing Search Agent Via Reward Density Optimization",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.26575v1 (cs)\n\n[Submitted on 30 Oct,\n\nInfoFlow: Reinforcing Search Agent Via Reward Density\nOptimization\n\nKun Luo, Hongjin Qian, Zheng Liu, Ziyi Xia, Shitao Xiao, Siqi Bao, Jun Zhao, Kang Liu\n\nView PDF\nHTML (experimental)\nReinforcement Learning with Verifiable Rewards (RLVR) is a promising approach for enhancing agentic deep\nsearch. However, its application is often hindered by low \\textbf{Reward Density} in deep search sce",
+        "authors": [
+            "Kun Luo",
+            "Hongjin Qian",
+            "Zheng Liu",
+            "Ziyi Xia",
+            "Shitao Xiao",
+            "Siqi Bao",
+            "Jun Zhao",
+            "Kang Liu"
+        ],
+        "date": "2025-10-30T15:03:21Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26543v1",
+        "title": "The Structure of Relation Decoding Linear Operators in Large Language\n  Models",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxivi2510.26543v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nThe Structure of Relation Decoding Linear Operators in\nLarge Language Models\n\nMiranda Anna Christ, Adrian Csisz\u00e9rik, Gergely Becs6, Daniel Varga\n\nView PDF\nHTML (experimental)\n\nThis paper investigates the structure of linear operators introduced in Hernandez et al. [2023] that decode\nspecific relational facts in transformer language models. We extend their single-relation findings to ",
+        "authors": [
+            "Miranda Anna Christ",
+            "Adri\u00e1n Csisz\u00e1rik",
+            "Gergely Becs\u00f3",
+            "D\u00e1niel Varga"
+        ],
+        "date": "2025-10-30T14:36:09Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26521v2",
+        "title": "Hebrew Diacritics Restoration using Visual Representation",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26521v2 (cs)\n\n[Submitted on 30 Oct 2025 (v1), last revised 3 Nov 2025 (this version, v2)}\n\nHebrew Diacritics Restoration using Visual Representation\n\nYair Elboher, Yuval Pinter\n\nView PDF\nHTML (experimental)\nDiacritics restoration in Hebrew is a fundamental task for ensuring accurate word pronunciation and\ndisambiguating textual meaning. Despite the language's high degree of ambiguity when unvocalized,\nrecent machine learn",
+        "authors": [
+            "Yair Elboher",
+            "Yuval Pinter"
+        ],
+        "date": "2025-10-30T14:15:16Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26512v1",
+        "title": "Inside CORE-KG: Evaluating Structured Prompting and Coreference\n  Resolution for Knowledge Graphs",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26512v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nInside CORE-KG: Evaluating Structured Prompting and\nCoreference Resolution for Knowledge Graphs\n\nDipak Meher, Carlotta Domeniconi\n\nView PDF\nHTML (experimental)\nHuman smuggling networks are increasingly adaptive and difficult to analyze. Legal case documents offer\ncritical insights but are often unstructured, lexically dense, and filled with ambiguous or shifting\n\nreferences, which po",
+        "authors": [
+            "Dipak Meher",
+            "Carlotta Domeniconi"
+        ],
+        "date": "2025-10-30T14:05:55Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26498v1",
+        "title": "A Multi-agent Large Language Model Framework to Automatically Assess\n  Performance of a Clinical AI Triage Tool",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26498v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nA Multi-agent Large Language Model Framework to\nAutomatically Assess Performance of a Clinical Al Triage\nTool\n\n\u2018Adam E. Flanders, Yifan Peng, Luciano Prevedello, Robyn Ball, Errol Colak, Prahlad Menon, George Shih, Hui-Ming Lin, Paras\nLakhani\n\nView PDF\n\nPurpose: The purpose of this study was to determine if an ensemble of multiple LLM agents could be used\ncollectively to provide a mo",
+        "authors": [
+            "Adam E. Flanders",
+            "Yifan Peng",
+            "Luciano Prevedello",
+            "Robyn Ball",
+            "Errol Colak",
+            "Prahlad Menon",
+            "George Shih",
+            "Hui-Ming Lin",
+            "Paras Lakhani"
+        ],
+        "date": "2025-10-30T13:50:19Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26495v1",
+        "title": "Rethinking Text-to-SQL: Dynamic Multi-turn SQL Interaction for\n  Real-world Database Exploration",
+        "abstract": "ornell University\n\narxivi2510.26495v1 (cs)\n{Submitted on 30 Oct 2025]\nRethinking Text-to-SQL: Dynamic Multi-turn SQL\nInteraction for Real-world Database Exploration\n\nLinzhuang Sun, Tlanyu Guo, Hao Liang, Yuying Li, Qifeng Cai, Jingxuan Wei, Bihui Yu, Wentao Zhang, Bin Cui\n\nView PDF\nHTML (experimental)\nRecent advances in Text-to-SQL have achieved strong results in static, single-turn tasks, where models\ngenerate SQL queries from natural language questions. However, these systems fall short in rea",
+        "authors": [
+            "Linzhuang Sun",
+            "Tianyu Guo",
+            "Hao Liang",
+            "Yuying Li",
+            "Qifeng Cai",
+            "Jingxuan Wei",
+            "Bihui Yu",
+            "Wentao Zhang",
+            "Bin Cui"
+        ],
+        "date": "2025-10-30T13:44:22Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26493v1",
+        "title": "Context Engineering 2.0: The Context of Context Engineering",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.26493v1 (cs)\n\n[submitted on 30 Oct 2025)\n\nContext Engineering 2.0: The Context of Context\nEngineering\n\nQishuo Hua, Lyumanshan Ye, Dayuan Fu, Yang Xiao, Xiaojie Cai, Yunze Wu, Jifan Lin, Junfei Wang, Penofei Liu\n\nView PDF\n\nKarl Marx once wrote that \u00b0 \u201cthe human essence is the ensemble of social relations\", suggesting that\nindividuals are not isolated entities but are fundamentally shaped by their interactions with other ent",
+        "authors": [
+            "Qishuo Hua",
+            "Lyumanshan Ye",
+            "Dayuan Fu",
+            "Yang Xiao",
+            "Xiaojie Cai",
+            "Yunze Wu",
+            "Jifan Lin",
+            "Junfei Wang",
+            "Pengfei Liu"
+        ],
+        "date": "2025-10-30T13:43:10Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26484v1",
+        "title": "Bayesian Network Fusion of Large Language Models for Sentiment Analysis",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26484v1 (cs)\n[submitted on 30 Oct 2025]\n\nBayesian Network Fusion of Large Language Models for\nSentiment Analysis\n\nRasoul Amirzadeh, Dhananjay Thiruvady, Fatemeh Shiri\n\nView PDF\nHTML (experimental)\n\nLarge language models (LLMs) continue to advance, with an increasing number of domain-specific variants\ntailored for specialised tasks. However, these models often lack transparency and explainability, can be\ncostly to fine-tune,",
+        "authors": [
+            "Rasoul Amirzadeh",
+            "Dhananjay Thiruvady",
+            "Fatemeh Shiri"
+        ],
+        "date": "2025-10-30T13:37:58Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26474v1",
+        "title": "Counteracting Matthew Effect in Self-Improvement of LVLMs through\n  Head-Tail Re-balancing",
+        "abstract": "nell University\n\nComputer Science > Computer Vision and Pattern Recognition\n\narXiv:2510.26474v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nCounteracting Matthew Effect in Self-Improvement of\nLVLMs through Head-Tail Re-balancing\n\nXin Guo, Zhiheng Xi, Yiwen Ding, Yitao Zhai, Xiaowei Shi, Xunliang Cai, Tao Gui, Qi Zhang, Xuanjing Huang\n\nView PDF\nHTML (experimental)\n\nSelf-improvement has emerged as a mainstream paradigm for advancing the reasoning capabilities of large\nvision-language models (LVLMs), where m",
+        "authors": [
+            "Xin Guo",
+            "Zhiheng Xi",
+            "Yiwen Ding",
+            "Yitao Zhai",
+            "Xiaowei Shi",
+            "Xunliang Cai",
+            "Tao Gui",
+            "Qi Zhang",
+            "Xuanjing Huang"
+        ],
+        "date": "2025-10-30T13:26:58Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26457v1",
+        "title": "SecureReviewer: Enhancing Large Language Models for Secure Code Review\n  through Secure-aware Fine-tuning",
+        "abstract": "nell University\n\n\u2018Computer Science > Software Engineering\n\narXiv:2510.26457v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nSecureReviewer: Enhancing Large Language Models for\nSecure Code Review through Secure-aware Fine-tuning\n\nFang Liu, Simiao Liu, Yinghao Zhu, Xiaoli Lian, Li Zhang\n\nView PDF\nHTML (experimental)\n\nIdentifying and addressing security issues during the early phase of the development lifecycle is critical for\nmitigating the long-term negative impacts on software systems. Code review serves as",
+        "authors": [
+            "Fang Liu",
+            "Simiao Liu",
+            "Yinghao Zhu",
+            "Xiaoli Lian",
+            "Li Zhang"
+        ],
+        "date": "2025-10-30T13:06:11Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26446v1",
+        "title": "1+1>2: A Synergistic Sparse and Low-Rank Compression Method for Large\n  Language Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narxiv:2510.26446v1 (cs)\n\n[Submitted on 30 Oct 2025]\n\n1+1>2: A Synergistic Sparse and Low-Rank Compression\nMethod for Large Language Models\n\nZeliang Zong, Kai Zhang, Zheyang Li, Wenming Tan, Ye Ren, Yiyan Zhai, Jilin Hu\n\nView PDF\nHTML (experimental)\n\nLarge Language Models (LLMs) have demonstrated remarkable proficiency in language comprehension and\ngeneration; however, their widespread adoption is constrained by substantial bandwidth a",
+        "authors": [
+            "Zeliang Zong",
+            "Kai Zhang",
+            "Zheyang Li",
+            "Wenming Tan",
+            "Ye Ren",
+            "Yiyan Zhai",
+            "Jilin Hu"
+        ],
+        "date": "2025-10-30T12:50:30Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26847v1",
+        "title": "Broken-Token: Filtering Obfuscated Prompts by Counting\n  Characters-Per-Token",
+        "abstract": "nell University\n\nComputer Science > Cryptography and Security\narxiv:2510.26847v1 (cs)\n\n{Submitted on 30 Oct 2025]\nBroken-Token: Filtering Obfuscated Prompts by Counting\nCharacters-Per-Token\n\nShaked Zychlinski, Yuval Kainan\n\nView PDF\nHTML (experimental)\nLarge Language Models (LLMs) are susceptible to jailbreak attacks where malicious prompts are disguised\nusing ciphers and character-level encodings to bypass safety guardrails. While these guardrails often fail to\n\ninterpret the encoded content, t",
+        "authors": [
+            "Shaked Zychlinski",
+            "Yuval Kainan"
+        ],
+        "date": "2025-10-30T12:42:45Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26423v1",
+        "title": "Nexus: Execution-Grounded Multi-Agent Test Oracle Synthesis",
+        "abstract": "ornell University\n\nComputer Science > Software Engineering\narxivi2510.26423v1 (cs)\n\n{Submitted on 30 Oct 2025]\nNexus: Execution-Grounded Multi-Agent Test Oracle\nSynthesis\n\nDong Huang, Mingzhe Du, Jie M. Zhang, Zheng Lin, Meng Luo, Qianru Zhang, See-Kiong Ng\n\nView PDF\nHTML (experimental)\nTest oracle generation in non-regression testing is a longstanding challenge in software engineering,\nwhere the goal is to produce oracles that can accurately determine whether a function under test (FUT)\n\nbehave",
+        "authors": [
+            "Dong Huang",
+            "Mingzhe Du",
+            "Jie M. Zhang",
+            "Zheng Lin",
+            "Meng Luo",
+            "Qianru Zhang",
+            "See-Kiong Ng"
+        ],
+        "date": "2025-10-30T12:20:25Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26422v1",
+        "title": "OmniEduBench: A Comprehensive Chinese Benchmark for Evaluating Large\n  Language Models in Education",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26422v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nOmniEduBench: A Comprehensive Chinese Benchmark for\nEvaluating Large Language Models in Education\n\nMin Zhang, Hao Chen, Hao Chen, Wengi Zhang, Didi Zhu, Xin Lin, Bo Jiang, Aimin Zhou, Fei Wu, Kun Kuang\n\nView PDF\nHTML (experimental)\n\nWith the rapid development of large language models (LLMs), various LLM-based works have been widely\napplied in educational fields. However, most existi",
+        "authors": [
+            "Min Zhang",
+            "Hao Chen",
+            "Hao Chen",
+            "Wenqi Zhang",
+            "Didi Zhu",
+            "Xin Lin",
+            "Bo Jiang",
+            "Aimin Zhou",
+            "Fei Wu",
+            "Kun Kuang"
+        ],
+        "date": "2025-10-30T12:16:29Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26354v1",
+        "title": "On the Role of Context for Discourse Relation Classification in\n  Scientific Writing",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26354v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nOn the Role of Context for Discourse Relation Classification\nin Scientific Writing\n\nStephen Wan, Wei Liu, Michael Strube\n\nView PDF\nHTML (experimental)\n\nWith the increasing use of generative Artificial Intelligence (Al) methods to support science workflows, we\nare interested in the use of discourse-level information to find supporting evidence for Al generated\nscientific claims. A fi",
+        "authors": [
+            "Stephen Wan",
+            "Wei Liu",
+            "Michael Strube"
+        ],
+        "date": "2025-10-30T11:05:36Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26352v1",
+        "title": "The Geometry of Dialogue: Graphing Language Models to Reveal Synergistic\n  Teams for Multi-Agent Collaboration",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26352v1 (cs)\n\n[Submitted on 30 Oct 2025]\n\nThe Geometry of Dialogue: Graphing Language Models to\nReveal Synergistic Teams for Multi-Agent Collaboration\n\nKotaro Furuya, Yuichi Kitagawa\n\nView PDF\nHTML (experimental)\n\nWhile a multi-agent approach based on large language models (LLMs) represents a promising strategy to\nsurpass the capabilities of single models, its success is critically dependent on synergistic team\ncomposition.",
+        "authors": [
+            "Kotaro Furuya",
+            "Yuichi Kitagawa"
+        ],
+        "date": "2025-10-30T11:04:15Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26345v1",
+        "title": "MisSynth: Improving MISSCI Logical Fallacies Classification with\n  Synthetic Data",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26345v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nMisSynth: Improving MISSCI Logical Fallacies Classification\nwith Synthetic Data\n\nMykhailo Poliakov, Nadiya Shvai\n\nView PDF\nHTML (experimental)\n\nHealth-related misinformation is very prevalent and potentially harmful. It is difficult to identify, especially\nwhen claims distort or misinterpret scientific findings. We investigate the impact of synthetic data\ngeneration and lightweight ",
+        "authors": [
+            "Mykhailo Poliakov",
+            "Nadiya Shvai"
+        ],
+        "date": "2025-10-30T10:52:43Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26336v1",
+        "title": "From Amateur to Master: Infusing Knowledge into LLMs via Automated\n  Curriculum Learning",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26336v1 (cs)\n[submitted on 30 Oct 2025]\n\nFrom Amateur to Master: Infusing Knowledge into LLMs via\nAutomated Curriculum Learning\n\nNishit Neema, Srinjoy Mukherjee, Sapan Shah, Gokul Ramakrishnan, Ganesh Venkatesh\n\nView PDF\nHTML (experimental)\n\nLarge Language Models (LLMs) excel at general tasks but underperform in specialized domains like\neconomics and psychology, which require deep, principled understanding. To address this,",
+        "authors": [
+            "Nishit Neema",
+            "Srinjoy Mukherjee",
+            "Sapan Shah",
+            "Gokul Ramakrishnan",
+            "Ganesh Venkatesh"
+        ],
+        "date": "2025-10-30T10:43:40Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26322v1",
+        "title": "SCRIBE: Structured Chain Reasoning for Interactive Behaviour\n  Explanations using Tool Calling",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26322v1 (cs)\n{Submitted on 30 Oct 2025]\nSCRIBE: Structured Chain Reasoning for Interactive\nBehaviour Explanations using Tool Calling\n\nFares Fawzi, Vinitra Swamy, Dominik Glandorf, Tanya Nazaretsky, Tanja Kaser\n\nView PDF\nHTML (experimental)\n\nLanguage models can be used to provide interactive, personalized student feedback in educational\nsettings. However, real-world deployment faces three key challenges: privacy concerns, lim",
+        "authors": [
+            "Fares Fawzi",
+            "Vinitra Swamy",
+            "Dominik Glandorf",
+            "Tanya Nazaretsky",
+            "Tanja K\u00e4ser"
+        ],
+        "date": "2025-10-30T10:17:05Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26298v1",
+        "title": "Can Agent Conquer Web? Exploring the Frontiers of ChatGPT Atlas Agent in\n  Web Games",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26298v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nCan Agent Conquer Web? Exploring the Frontiers of\nChatGPT Atlas Agent in Web Games\n\nJingran Zhang, Ning Li, Justin Cui\n\nView PDF\nHTML (experimental)\nOpenAl's ChatGPT Atlas introduces new capabilities for web interaction, enabling the model to analyze\nwebpages, process user intents, and execute cursor and keyboard inputs directly within the browser. While\n\nits capacity for information",
+        "authors": [
+            "Jingran Zhang",
+            "Ning Li",
+            "Justin Cui"
+        ],
+        "date": "2025-10-30T09:35:51Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26285v1",
+        "title": "Unravelling the Mechanisms of Manipulating Numbers in Language Models",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26285v1 (cs)\n\n{Submitted on 30 Oct 2025]\nUnravelling the Mechanisms of Manipulating Numbers in\nLanguage Models\n\nMichal Stef\u00e9nik, Timothee Mickus, Marek Kaditik, Bertram Hajer, Michal Spiegel, Rail Vazquez, Aman Sinha, Josef Kuchaf,\nPhilipp Mondorf\n\nView PDF\nHTML (experimental)\n\nRecent work has shown that different large language models (LLMs) converge to similar and accurate input\nembedding representations for numbers. These",
+        "authors": [
+            "Michal \u0160tef\u00e1nik",
+            "Timothee Mickus",
+            "Marek Kadl\u010d\u00edk",
+            "Bertram H\u00f8jer",
+            "Michal Spiegel",
+            "Ra\u00fal V\u00e1zquez",
+            "Aman Sinha",
+            "Josef Kucha\u0159",
+            "Philipp Mondorf"
+        ],
+        "date": "2025-10-30T09:08:50Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26277v1",
+        "title": "Do LLMs Signal When They're Right? Evidence from Neuron Agreement",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.26277v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nDo LLMs Signal When They're Right? Evidence from Neuron\nAgreement\n\nKang Chen, Yaoning Wang, Kai Xiong, Zhuoka Feng, Wenhe Sun, Haotian Chen, Yixin Cao\n\nView PDF\nHTML (experimental)\nLarge language models (LLMs) commonly boost reasoning via sample-evaluate-ensemble decoders,\nachieving label free gains without ground truth. However, prevailing strategies score candidates using only\n\ne",
+        "authors": [
+            "Kang Chen",
+            "Yaoning Wang",
+            "Kai Xiong",
+            "Zhuoka Feng",
+            "Wenhe Sun",
+            "Haotian Chen",
+            "Yixin Cao"
+        ],
+        "date": "2025-10-30T08:59:56Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26274v1",
+        "title": "PVMark: Enabling Public Verifiability for LLM Watermarking Schemes",
+        "abstract": "nell University\n\n\u2018Computer Science > Cryptography and Security\narXiv:2510.26274v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nPVMark: Enabling Public Verifiability for LLM Watermarking\nSchemes\n\nHaohua Duan, Liyao Xiang, Xin Zhang\n\nView PDF\nHTML (experimental)\nWatermarking schemes for large language models (LLMs) have been proposed to identify the source of the\ngenerated text, mitigating the potential threats emerged from model theft. However, current watermarking\n\nsolutions hardly resolve the trust issue:",
+        "authors": [
+            "Haohua Duan",
+            "Liyao Xiang",
+            "Xin Zhang"
+        ],
+        "date": "2025-10-30T08:58:44Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26271v1",
+        "title": "Distilling Multilingual Vision-Language Models: When Smaller Models Stay\n  Multilingual",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26271v1 (cs)\n\n{Submitted on 30 Oct 2025]\nDistilling Multilingual Vision-Language Models: When\nSmaller Models Stay Multilingual\n\nSukrit Sriratanawilai, Jayahgrit Thongwat, Romrawin Chumpu, Patomporn Payoungkhamdee, Sarana Nutanong, Peerat\nLimkonchotiwat\n\nView PDF\nHTML (experimental)\n\nVision-language models (VLMs) exhibit uneven performance across languages, a problem that is often\nexacerbated when the model size is reduced. W",
+        "authors": [
+            "Sukrit Sriratanawilai",
+            "Jhayahgrit Thongwat",
+            "Romrawin Chumpu",
+            "Patomporn Payoungkhamdee",
+            "Sarana Nutanong",
+            "Peerat Limkonchotiwat"
+        ],
+        "date": "2025-10-30T08:56:06Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26254v1",
+        "title": "Language Models Are Borrowing-Blind: A Multilingual Evaluation of\n  Loanword Identification across 10 Languages",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26254v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nLanguage Models Are Borrowing-Blind: A Multilingual\nEvaluation of Loanword Identification across 10 Languages\n\nM\u00e9rilin Sousa Silva, Sina Ahmadi\n\nView PDF\nHTML (experimental)\n\nThroughout language history, words are borrowed from one language to another and gradually become\nintegrated into the recipient's lexicon. Speakers can often differentiate these loanwords from native\nvocabulary",
+        "authors": [
+            "M\u00e9rilin Sousa Silva",
+            "Sina Ahmadi"
+        ],
+        "date": "2025-10-30T08:36:07Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26253v1",
+        "title": "Pragmatic Theories Enhance Understanding of Implied Meanings in LLMs",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26253v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nPragmatic Theories Enhance Understanding of Implied\nMeanings in LLMs\n\n\u2018Takuma Sato, Seiya Kawano, Koichiro Yoshino\n\nView PDF\nHTML (experimental)\nThe ability to accurately interpret implied meanings plays a crucial role in human communication and\nlanguage use, and language models are also expected to possess this capability. This study demonstrates\n\nthat providing language models wit",
+        "authors": [
+            "Takuma Sato",
+            "Seiya Kawano",
+            "Koichiro Yoshino"
+        ],
+        "date": "2025-10-30T08:35:52Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26241v1",
+        "title": "Which Way Does Time Flow? A Psychophysics-Grounded Evaluation for\n  Vision-Language Models",
+        "abstract": "nell University\n\nComputer Science > Computer Vision and Pattern Recognition\narXiv:2510.26241v1 (cs)\n\n[Submitted on 30 Oct 2025]\n\nWhich Way Does Time Flow? A Psychophysics-Grounded\nEvaluation for Vision-Language Models\n\nShiho Matta, Lis Kanashiro Pereira, Peitao Han, Fei Cheng, Shigeru Kitazawa\n\nView PDF\nHTML (experimental)\n\nModern vision-language models (VLMs) excel at many multimodal tasks, yet their grasp of temporal\ninformation in video remains weak and, crucially, under-evaluated. We probe t",
+        "authors": [
+            "Shiho Matta",
+            "Lis Kanashiro Pereira",
+            "Peitao Han",
+            "Fei Cheng",
+            "Shigeru Kitazawa"
+        ],
+        "date": "2025-10-30T08:21:50Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26205v1",
+        "title": "Towards Global Retrieval Augmented Generation: A Benchmark for\n  Corpus-Level Reasoning",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.26205v1 (cs)\n\n{Submitted on 30 Oct 2025]\nTowards Global Retrieval Augmented Generation: A\nBenchmark for Corpus-Level Reasoning\n\nQi Luo, Xiaonan Li, Tingshuo Fan, Xinchi Chen, Xipeng Qiu\n\nView PDF\nHTML (experimental)\n\nRetrieval-augmented generation (RAG) has emerged as a leading approach to reducing hallucinations in\nlarge language models (LLMs). Current RAG evaluation benchmarks primarily focus on what we call local\nRAG: ret",
+        "authors": [
+            "Qi Luo",
+            "Xiaonan Li",
+            "Tingshuo Fan",
+            "Xinchi Chen",
+            "Xipeng Qiu"
+        ],
+        "date": "2025-10-30T07:29:14Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26202v1",
+        "title": "What's In My Human Feedback? Learning Interpretable Descriptions of\n  Preference Data",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26202v1 (cs)\n\n[Submitted on 30 Oct 2025]\n\nWhat's In My Human Feedback? Learning Interpretable\nDescriptions of Preference Data\n\nRajiv Mowva, Smitha Milli, Sewon Min, Emma Pierson\n\nView PDF\nHTML (experimental)\n\nHuman feedback can alter language models in unpredictable and undesirable ways, as practitioners lack a\nclear understanding of what feedback data encodes. While prior work studies preferences over certain\nattributes (e",
+        "authors": [
+            "Rajiv Movva",
+            "Smitha Milli",
+            "Sewon Min",
+            "Emma Pierson"
+        ],
+        "date": "2025-10-30T07:25:10Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26200v1",
+        "title": "Don't Let It Fade: Preserving Edits in Diffusion Language Models via\n  Token Timestep Allocation",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26200v1 (cs)\n\n{Submitted on 30 Oct 2025]\nDon't Let It Fade: Preserving Edits in Diffusion Language\nModels via Token Timestep Allocation\n\nWoojin Kim, Jaeyoung Do\n\nView PDF\nHTML (experimental)\n\nWhile diffusion language models (DLMs) enable fine-grained refinement, their practical controllability\nremains fragile. We identify and formally characterize a central failure mode called update forgetting, in\nwhich uniform and context",
+        "authors": [
+            "Woojin Kim",
+            "Jaeyoung Do"
+        ],
+        "date": "2025-10-30T07:21:05Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26193v1",
+        "title": "RCScore: Quantifying Response Consistency in Large Language Models",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26193v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nRCScore: Quantifying Response Consistency in Large\nLanguage Models\n\nDongjun Jang, Youngchae Ahn, Hyopil Shin\n\nView PDF\n\nCurrent LLM evaluations often rely on a single instruction template, overlooking models' sensitivity to\ninstruction style-a critical aspect for real-world deployments. We present RCScore, a multi-dimensional\nframework quantifying how instruction formulation affe",
+        "authors": [
+            "Dongjun Jang",
+            "Youngchae Ahn",
+            "Hyopil Shin"
+        ],
+        "date": "2025-10-30T07:06:47Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26190v1",
+        "title": "SP-MCQA: Evaluating Intelligibility of TTS Beyond the Word Level",
+        "abstract": "ornell University\n\n\u2018Computer Science > Sound\narxiv:2510.26190v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nSP-MCQA: Evaluating Intelligibility of TTS Beyond the Word\nLevel\n\nHitomi Jin Ling Tee, Chaoren Wang, Zijie Zhang, Zhizheng Wu\n\nView PDF\nHTML (experimental)\nThe evaluation of intelligibility for TTS has reached a bottleneck, as existing assessments heavily rely on\nword-by-word accuracy metrics such as WER, which fail to capture the complexity of real-world speech or\n\nreflect human comprehension needs",
+        "authors": [
+            "Hitomi Jin Ling Tee",
+            "Chaoren Wang",
+            "Zijie Zhang",
+            "Zhizheng Wu"
+        ],
+        "date": "2025-10-30T06:57:07Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26183v1",
+        "title": "Similarity-Distance-Magnitude Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26183v1 (cs)\n\n{Submitted on 30 Oct 2025]\nSimilarity-Distance-Magnitude Language Models\n\nAllen Schmaltz\n\nView PDF\nHTML (experimental)\nWe introduce Similarity-Distance-Magnitude (SDM) language models (LMs), which are sequence prediction\nmodels fine-tuned to maximize the proportion of generations in the well-calibrated, high-probability\nregion partitioned by a final-layer SDM activation layer used for binary classification o",
+        "authors": [
+            "Allen Schmaltz"
+        ],
+        "date": "2025-10-30T06:42:15Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26182v1",
+        "title": "MossNet: Mixture of State-Space Experts is a Multi-Head Attention",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.26182v1 (cs)\n\n{Submitted on 30 Oct 2025]\n\nMossNet: Mixture of State-Space Experts is a Multi-Head\nAttention\n\nShikhar Tuli, James Seale Smith, Haris Jeelani, Chi-Heng Lin, Abhishek Patel, Vasili Ramanishka, Yen-Chang Hsu, Hongxia Jin\n\nView PDF\nHTML (experimental)\nLarge language models (LLMs) have significantly advanced generative applications in natural language\nprocessing (NLP). Recent trends in model architectures revolve",
+        "authors": [
+            "Shikhar Tuli",
+            "James Seale Smith",
+            "Haris Jeelani",
+            "Chi-Heng Lin",
+            "Abhishek Patel",
+            "Vasili Ramanishka",
+            "Yen-Chang Hsu",
+            "Hongxia Jin"
+        ],
+        "date": "2025-10-30T06:37:23Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26167v1",
+        "title": "One Model to Critique Them All: Rewarding Agentic Tool-Use via Efficient\n  Reasoning",
+        "abstract": "ornell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.26167v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nOne Model to Critique Them All: Rewarding Agentic Tool-\nUse via Efficient Reasoning\n\nRenhao Li, Jianhong Tu, Yang Su, Hamid Alinejad-Rokny, Derek F. Wong, Junyang Lin, Min Yang\n\nView PDF\n\nReward models (RMs) play a critical role in aligning large language models (LLMs) with human preferences.\nYet in the domain of tool learning, the lack of RMs specifically designed for function-call",
+        "authors": [
+            "Renhao Li",
+            "Jianhong Tu",
+            "Yang Su",
+            "Hamid Alinejad-Rokny",
+            "Derek F. Wong",
+            "Junyang Lin",
+            "Min Yang"
+        ],
+        "date": "2025-10-30T06:08:27Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26143v1",
+        "title": "Reasoning Curriculum: Bootstrapping Broad LLM Reasoning from Math",
+        "abstract": "ornell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.26143v1 (cs)\n\n{Submitted on 30 Oct 2025]\nReasoning Curriculum: Bootstrapping Broad LLM Reasoning\nfrom Math\n\nBo Pang, Degian Kong, Silvio Savarese, Caiming Xiong, Yingbo Zhou\n\nView PDF\nHTML (experimental)\nReinforcement learning (RL) can elicit strong reasoning in large language models (LLMs), yet most open\nefforts focus on math and code. We propose Reasoning Curriculum, a simple two-stage curriculum that\n\nfirst elicits reaso",
+        "authors": [
+            "Bo Pang",
+            "Deqian Kong",
+            "Silvio Savarese",
+            "Caiming Xiong",
+            "Yingbo Zhou"
+        ],
+        "date": "2025-10-30T04:56:44Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26124v1",
+        "title": "On the Influence of Discourse Relations in Persuasive Texts",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26124v1 (cs)\n\n[submitted on 30 Oct 2025]\n\nOn the Influence of Discourse Relations in Persuasive Texts\n\nNawar Turk, Sevag Kaspar, Leila Kosseim\n\nView PDF\nHTML (experimental)\nThis paper investigates the relationship between Persuasion Techniques (PTs) and Discourse Relations (DRs)\nby leveraging Large Language Models (LLMs) and prompt engineering. Since no dataset annotated with\nboth PTs and DRs exists, we took the SemEval 2",
+        "authors": [
+            "Nawar Turk",
+            "Sevag Kaspar",
+            "Leila Kosseim"
+        ],
+        "date": "2025-10-30T04:10:56Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26122v1",
+        "title": "Reasoning Path Divergence: A New Metric and Curation Strategy to Unlock\n  LLM Diverse Thinking",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.26122v1 (cs)\n\n[Submitted on 30\n\nReasoning Path Divergence: A New Metric and Curation\nStrategy to Unlock LLM Diverse Thinking\n\nFeng Ju, Zeyu Qin, Rui Min, Zhitao He, Lingpeng Kong, Yi R. Fung\n\nOct 2025]\n\nView PDF\nHTML (experimental)\nWhile Test-Time Scaling (TTS) has proven effective in improving the reasoning ability of large language\nmodels (LLMs), low diversity in model outputs often becomes a bottleneck; this is partly c",
+        "authors": [
+            "Feng Ju",
+            "Zeyu Qin",
+            "Rui Min",
+            "Zhitao He",
+            "Lingpeng Kong",
+            "Yi R. Fung"
+        ],
+        "date": "2025-10-30T04:08:53Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26101v2",
+        "title": "QCoder Benchmark: Bridging Language Generation and Quantum Hardware\n  through Simulator-Based Feedback",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26101v2 (cs)\n\n[Submitted on 30 Oct 2025 (v1), last revised 1 Nov 2025 (this version, v2)}\n\nQCoder Benchmark: Bridging Language Generation and\nQuantum Hardware through Simulator-Based Feedback\n\nTaku Mikuriya, Tatsuya Ishigaki, Masayuki Kawarada, Shunya Minami, Tadashi Kadowaki, Yohichi Suzuki, Soshun Naito, Shunya\nTakata, Takumi Kato, Tamotsu Basseda, Reo Yamada, Hiroya Takamura\n\nView PDF\nHTML (experimental)\nLarge language m",
+        "authors": [
+            "Taku Mikuriya",
+            "Tatsuya Ishigaki",
+            "Masayuki Kawarada",
+            "Shunya Minami",
+            "Tadashi Kadowaki",
+            "Yohichi Suzuki",
+            "Soshun Naito",
+            "Shunya Takata",
+            "Takumi Kato",
+            "Tamotsu Basseda",
+            "Reo Yamada",
+            "Hiroya Takamura"
+        ],
+        "date": "2025-10-30T03:27:35Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26095v1",
+        "title": "ORBIT -- Open Recommendation Benchmark for Reproducible Research with\n  Hidden Tests",
+        "abstract": "nell University\n\nComputer Science > Information Retrieval\n\narXiv:2510.26095v1 (cs)\n\n[submitted on 31 025]\n\nORBIT ~ Open Recommendation Benchmark for\nReproducible Research with Hidden Tests\n\nJingyuan He, Jiongnan Liu, Vishan Vishesh Oberoi, Bolin Wu, Mahima Jagadeesh Patel, Kangrui Mao, Chuning Shi, |-Ta Lee,\nArnold Overwijk, Chenyan Xiong\n\nView PDF\nHTML (experimental)\n\nRecommender systems are among the most impactful Al applications, interacting with billions of users\nevery day, guiding them to ",
+        "authors": [
+            "Jingyuan He",
+            "Jiongnan Liu",
+            "Vishan Vishesh Oberoi",
+            "Bolin Wu",
+            "Mahima Jagadeesh Patel",
+            "Kangrui Mao",
+            "Chuning Shi",
+            "I-Ta Lee",
+            "Arnold Overwijk",
+            "Chenyan Xiong"
+        ],
+        "date": "2025-10-30T03:10:45Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26038v1",
+        "title": "Do Students Debias Like Teachers? On the Distillability of Bias\n  Mitigation Methods",
+        "abstract": "nell University\n\narxiv:2510.26038v1 (cs)\n{Submitted on 30 Oct 2025]\n\nDo Students Debias Like Teachers? On the Distillability of\nBias Mitigation Methods\n\nJiali Cheng, Chirag Agarwal, Hadi Amiri\n\nView PDF\nHTML (experimental)\nKnowledge distillation (KD) is an effective method for model compression and transferring knowledge\nbetween models. However, its effect on model's robustness against spurious correlations that degrade\n\nperformance on out-of-distribution data remains underexplored. This study i",
+        "authors": [
+            "Jiali Cheng",
+            "Chirag Agarwal",
+            "Hadi Amiri"
+        ],
+        "date": "2025-10-30T00:34:16Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26037v1",
+        "title": "SIRAJ: Diverse and Efficient Red-Teaming for LLM Agents via Distilled\n  Structured Reasoning",
+        "abstract": "nell University\n\nComputer Science > Cryptography and Security\narxiv2510.26037v1 (cs)\n\n[Submitted on 30 Oct 2025)\n\nSIRAJ: Diverse and Efficient Red-Teaming for LLM Agents\nvia Distilled Structured Reasoning\n\nKaiwen Zhou, Ahmed Elgohary, A S M Iftekhar, Amin Saied\n\nView PDF\nHTML (experimental)\n\nThe ability of LLM agents to plan and invoke tools exposes them to new safety risks, making a\ncomprehensive red-teaming system crucial for discovering vulnerabilities and ensuring their safe\ndeployment. We p",
+        "authors": [
+            "Kaiwen Zhou",
+            "Ahmed Elgohary",
+            "A S M Iftekhar",
+            "Amin Saied"
+        ],
+        "date": "2025-10-30T00:32:58Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26032v1",
+        "title": "Artificial Intelligence-Enabled Analysis of Radiology Reports:\n  Epidemiology and Consequences of Incidental Thyroid Findings",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv2510.26032V1 (cs)\n\n[Submitted on 30 Oct 2025)\nArtificial Intelligence-Enabled Analysis of Radiology\nReports: Epidemiology and Consequences of Incidental\nThyroid Findings\n\nZahidy, Marcelo Montero, Ana Cristina Proano, Cristian Soto Jacome, Jungwei W. Fan, Oscar J. Ponce-Ponte, Megan E. Branda,\nNaykky Singh Ospina, Juan P. Brito\n\nView PDF\n\nImportance Incidental thyroid findings (ITFs) are increasingly detected on imaging performed f",
+        "authors": [
+            "Felipe Larios",
+            "Mariana Borras-Osorio",
+            "Yuqi Wu",
+            "Ana Gabriela Claros",
+            "David Toro-Tobon",
+            "Esteban Cabezas",
+            "Ricardo Loor-Torres",
+            "Maria Mateo Chavez",
+            "Kerly Guevara Maldonado",
+            "Luis Vilatuna Andrango",
+            "Maria Lizarazo Jimenez",
+            "Ivan Mateo Alzamora",
+            "Misk Al Zahidy",
+            "Marcelo Montero",
+            "Ana Cristina Proano",
+            "Cristian Soto Jacome",
+            "Jungwei W. Fan",
+            "Oscar J. Ponce-Ponte",
+            "Megan E. Branda",
+            "Naykky Singh Ospina",
+            "Juan P. Brito"
+        ],
+        "date": "2025-10-30T00:15:07Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26024v1",
+        "title": "Rethinking Cross-lingual Alignment: Balancing Transfer and Cultural\n  Erasure in Multilingual LLMs",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26024v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nRethinking Cross-lingual Alignment: Balancing Transfer\nand Cultural Erasure in Multilingual LLMs\n\nHyoJung Han, Sweta Agrawal, Eleftheria Briakou\n\nView PDF\n\nCross-lingual alignment (CLA) aims to align multilingual representations, enabling Large Language Models\n(LLMs) to seamlessly transfer knowledge across languages. While intuitive, we hypothesize, this pursuit of\nrepresentationa",
+        "authors": [
+            "HyoJung Han",
+            "Sweta Agrawal",
+            "Eleftheria Briakou"
+        ],
+        "date": "2025-10-29T23:37:54Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26020v1",
+        "title": "PORTool: Tool-Use LLM Training with Rewarded Tree",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.26020v1 (cs)\n\n{Submitted on 29 Oct 2025]\nPORTool: Tool-Use LLM Training with Rewarded Tree\n\nFeijie Wu, Weiwu Zhu, Yuxiang Zhang, Soumya Chatterjee, Jiarong Zhu, Fan Mo, Rodin Luo, Jing Gao\n\nView PDF\nHTML (experimental)\n\nCurrent tool-use large language models (LLMs) are trained on static datasets, enabling them to interact\nwith external tools and perform multi-step, tool-integrated reasoning, which produces tool-call\ntraj",
+        "authors": [
+            "Feijie Wu",
+            "Weiwu Zhu",
+            "Yuxiang Zhang",
+            "Soumya Chatterjee",
+            "Jiarong Zhu",
+            "Fan Mo",
+            "Rodin Luo",
+            "Jing Gao"
+        ],
+        "date": "2025-10-29T23:28:53Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.26006v1",
+        "title": "CAVE: Detecting and Explaining Commonsense Anomalies in Visual\n  Environments",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computer Vision and Pattern Recognition\narxiv:2510.26006v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nCAVE: Detecting and Explaining Commonsense Anomalies\nin Visual Environments\n\nRishika Bhagwatkar, Syrielle Montariol, Angelika Romanou, Beatriz Borges, Irina Rish, Antoine Bosselut\n\nView PDF\nHTML (experimental)\nHumans can naturally identify, reason about, and explain anomalies in their environment. In computer\nvision, this long-standing challenge remains limited to i",
+        "authors": [
+            "Rishika Bhagwatkar",
+            "Syrielle Montariol",
+            "Angelika Romanou",
+            "Beatriz Borges",
+            "Irina Rish",
+            "Antoine Bosselut"
+        ],
+        "date": "2025-10-29T22:34:26Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25992v1",
+        "title": "Supervised Reinforcement Learning: From Expert Trajectories to Step-wise\n  Reasoning",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25992v1 (cs)\n\n{Submitted on 29 Oct 2025]\nSupervised Reinforcement Learning: From Expert\nTrajectories to Step-wise Reasoning\n\nYihe Deng, I-Hung Hsu, Jun Yan, Zifeng Wang, Rujun Han, Gufeng Zhang, Yanfei Chen, Wei Wang, Tomas Pfister, Chen-Yu Lee\n\nView PDF\nHTML (experimental)\nLarge Language Models (LLMs) often struggle with problems that require multi-step reasoning. For small-\nscale open-source models, Reinforcement Learning ",
+        "authors": [
+            "Yihe Deng",
+            "I-Hung Hsu",
+            "Jun Yan",
+            "Zifeng Wang",
+            "Rujun Han",
+            "Gufeng Zhang",
+            "Yanfei Chen",
+            "Wei Wang",
+            "Tomas Pfister",
+            "Chen-Yu Lee"
+        ],
+        "date": "2025-10-29T22:05:08Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25979v2",
+        "title": "AttnCache: Accelerating Self-Attention Inference for LLM Prefill via\n  Attention Cache",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25979v2 (cs)\n\n[Submitted on 29 Oct\n\nAttnCache: Accelerating Self-Attention Inference for LLM\nPrefill via Attention Cache\n\nDinghong Song, Yuan Feng, Yiwei Wang, Shangye Chen, Cyril Guyot, Filip Blagojevic, Hyeran Jeon, Pengfei Su, Dong Li\n\n(WD, last revised 31 Oct 2025 (this version, v2)]\n\nView PDF\nHTML (experimental)\nLarge Language Models (LLMs) are widely used in generative applications such as chatting, code\ngeneration, a",
+        "authors": [
+            "Dinghong Song",
+            "Yuan Feng",
+            "Yiwei Wang",
+            "Shangye Chen",
+            "Cyril Guyot",
+            "Filip Blagojevic",
+            "Hyeran Jeon",
+            "Pengfei Su",
+            "Dong Li"
+        ],
+        "date": "2025-10-29T21:26:17Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25977v2",
+        "title": "NeuronMM: High-Performance Matrix Multiplication for LLM Inference on\n  AWS Trainium",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25977v2 (cs)\n\n[submitted on 29 Oct\n\nNeuronMM: High-Performance Matrix Multiplication for LLM\nInference on AWS Trainium\n\n(WD, last revised 31 Oct 2025 (this version, v2)]\n\nDinghong Song, Jierui Xu, Weichu Yang, Pengfei Su, Dong Li\n\nView PDF\nHTML (experimental)\n\nAl accelerators, customized to Al workloads, provide cost-effective and high-performance solutions for\ntraining and inference. Trainium, an Al accelerator recently de",
+        "authors": [
+            "Dinghong Song",
+            "Jierui Xu",
+            "Weichu Yang",
+            "Pengfei Su",
+            "Dong Li"
+        ],
+        "date": "2025-10-29T21:22:08Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25975v1",
+        "title": "SymCode: A Neurosymbolic Approach to Mathematical Reasoning via\n  Verifiable Code Generation",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25975v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nSymCode: A Neurosymbolic Approach to Mathematical\nReasoning via Verifiable Code Generation\n\nSina Bagheri Nezhad, Yao Li, Ameeta Agrawal\n\nView PDF\nHTML (experimental)\nLarge Language Models (LLMs) often struggle with complex mathematical reasoning, where prose-based\ngeneration leads to unverified and arithmetically unsound solutions. Current prompting strategies like\n\nChain of Thought",
+        "authors": [
+            "Sina Bagheri Nezhad",
+            "Yao Li",
+            "Ameeta Agrawal"
+        ],
+        "date": "2025-10-29T21:17:57Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25967v1",
+        "title": "Semantic Label Drift in Cross-Cultural Translation",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25967v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nSemantic Label Drift in Cross-Cultural Translation\n\nMobsinul Kabir, Tasnim Ahmed, Md Mezbaur Rahman, Polydoros Giannouris, Sophia Ananiadou\n\nView PDF\nHTML (experimental)\n\nMachine Translation (MT) is widely employed to address resource scarcity in low-resource languages by\ngenerating synthetic data from high-resource counterparts. While sentiment preservation in translation has\nlo",
+        "authors": [
+            "Mohsinul Kabir",
+            "Tasnim Ahmed",
+            "Md Mezbaur Rahman",
+            "Polydoros Giannouris",
+            "Sophia Ananiadou"
+        ],
+        "date": "2025-10-29T21:11:23Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25947v1",
+        "title": "Revisiting Multilingual Data Mixtures in Language Model Pretraining",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25947v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nng Multilingual Data Mixtures in Language Model\n\nNegar Foroutan, Paul Teiletche, Ayush Kumar Tarun, Antoine Bosselut\n\nView PDF\nHTML (experimental)\n\nThe impact of different multilingual data mixtures in pretraining large language models (LLMs) has been a\ntopic of ongoing debate, often raising concerns about potential trade-offs between language coverage and\nmodel performance (j.e., t",
+        "authors": [
+            "Negar Foroutan",
+            "Paul Teiletche",
+            "Ayush Kumar Tarun",
+            "Antoine Bosselut"
+        ],
+        "date": "2025-10-29T20:46:03Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25941v1",
+        "title": "RECAP: Reproducing Copyrighted Data from LLMs Training with an Agentic\n  Pipeline",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25941v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nRECAP: Reproducing Copyrighted Data from LLMs Training\nwith an Agentic Pipeline\n\nAndr\u00e9 V. Duarte, Xuying li, Bin Zeng, Arlindo L. Oliveira, Lei Li, Zhuo Li\n\nView PDF\nHTML (experimental)\nIf we cannot inspect the training data of a large language model (LLM), how can we ever know what it has\nseen? We believe the most compelling evidence arises when the model itself freely reproduces t",
+        "authors": [
+            "Andr\u00e9 V. Duarte",
+            "Xuying li",
+            "Bin Zeng",
+            "Arlindo L. Oliveira",
+            "Lei Li",
+            "Zhuo Li"
+        ],
+        "date": "2025-10-29T20:36:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25932v1",
+        "title": "FakeZero: Real-Time, Privacy-Preserving Misinformation Detection for\n  Facebook and X",
+        "abstract": "nell University\n\n\u2018Computer Science > Cryptography and Security\narXiv:2510.25932v1 (cs)\n\n[submitted on 29 Oct\n\nFakeZero: Real-Time, Privacy-Preserving Misinformation\nDetection for Facebook and X\n\nSoufiane Essahli, Oussama Sarsar, Imane Fouad, Anas Motii, Ahmed Bentajer\n\nView PDF\nHTML (experimental)\n\nSocial platforms distribute information at unprecedented speed, which in turn accelerates the spread of\nmisinformation and threatens public discourse. We present FakeZero, a fully client-side, cross-p",
+        "authors": [
+            "Soufiane Essahli",
+            "Oussama Sarsar",
+            "Imane Fouad",
+            "Anas Motii",
+            "Ahmed Bentajer"
+        ],
+        "date": "2025-10-29T20:11:48Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25904v1",
+        "title": "Evaluating the Impact of LLM-Assisted Annotation in a Perspectivized\n  Setting: the Case of FrameNet Annotation",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25904v1 (cs)\n\n{Submitted on 29 Oct 2025]\nEvaluating the Impact of LLM-Assisted Annotation in a\nPerspectivized Setting: the Case of FrameNet Annotation\n\nFrederico Belcavello, Ely Matos, Arthur Lorenzi, Lisandra Bonoto, Livia Ruiz, Luiz Fernando Pereira, Victor Herbst, Yulla Navarro,\nHelen de Andrade Abreu, Livia Dutra, Tiago Timponi Torrent\n\nView PDF\nHTML (experimental)\n\nThe use of LLM-based applications as a means to acceler",
+        "authors": [
+            "Frederico Belcavello",
+            "Ely Matos",
+            "Arthur Lorenzi",
+            "Lisandra Bonoto",
+            "L\u00edvia Ruiz",
+            "Luiz Fernando Pereira",
+            "Victor Herbst",
+            "Yulla Navarro",
+            "Helen de Andrade Abreu",
+            "L\u00edvia Dutra",
+            "Tiago Timponi Torrent"
+        ],
+        "date": "2025-10-29T19:13:48Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25884v1",
+        "title": "Approximating Human Preferences Using a Multi-Judge Learned System",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\n\narXiv:2510.25884v1 (cs)\n\n[Submitted on 29 Oct 20\n\nApproximating Human Preferences Using a Multi-Judge\nLearned System\n\nEitan Sprejer, Fernando Avalos, Augusto Bernardi, Jose Pedro Brito de Azevedo Faustino, Jacob Haimes, Narmeen Fatimah\nOozeer\n\nView PDF\nHTML (experimental)\n\nAligning LLM-based judges with human preferences is a significant challenge, as they are difficult to\ncalibrate and often suffer from rubric sensitivity, bias, and i",
+        "authors": [
+            "Eit\u00e1n Sprejer",
+            "Fernando Avalos",
+            "Augusto Bernardi",
+            "Jose Pedro Brito de Azevedo Faustino",
+            "Jacob Haimes",
+            "Narmeen Fatimah Oozeer"
+        ],
+        "date": "2025-10-29T18:32:53Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25860v1",
+        "title": "Through the Judge's Eyes: Inferred Thinking Traces Improve Reliability\n  of LLM Raters",
+        "abstract": "nell University\n\nComputer Science > Arfcal intelligence\narxiv:i2510.25860v1 (cs)\n\n{Submitted on 29 Oct 2025]\nThrough the Judge's Eyes: Inferred Thinking Traces\nImprove Reliability of LLM Raters\n\nXingjian Zhang, Tianhong Gao, Suliang Jin, Tianhao Wang, Teng Ye, Eytan Adar, Qiaozhu Mei\n\nView PDF\nHTML (experimental)\nLarge language models (LLMs) are increasingly used as raters for evaluation tasks. However, their reliability\nis often limited for subjective tasks, when human judgments involve subtle ",
+        "authors": [
+            "Xingjian Zhang",
+            "Tianhong Gao",
+            "Suliang Jin",
+            "Tianhao Wang",
+            "Teng Ye",
+            "Eytan Adar",
+            "Qiaozhu Mei"
+        ],
+        "date": "2025-10-29T18:03:44Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25771v1",
+        "title": "Gaperon: A Peppered English-French Generative Language Model Suite",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25771v1 (cs)\n\n{Submitted on 29 Oct 2025]\nGaperon: A Peppered English-French Generative Language\nModel Suite\n\nNathan Godey, Wissam Antoun, Rian Touchent, Rachel Bawden, Eric de la Clergerie, Benoit Sagot, Djam\u00e9 Seddah\n\nView PDF\n\nWe release Gaperon, a fully open suite of French-English-coding language models designed to advance\ntransparency and reproducibility in large-scale model training. The Gaperon family includes 1.5B,",
+        "authors": [
+            "Nathan Godey",
+            "Wissam Antoun",
+            "Rian Touchent",
+            "Rachel Bawden",
+            "\u00c9ric de la Clergerie",
+            "Beno\u00eet Sagot",
+            "Djam\u00e9 Seddah"
+        ],
+        "date": "2025-10-29T17:59:39Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25766v1",
+        "title": "Decomposition-Enhanced Training for Post-Hoc Attributions In Language\n  Models",
+        "abstract": "ive, and semi-extractive settings, where answers synthesize information",
+        "authors": [
+            "Sriram Balasubramaniam",
+            "Samyadeep Basu",
+            "Koustava Goswami",
+            "Ryan Rossi",
+            "Varun Manjunatha",
+            "Roshan Santhosh",
+            "Ruiyi Zhang",
+            "Soheil Feizi",
+            "Nedim Lipka"
+        ],
+        "date": "2025-10-29T17:58:59Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25761v2",
+        "title": "DiagramEval: Evaluating LLM-Generated Diagrams via Graphs",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25761v2 (cs)\n\n[Submitted on 29 Oct 2025 (v1), last revised 31 Oct 2025 (this version, v2)]\n\nDiagramEval: Evaluating LLM-Generated Diagrams via\nGraphs\n\n\u2018Chumeng Liang, Jiaxuan You\n\nView PDF\nHTML (experimental)\nDiagrams play a central role in research papers for conveying ideas, yet they are often notoriously complex\nand labor-intensive to create. Although diagrams are presented as images, standard image generative\n\nmodels ",
+        "authors": [
+            "Chumeng Liang",
+            "Jiaxuan You"
+        ],
+        "date": "2025-10-29T17:56:17Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25744v2",
+        "title": "Completion $\\neq$ Collaboration: Scaling Collaborative Effort with\n  Agents",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25744v2 (cs)\n\n[Submitted on 29 Oct 2025 (v1), last revised 30 Oct 2025 (this version, v2)]\n\nCompletion # Collaboration: Scaling Collaborative Effort\nwith Agents\n\nShannon Zejiang Shen, Valerie Chen, Ken Gu, Alexis Ross, Zixian Ma, Jilin Ross, Alex Gu, Chenglet Si, Wayne Chi, Andi Peng,\nJocelyn J Shen, Ameet Talwalkar, Tongshuang Wu, David Sontag\n\nView PDF\n\nCurrent evaluations of agents remain centered around one-shot task ",
+        "authors": [
+            "Shannon Zejiang Shen",
+            "Valerie Chen",
+            "Ken Gu",
+            "Alexis Ross",
+            "Zixian Ma",
+            "Jillian Ross",
+            "Alex Gu",
+            "Chenglei Si",
+            "Wayne Chi",
+            "Andi Peng",
+            "Jocelyn J Shen",
+            "Ameet Talwalkar",
+            "Tongshuang Wu",
+            "David Sontag"
+        ],
+        "date": "2025-10-29T17:47:18Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25741v2",
+        "title": "Scaling Latent Reasoning via Looped Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25741V2 (cs)\n\n[Submitted on 29 Oct 2025 (1) last revised 3 Nov 2025 (ths version, v2}]\nScaling Latent Reasoning via Looped Language Models\n\nRui-Jie Zhu, Zixuan Wang, Kai Hua, Tianyu Zhang, Ziniu Li, Haoran Que, Boyi Wei, Zixin Wen, Fan Yin, He Xing, Lu Li, Jiajun Shi,\nkKaijing Ma, Shanda Li, Taylor Kergan, Andrew Smith, Xingwei Qu, Mude Hui, Bohong Wu, Qiyang Min, Hongzhi Huang, Xun\nZhou, Wei Ye, Jiaheng Liu, Jian Yang, Y",
+        "authors": [
+            "Rui-Jie Zhu",
+            "Zixuan Wang",
+            "Kai Hua",
+            "Tianyu Zhang",
+            "Ziniu Li",
+            "Haoran Que",
+            "Boyi Wei",
+            "Zixin Wen",
+            "Fan Yin",
+            "He Xing",
+            "Lu Li",
+            "Jiajun Shi",
+            "Kaijing Ma",
+            "Shanda Li",
+            "Taylor Kergan",
+            "Andrew Smith",
+            "Xingwei Qu",
+            "Mude Hui",
+            "Bohong Wu",
+            "Qiyang Min",
+            "Hongzhi Huang",
+            "Xun Zhou",
+            "Wei Ye",
+            "Jiaheng Liu",
+            "Jian Yang",
+            "Yunfeng Shi",
+            "Chenghua Lin",
+            "Enduo Zhao",
+            "Tianle Cai",
+            "Ge Zhang",
+            "Wenhao Huang",
+            "Yoshua Bengio",
+            "Jason Eshraghian"
+        ],
+        "date": "2025-10-29T17:45:42Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25732v1",
+        "title": "The Limits of Obliviate: Evaluating Unlearning in LLMs via\n  Stimulus-Knowledge Entanglement-Behavior Framework",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25732v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nThe L 's of Obliviate: Evaluating Unlearning in LLMs via\nStimulus-Knowledge Entanglement-Behavior Framework\n\nAakriti Shah, Thai Le\n\nView PDF\nHTML (experimental)\n\nUnlearning in large language models (LLMs) is crucial for managing sensitive data and correcting\nmisinformation, yet evaluating its effectiveness remains an open problem. We investigate whether\npersuasive prompting can reca",
+        "authors": [
+            "Aakriti Shah",
+            "Thai Le"
+        ],
+        "date": "2025-10-29T17:37:50Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25726v1",
+        "title": "The Tool Decathlon: Benchmarking Language Agents for Diverse, Realistic,\n  and Long-Horizon Task Execution",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25726v1 (cs)\n\n{Submitted on 29 Oct 2025]\nThe Tool Decathlon: Benchmarking Language Agents for\nDiverse, Realistic, and Long-Horizon Task Execution\n\nJunlong Li, Wenshuo Zhao, Jian Zhao, Weihao Zeng, Haoze Wu, Xiaochen Wang, Rui Ge, Yuxuan Cao, Yuzhen Huang, Wei Liu,\nJunteng Liu, Zhaochen Su, Yiyang Guo, Fan Zhou, Lueyang Zhang, Juan Michelini, Xingyao Wang, Xiang Yue, Shuyan Zhou,\nGraham Neubig, Junxian He\n\nView PDF\n\nReal-w",
+        "authors": [
+            "Junlong Li",
+            "Wenshuo Zhao",
+            "Jian Zhao",
+            "Weihao Zeng",
+            "Haoze Wu",
+            "Xiaochen Wang",
+            "Rui Ge",
+            "Yuxuan Cao",
+            "Yuzhen Huang",
+            "Wei Liu",
+            "Junteng Liu",
+            "Zhaochen Su",
+            "Yiyang Guo",
+            "Fan Zhou",
+            "Lueyang Zhang",
+            "Juan Michelini",
+            "Xingyao Wang",
+            "Xiang Yue",
+            "Shuyan Zhou",
+            "Graham Neubig",
+            "Junxian He"
+        ],
+        "date": "2025-10-29T17:32:49Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25701v1",
+        "title": "Interpreting LLMs as Credit Risk Classifiers: Do Their Feature\n  Explanations Align with Classical ML?",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.25701v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nInterpreting LLMs as Credit Risk Classifiers: Do Their\nFeature Explanations Align with Classical ML?\n\nSaeed AlMarri, Kristof Juhasz, Mathieu Ravaut, Gautier Marti, Hamdan Al Ahbabi, Ibrahim Elfadel\n\nView PDF\nHTML (experimental)\n\nLarge Language Models (LLMs) are increasingly explored as flexible alternatives to classical machine\nlearning models for classification tasks through zero-",
+        "authors": [
+            "Saeed AlMarri",
+            "Kristof Juhasz",
+            "Mathieu Ravaut",
+            "Gautier Marti",
+            "Hamdan Al Ahbabi",
+            "Ibrahim Elfadel"
+        ],
+        "date": "2025-10-29T17:05:00Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25817v1",
+        "title": "A Survey on Efficient Large Language Model Training: From Data-centric\n  Perspectives",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25817v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nA Survey on Efficient Large Language Model Training: From\nData-centric Perspectives\n\nJunyu Luo, Bohan Wu, Xiao Luo, Zhiping Xiao, Yigiao Jin, Rong-Cheng Tu, Nan Yin, Yifan Wang, Jingyang Yuan, Wei Ju, Ming\nZhang\n\nView PDF\nHTML (experimental)\n\nPost-training of Large Language Models (LLMs) is crucial for unlocking their task generalization potential\nand domain-specific capabilities. Ho",
+        "authors": [
+            "Junyu Luo",
+            "Bohan Wu",
+            "Xiao Luo",
+            "Zhiping Xiao",
+            "Yiqiao Jin",
+            "Rong-Cheng Tu",
+            "Nan Yin",
+            "Yifan Wang",
+            "Jingyang Yuan",
+            "Wei Ju",
+            "Ming Zhang"
+        ],
+        "date": "2025-10-29T17:01:55Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25694v1",
+        "title": "Process-Level Trajectory Evaluation for Environment Configuration in\n  Software Engineering Agents",
+        "abstract": "nell University\n\n\u2018Computer Science > Software Engineering\narXiv:2510.25694v1 (cs)\n\n[submitted on 29 Oct\n\nProcess-Level Trajectory Evaluation for Environment\nConfiguration in Software Engineering Agents\n\nJiayi Kuang, Yinghui Li, Xin Zhang, Yangning Li, Di Yin, Xing Sun, Ying Shen, Philip S. Yu\n\n025]\n\nView PDF\nHTML (experimental)\nLarge language model-based agents show promise for software engineering, but environment\nconfiguration remains a bottleneck due to heavy manual effort and scarce large-sc",
+        "authors": [
+            "Jiayi Kuang",
+            "Yinghui Li",
+            "Xin Zhang",
+            "Yangning Li",
+            "Di Yin",
+            "Xing Sun",
+            "Ying Shen",
+            "Philip S. Yu"
+        ],
+        "date": "2025-10-29T16:59:07Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25682v2",
+        "title": "PairUni: Pairwise Training for Unified Multimodal Language Models",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.25682v2 (cs)\n\n[Submitted on 29 Oct 2025 (v1), last revised 30 Oct 2025 (this version, v2)]\n\nPairUni: Pairwise Training for Unified Multimodal Language\nModels\n\nJiani Zheng, Zhiyang Teng, Xiangtai Li, Anran Wang, Yu Tian, Kunpeng Qiu, Ye Tian, Haochen Wang, Zhuochen Wang\n\nView PDF\nHTML (experimental)\nUnified vision-language models (UVLMs) must perform both understanding and generation within a single\narchitecture, but these ",
+        "authors": [
+            "Jiani Zheng",
+            "Zhiyang Teng",
+            "Xiangtai Li",
+            "Anran Wang",
+            "Yu Tian",
+            "Kunpeng Qiu",
+            "Ye Tian",
+            "Haochen Wang",
+            "Zhuochen Wang"
+        ],
+        "date": "2025-10-29T16:47:02Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25677v1",
+        "title": "ZK-SenseLM: Verifiable Large-Model Wireless Sensing with Selective\n  Abstention and Zero-Knowledge Attestation",
+        "abstract": "nell University\n\n\u2018Computer Science > Cryptography and Security\narXiv:2510.25677v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nZK-SenseLM: Verifiable Large-Model Wireless Sensing with\nSelective Abstention and Zero-Knowledge Attestation\n\nHasan Akgul, Mari Eplik, Javier Rojas, Aina Binti Abdullah, Pieter van der Merwe\n\nView PDF\nHTML (experimental)\n\nZK-SenseLM is a secure and auditable wireless sensing framework that pairs a large-model encoder for Wi-\nFi channel state information (and optionally mmWave radar",
+        "authors": [
+            "Hasan Akgul",
+            "Mari Eplik",
+            "Javier Rojas",
+            "Aina Binti Abdullah",
+            "Pieter van der Merwe"
+        ],
+        "date": "2025-10-29T16:43:07Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25816v1",
+        "title": "Beyond Long Context: When Semantics Matter More than Tokens",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.25816v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nBeyond Long Context: When Semantics Matter More than\nTokens\n\nTarun Kumar Chawdhury, Jon D. Duke\n\nView PDF\nHTML (experimental)\nElectronic Health Records (EHR) store clinical documentation as base64 encoded attachments in FHIR\nDocumentReference resources, which makes semantic question answering difficult. Traditional vector\n\ndatabase methods often miss nuanced clinical relationships.",
+        "authors": [
+            "Tarun Kumar Chawdhury",
+            "Jon D. Duke"
+        ],
+        "date": "2025-10-29T16:41:44Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25628v1",
+        "title": "EHR-R1: A Reasoning-Enhanced Foundational Language Model for Electronic\n  Health Record Analysis",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25628v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nEHR-R1: A Reasoning-Enhanced Foundational Language\nModel for Electronic Health Record Analysis\n\nYusheng Liao, Chaoyi Wu, Junwei Liu, Shuyang Jiang, Pengcheng Qiu, Haowen Wang, Yun Yue, Shuai Zhen, Jian Wang, Qianrui\nFan, Jinjie Gu, Ya Zhang, Yanfeng Wang, Yu Wang, Weidi Xie\n\nView PDF\nHTML (experimental)\n\nElectronic Health Records (EHRs) contain rich yet complex information, and their",
+        "authors": [
+            "Yusheng Liao",
+            "Chaoyi Wu",
+            "Junwei Liu",
+            "Shuyang Jiang",
+            "Pengcheng Qiu",
+            "Haowen Wang",
+            "Yun Yue",
+            "Shuai Zhen",
+            "Jian Wang",
+            "Qianrui Fan",
+            "Jinjie Gu",
+            "Ya Zhang",
+            "Yanfeng Wang",
+            "Yu Wang",
+            "Weidi Xie"
+        ],
+        "date": "2025-10-29T15:32:47Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25626v1",
+        "title": "Are Language Models Efficient Reasoners? A Perspective from Logic\n  Programming",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25626v1 (cs)\n\n{Submitted on 29 Oct 2025}\n\nAre Language Models Efficient Reasoners? A Perspective\nfrom Logic Programming\n\nAndreas Opedal, Yanick Zengaffinen, Haruki Shirakami, Clemente Pasti, Mrinmaya Sachan, Abulhair Saparov, Ryan Cotterell,\nBernhard Sch\u00e9lkopf\n\nView PDF\nHTML (experimental)\nModern language models (LMs) exhibit strong deductive reasoning capabilities, yet standard evaluations\n\nemphasize correctness while overl",
+        "authors": [
+            "Andreas Opedal",
+            "Yanick Zengaffinen",
+            "Haruki Shirakami",
+            "Clemente Pasti",
+            "Mrinmaya Sachan",
+            "Abulhair Saparov",
+            "Ryan Cotterell",
+            "Bernhard Sch\u00f6lkopf"
+        ],
+        "date": "2025-10-29T15:30:31Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25623v2",
+        "title": "Evaluating the Role of Verifiers in Test-Time Scaling for Legal\n  Reasoning Tasks",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv2510.25623v2 (cs)\n\n[Submitted on 29 Oct 2025 (v1), last revised 30 Oct 2025 (this version, v2)\n\nEvaluating the Role of Verifiers in Test-Time Scaling for\nLegal Reasoning Tasks\n\nDavide Romano, Jonathan Schwarz, Daniele Giofr\u00e9\n\nView PDF\nHTML (experimental)\n\nTest-time scaling (TTS) techniques can improve the performance of large language models (LLMs) at the\nexpense of additional computation and latency. While TTS has proven effectiv",
+        "authors": [
+            "Davide Romano",
+            "Jonathan Schwarz",
+            "Daniele Giofr\u00e9"
+        ],
+        "date": "2025-10-29T15:27:47Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25621v1",
+        "title": "FARSIQA: Faithful and Advanced RAG System for Islamic Question Answering",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25621v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nFARSIQA: Faithful and Advanced RAG System for Islamic\nQuestion Answering\n\nMohammad Aghajani Asi, Behrooz Minaei Bidgoli\n\nView PDF\n\nThe advent of Large Language Models (LLMs) has revolutionized Natural Language Processing, yet their\napplication in high-stakes, specialized domains like religious question answering is hindered by challenges\nlike hallucination and unfaithfulness to au",
+        "authors": [
+            "Mohammad Aghajani Asl",
+            "Behrooz Minaei Bidgoli"
+        ],
+        "date": "2025-10-29T15:25:34Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25595v1",
+        "title": "Communication and Verification in LLM Agents towards Collaboration under\n  Information Asymmetry",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25595v1 (cs)\n\n[submitted on 29 Oct\n\n1\nCommunication and Verification in LLM Agents towards\nCollaboration under Information Asymmetry\n\nRun Peng, Zigiao Ma, Amy Pang, Sikai Li, Zhang Xi-Jia, Yingzhuo Yu, Cristian-Paul Bara, Joyce Chai\n\nView PDF\nHTML (experimental)\n\nWhile Large Language Model (LLM) agents are often approached from the angle of action\nplanning/generation to accomplish a goal (e.g., given by language description",
+        "authors": [
+            "Run Peng",
+            "Ziqiao Ma",
+            "Amy Pang",
+            "Sikai Li",
+            "Zhang Xi-Jia",
+            "Yingzhuo Yu",
+            "Cristian-Paul Bara",
+            "Joyce Chai"
+        ],
+        "date": "2025-10-29T15:03:53Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25577v1",
+        "title": "Lost in Phonation: Voice Quality Variation as an Evaluation Dimension\n  for Speech Foundation Models",
+        "abstract": "nell University\n\nElectrica Engineering and Systems Science > Audio and Speech Processing\narxiv:2510.25577v1 (eess)\n\n{Submitted on 29 Oct 2025]\n\nLost in Phonation: Voice Quality Variation as an Evaluation\nDimension for Speech Foundation Models\n\nHarm Lameris, Shree Harsha Bokkahalli Satish, Joakim Gustafson, Eva Sz\u00e9kely\n\nView PDF\nHTML (experimental)\n\nRecent advances in speech foundation models (SFMs) have enabled the direct processing of spoken\nlanguage from raw audio, bypassing intermediate textu",
+        "authors": [
+            "Harm Lameris",
+            "Shree Harsha Bokkahalli Satish",
+            "Joakim Gustafson",
+            "\u00c9va Sz\u00e9kely"
+        ],
+        "date": "2025-10-29T14:44:44Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25557v1",
+        "title": "Hybrid Quantum-Classical Recurrent Neural Networks",
+        "abstract": "ornell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.25557v1 (cs)\n\n{Submitted on 29 Oct 2025]\nHybrid Quantum-Classical Recurrent Neural Networks\n\nWenduan Xu\n\nView PDF\nHTML (experimental)\nWe present a hybrid quantum-classical recurrent neural network (QRNN) architecture in which the entire\nrecurrent core is realized as a parametrized quantum circuit (PQC) controlled by a classical feedforward\nnetwork. The hidden state is the quantum state of an n-qubit PQC, residing in an exponentia",
+        "authors": [
+            "Wenduan Xu"
+        ],
+        "date": "2025-10-29T14:21:49Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25536v2",
+        "title": "TwinVoice: A Multi-dimensional Benchmark Towards Digital Twins via LLM\n  Persona Simulation",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25536v2 (cs)\n\n[Submitted on 29 Oct\n\nTwinVoice: A Multi-dimensional Benchmark Towards\nDigital Twins via LLM Persona Simulation\n\nBangde Du, Minghao Guo, Songming He, Ziyi Ye, Xi Zhu, Welhang Su, Shugi Zhu, Yujia Zhou, Yongfeng Zhang, Qingyao Ai,\nYigun Liu\n\n(WD, last revised 30 Oct 2025 (this version, v2)]\n\nView PDF\nHTML (experimental)\nLarge Language Models (LLMs) are exhibiting emergent human-like abilities and are increasing",
+        "authors": [
+            "Bangde Du",
+            "Minghao Guo",
+            "Songming He",
+            "Ziyi Ye",
+            "Xi Zhu",
+            "Weihang Su",
+            "Shuqi Zhu",
+            "Yujia Zhou",
+            "Yongfeng Zhang",
+            "Qingyao Ai",
+            "Yiqun Liu"
+        ],
+        "date": "2025-10-29T14:00:42Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25460v1",
+        "title": "Fine-Tuned Language Models for Domain-Specific Summarization and Tagging",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.25460v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nFine-Tuned Language Models for Domain-Specific\nSummarization and Tagging\n\nJun Wang, Fuming Lin, Yuyu Chen\n\nView PDF\n\nThis paper presents a pipeline integrating fine-tuned large language models (LLMs) with named entity\nrecognition (NER) for efficient domain-specific text summarization and tagging. The authors address the\nchallenge posed by rapidly evolving sub-cultural languages a",
+        "authors": [
+            "Jun Wang",
+            "Fuming Lin",
+            "Yuyu Chen"
+        ],
+        "date": "2025-10-29T12:33:48Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25441v1",
+        "title": "Grounded in Reality: Learning and Deploying Proactive LLM from Offline\n  Logs",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.25441v1 (cs)\n\n[submitted on 29 Oct\n\nGrounded n Reality: Learning and Deploying Proactive LLM\nfrom Offline Logs\n\nFei Wei, Daoyuan Chen, Ce Wang, Yilun Huang, Yushuo Chen, Xuchen Pan, Yaliang Li, Bolin Ding\n\nView PDF\nHTML (experimental)\n\nLarge Language Models (LLMs) excel as passive responders, but teaching them to be proactive, goal-\noriented partners, a critical capability in high-stakes domains, remains a major challenge.",
+        "authors": [
+            "Fei Wei",
+            "Daoyuan Chen",
+            "Ce Wang",
+            "Yilun Huang",
+            "Yushuo Chen",
+            "Xuchen Pan",
+            "Yaliang Li",
+            "Bolin Ding"
+        ],
+        "date": "2025-10-29T12:08:07Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25440v1",
+        "title": "More than a Moment: Towards Coherent Sequences of Audio Descriptions",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computer Vision and Pattern Recognition\narxiv:2510.25440v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nMore than a Moment: Towards Coherent Sequences of\nAudio Descriptions\n\nEshika Khandelwal, Junyu Xie, Tengda Han, Max Bain, Arsha Nagrani, Andrew Zisserman, Gul Varol, Makarand Tapaswi\n\nView PDF\nHTML (experimental)\nAudio Descriptions (ADs) convey essential on-screen information, allowing visually impaired audiences to\nfollow videos. To be effective, ADs must form a co",
+        "authors": [
+            "Eshika Khandelwal",
+            "Junyu Xie",
+            "Tengda Han",
+            "Max Bain",
+            "Arsha Nagrani",
+            "Andrew Zisserman",
+            "G\u00fcl Varol",
+            "Makarand Tapaswi"
+        ],
+        "date": "2025-10-29T12:06:42Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25434v1",
+        "title": "A Critical Study of Automatic Evaluation in Sign Language Translation",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxivi2510.25434v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nA Critical Study of Automatic Evaluation in Sign Language\nTranslation\n\nShakib Yazdani, Yasser Hamidullah, Cristina Espafia-Bonet, Eleftherios Avramidis, Josef van Genabith\n\nView PDF\nHTML (experimental)\nAutomatic evaluation metrics are crucial for advancing sign language translation (SLT). Current SLT\nevaluation metrics, such as BLEU and ROUGE, are only text-based, and it remains un",
+        "authors": [
+            "Shakib Yazdani",
+            "Yasser Hamidullah",
+            "Cristina Espa\u00f1a-Bonet",
+            "Eleftherios Avramidis",
+            "Josef van Genabith"
+        ],
+        "date": "2025-10-29T11:57:03Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25432v1",
+        "title": "Depth and Autonomy: A Framework for Evaluating LLM Applications in\n  Social Science Research",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25432v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nDepth and Autonomy: A Framework for Evaluating LLM\nApplications in Social Science Research\n\nAli Sanaei, Ali Rajabzadeh\n\nView PDF\n\nLarge language models (LLMs) are increasingly utilized by researchers across a wide range of domains, and\nqualitative social science is no exception; however, this adoption faces persistent challenges, including\ninterpretive bias, low reliability, and w",
+        "authors": [
+            "Ali Sanaei",
+            "Ali Rajabzadeh"
+        ],
+        "date": "2025-10-29T11:55:21Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25427v1",
+        "title": "RLMEval: Evaluating Research-Level Neural Theorem Proving",
+        "abstract": "\u2018ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25427v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nRLMEval: Evaluating Research-Level Neural Theorem\nProving\n\nAuguste Poiroux, Antoine Bosselut, Viktor Kun\u00e9ak\n\nView PDF\n\nDespite impressive results on curated benchmarks, the practical impact of large language models (LLMs) on\nresearch-level neural theorem proving and proof autoformalization is still limited. We introduce RLMEval,\nan evaluation suite for these tasks, focusing on re",
+        "authors": [
+            "Auguste Poiroux",
+            "Antoine Bosselut",
+            "Viktor Kun\u010dak"
+        ],
+        "date": "2025-10-29T11:49:49Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25426v1",
+        "title": "Implicature in Interaction: Understanding Implicature Improves Alignment\n  in Human-LLM Interaction",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narxiv:2510.25426v1 (cs)\n\n[submitted on 29 Oct 20\n\n)\nImplicature in Interaction: Understanding Implicature\nImproves Alignment in Human-LLM Interaction\n\nAsutosh Hota, Jussi P. P. Jokinen\n\nView PDF\nHTML (experimental)\nThe rapid advancement of Large Language Models (LLMs) is positioning language at the core of human-\ncomputer interaction (HCI). We argue that advancing HCI requires attention to the linguistic foundations of\n\ninteraction, p",
+        "authors": [
+            "Asutosh Hota",
+            "Jussi P. P. Jokinen"
+        ],
+        "date": "2025-10-29T11:49:42Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25413v1",
+        "title": "Seeing, Signing, and Saying: A Vision-Language Model-Assisted Pipeline\n  for Sign Language Data Acquisition and Curation from Social Media",
+        "abstract": "\u2018ornell University\n\nComputer Science > Computation and Language\narxiv:2510.25413v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nSeeing, Signing, and Saying: A Vision-Language Model-\nAssisted Pipeline for Sign Language Data Acquisition and\nCuration from Social Media\n\nShakib Yazdani, Yasser Hamidullah, Cristina Espafia-Bonet, Josef van Genabith\n\nView PDF\nHTML (experimental)\n\nMost existing sign language translation (SLT) datasets are limited in scale, lack multilingual coverage, and\nare costly to curate due t",
+        "authors": [
+            "Shakib Yazdani",
+            "Yasser Hamidullah",
+            "Cristina Espa\u00f1a-Bonet",
+            "Josef van Genabith"
+        ],
+        "date": "2025-10-29T11:29:56Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25412v1",
+        "title": "Serve Programs, Not Prompts",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25412v1 (cs)\n\n[Submitted on 29 Oct 2025]\nServe Programs, Not Prompts\n\nIn Gim, Lin Zhong\n\nView PDF\nHTML (experimental)\n\nCurrent large language model (LLM) serving systems, primarily designed for text completion, are neither\nefficient nor adaptable for increasingly complex LLM applications due to their inflexible design. We propose\na new LLM serving system architecture that serves programs instead of prompts to address this",
+        "authors": [
+            "In Gim",
+            "Lin Zhong"
+        ],
+        "date": "2025-10-29T11:29:03Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25409v2",
+        "title": "BhashaBench V1: A Comprehensive Benchmark for the Quadrant of Indic\n  Domains",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25409v2 (cs)\n\n[Submitted on 29 Oct 2025 (v1), last revised 30 Oct 2025 (this version, v2)]\n\nBhashaBench V1: A Comprehensive Benchmark for the\nQuadrant of Indic Domains\n\nVijay Devane, Mohd Nauman, Bhargav Patel, Aniket Mahendra Wakchoure, Yogeshkumar Sant, Shyam Pawar, Viraj Thakur,\nAnanya Godse, Sunil Patra, Neha Maurya, Suraj Racha, Nitish Kamal Singh, Ajay Nagpal, Piyush Sawarkar, Kundeshwar Vijayrao\nPundalik, Rohit Saluj",
+        "authors": [
+            "Vijay Devane",
+            "Mohd Nauman",
+            "Bhargav Patel",
+            "Aniket Mahendra Wakchoure",
+            "Yogeshkumar Sant",
+            "Shyam Pawar",
+            "Viraj Thakur",
+            "Ananya Godse",
+            "Sunil Patra",
+            "Neha Maurya",
+            "Suraj Racha",
+            "Nitish Kamal Singh",
+            "Ajay Nagpal",
+            "Piyush Sawarkar",
+            "Kundeshwar Vijayrao Pundalik",
+            "Rohit Saluja",
+            "Ganesh Ramakrishnan"
+        ],
+        "date": "2025-10-29T11:27:08Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25384v1",
+        "title": "Roleplaying with Structure: Synthetic Therapist-Client Conversation\n  Generation from Questionnaires",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25384v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nRoleplaying with Structure: Synthetic Therapist-Client\nConversation Generation from Questionnaires\n\nDoan Nam Long Vu, Rui Tan, Lena Moench, Svenja Jule Francke, Daniel Woiwod, Florian Thomas-Odenthal, Sanna Stroth, Tilo\nkircher, Christiane Hermann, Udo Dannlowski, Hamidreza Jamalabadi, Shaoxiong Ji\n\nView PDF\nHTML (experimental)\n\nThe development of Al for mental health is hindered by",
+        "authors": [
+            "Doan Nam Long Vu",
+            "Rui Tan",
+            "Lena Moench",
+            "Svenja Jule Francke",
+            "Daniel Woiwod",
+            "Florian Thomas-Odenthal",
+            "Sanna Stroth",
+            "Tilo Kircher",
+            "Christiane Hermann",
+            "Udo Dannlowski",
+            "Hamidreza Jamalabadi",
+            "Shaoxiong Ji"
+        ],
+        "date": "2025-10-29T10:55:52Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25378v1",
+        "title": "Hallucinations in Bibliographic Recommendation: Citation Frequency as a\n  Proxy for Training Data Redundancy",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.25378v1 (cs)\n\n[Submitted on 29 Oct\n\n7\nHallucinations in Bibliographic Recommendation: Citation\nFrequency as a Proxy for Training Data Redundancy\n\nJunichiro Niimi\n\nView PDF\nHTML (experimental)\nLarge language models (LLMs) have been increasingly applied to a wide range of tasks, from natural\nlanguage understanding to code generation. While they have also been used to assist in bibliographic\nrecommendation, the hallucination ",
+        "authors": [
+            "Junichiro Niimi"
+        ],
+        "date": "2025-10-29T10:51:35Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25370v1",
+        "title": "Monitoring Transformative Technological Convergence Through\n  LLM-Extracted Semantic Entity Triple Graphs",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25370v1 (cs)\n\n{Submitted on 29 Oct 2025]\nMonitoring Transformative Technological Convergence\nThrough LLM-Extracted Semantic Entity Triple Graphs\n\nAlexander Sternfeld, Andrei Kucharavy, Dimitri Percia David, Alain Mermoud, Julian Jang-Jaccard, Nathan Monnet\n\nView PDF\nHTML (experimental)\nForecasting transformative technologies remains a critical but challenging task, particularly in fast-evolving\ndomains such as Information an",
+        "authors": [
+            "Alexander Sternfeld",
+            "Andrei Kucharavy",
+            "Dimitri Percia David",
+            "Alain Mermoud",
+            "Julian Jang-Jaccard",
+            "Nathan Monnet"
+        ],
+        "date": "2025-10-29T10:41:03Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25364v1",
+        "title": "CLASS-IT: Conversational and Lecture-Aligned Small-Scale Instruction\n  Tuning for BabyLMs",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25364v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nCLASS-IT: Conversational and Lecture-Aligned Small-Scale\nInstruction Tuning for BabyLMs\n\nLuca Capone, Alessandro Bondielli, Alessandro Lenci\n\nView PDF\nHTML (experimental)\n\nThis work investigates whether small-scale LMs can benefit from instruction tuning. We compare\nconversational and question-answering instruction tuning datasets, applied either in a merged or\nsequential curriculum",
+        "authors": [
+            "Luca Capone",
+            "Alessandro Bondielli",
+            "Alessandro Lenci"
+        ],
+        "date": "2025-10-29T10:36:39Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25356v1",
+        "title": "Not ready for the bench: LLM legal interpretation is unstable and out of\n  step with human judgments",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25356v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nNot ready for the bench: LLM legal interpretation is\nunstable and out of step with human judgments\n\nAbhishek Purushothama, Junghyun Min, Brandon Waldon, Nathan Schneider\n\nView PDF\nHTML (experimental)\n\nLegal interpretation frequently involves assessing how a legal text, as understood by an \u2018ordinary\u2019 speaker\nof the language, applies to the set of facts characterizing a legal dispute ",
+        "authors": [
+            "Abhishek Purushothama",
+            "Junghyun Min",
+            "Brandon Waldon",
+            "Nathan Schneider"
+        ],
+        "date": "2025-10-29T10:21:25Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25333v1",
+        "title": "CRMWeaver: Building Powerful Business Agent via Agentic RL and Shared\n  Memories",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.25333v1 (cs)\n\n[submitted on 29 Oct\n\nCRMWeaver: Building Powerful Business Agent via Agentic\nRL and Shared Memories\n\nYilong Lai, Vipin Yang, Jialong Wu, Fengran Mo, Zhenglin Wang, Ting Liang, Jianguo Lin, Keping Yang\n\nView PDF\nHTML (experimental)\n\nRecent years have witnessed the rapid development of LLM-based agents, which shed light on using\nlanguage agents to solve complex real-world problems. A prominent application lies",
+        "authors": [
+            "Yilong Lai",
+            "Yipin Yang",
+            "Jialong Wu",
+            "Fengran Mo",
+            "Zhenglin Wang",
+            "Ting Liang",
+            "Jianguo Lin",
+            "Keping Yang"
+        ],
+        "date": "2025-10-29T09:47:40Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25320v1",
+        "title": "GAP: Graph-Based Agent Planning with Parallel Tool Use and Reinforcement\n  Learning",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\n\narXiv:2510.25320v1 (cs)\n\n[submitted on 29 Oct\n\nGAP: Graph- \u201cBased Agent Planning with Parallel Tool Use\nand Reinforcement Learning\n\nJiagi Wu, Qinlao Zhao, Zefeng Chen, Kai Qin, Yifei Zhao, Xuegian Wang, Yuhang Yao\n\nView PDF\nHTML (experimental)\n\nAutonomous agents powered by large language models (LLMs) have shown impressive capabilities in tool\nmanipulation for complex task-solving. However, existing paradigms such as ReAct rely on sequ",
+        "authors": [
+            "Jiaqi Wu",
+            "Qinlao Zhao",
+            "Zefeng Chen",
+            "Kai Qin",
+            "Yifei Zhao",
+            "Xueqian Wang",
+            "Yuhang Yao"
+        ],
+        "date": "2025-10-29T09:35:55Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25310v1",
+        "title": "Parrot: A Training Pipeline Enhances Both Program CoT and Natural\n  Language CoT for Reasoning",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\n\narXiv:2510.25310v1 (cs)\n\n[submitted on 29 Oct 20\n\nParrot: A Tra ning Pipeline Enhances Both Program CoT and\nNatural Language CoT for Reasoning\n\nSenjie Jin, Lu Chen, Zhiheng Xi, Yuhui Wang, Sirui Song, Yuhao Zhou, Xinbo Zhang, Peng Sun, Hong Lu, Tao Gui, Qi Zhang,\nXuanjing Huang\n\nView PDF\nHTML (experimental)\n\nNatural language chain-of-thought (N-CoT) and Program chain-of-thought (P-CoT) have emerged as two\nprimary paradigms for large ",
+        "authors": [
+            "Senjie Jin",
+            "Lu Chen",
+            "Zhiheng Xi",
+            "Yuhui Wang",
+            "Sirui Song",
+            "Yuhao Zhou",
+            "Xinbo Zhang",
+            "Peng Sun",
+            "Hong Lu",
+            "Tao Gui",
+            "Qi Zhang",
+            "Xuanjing Huang"
+        ],
+        "date": "2025-10-29T09:23:17Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25303v1",
+        "title": "Teaching Sarcasm: Few-Shot Multimodal Sarcasm Detection via Distillation\n  to a Parameter-Efficient Student",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25303v1 (cs)\n\n{Submitted on 29 Oct 2025]\nTeaching Sarcasm: Few-Shot Multimodal Sarcasm Detection\nvia Distillation to a Parameter-Efficient Student\n\nSoumyadeep Jana, Sanasam Ranbir Singh\n\nView PDF\nHTML (experimental)\nMultimodal sarcasm detection is challenging, especially in low-resource settings where subtle image-text\ncontradictions are hard to learn due to scarce annotated data, which hinders the model's performance.\n\nPara",
+        "authors": [
+            "Soumyadeep Jana",
+            "Sanasam Ranbir Singh"
+        ],
+        "date": "2025-10-29T09:14:41Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25273v1",
+        "title": "Adapting Small Language Models to Low-Resource Domains: A Case Study in\n  Hindi Tourism QA",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25273v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nAdapting Small Language Models to Low-Resource\nDomains: A Case Study in Hindi Tourism QA\n\nSandipan Majhi, Paheli Bhattacharya\n\nView PDF\nHTML (experimental)\nDomain-specific question answering in low-resource languages faces two key challenges: scarcity of\nannotated datasets and limited domain knowledge in general-purpose language models. In this work, we\n\npresent a multi-stage finetu",
+        "authors": [
+            "Sandipan Majhi",
+            "Paheli Bhattacharya"
+        ],
+        "date": "2025-10-29T08:32:22Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25232v1",
+        "title": "From Medical Records to Diagnostic Dialogues: A Clinical-Grounded\n  Approach and Dataset for Psychiatric Comorbidity",
+        "abstract": "\u2018ornell University\n\nComputer Science > Arfcal intelligence\narxiv:2510.25232v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nFrom Medical Records to Diagnostic Dialogues: A Clinical-\nGrounded Approach and Dataset for Psychiatric\nComorbidity\n\nTianxi Wan, Jiaming Luo, Siyuan Chen, Kunyao Lan, Jianhua Chen, Haiyang Geng, Mengyue Wu\n\nView PDF\nHTML (experimental)\n\nPsychiatric comorbidity is clinically significant yet challenging due to the complexity of multiple co-\noccurring disorders. To address this, we develo",
+        "authors": [
+            "Tianxi Wan",
+            "Jiaming Luo",
+            "Siyuan Chen",
+            "Kunyao Lan",
+            "Jianhua Chen",
+            "Haiyang Geng",
+            "Mengyue Wu"
+        ],
+        "date": "2025-10-29T07:18:43Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25224v1",
+        "title": "ProMediate: A Socio-cognitive framework for evaluating proactive agents\n  in multi-party negotiation",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25224v1 (cs)\n\n[submitted on 29 Oct\n\nProMediate: A Socio-cognitive framework for evaluating\nproactive agents in multi-party negotiation\n\nZiyi Liu, Bahar Sarrafzadeh, Pei Zhou, Longqi Yang, Jieyu Zhao, Ashish Sharma\n\nView PDF\nHTML (experimental)\n\nWhile Large Language Models (LLMs) are increasingly used in agentic frameworks to assist individual users,\nthere is a growing need for agents that can proactively manage complex, mul",
+        "authors": [
+            "Ziyi Liu",
+            "Bahar Sarrafzadeh",
+            "Pei Zhou",
+            "Longqi Yang",
+            "Jieyu Zhao",
+            "Ashish Sharma"
+        ],
+        "date": "2025-10-29T07:00:11Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25805v1",
+        "title": "Ideology-Based LLMs for Content Moderation",
+        "abstract": "Cornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25805v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nIdeology-Based LLMs for Content Moderation\n\nStefano Civelli, Pietro Bernardelle, Nardiena A. Pratama, Gianluca Demartini\n\nView PDF\n\nLarge language models (LLMs) are increasingly used in content moderation systems, where ensuring\nfairness and neutrality is essential. In this study, we examine how persona adoption influences the\nconsistency and fairness of harmful content classific",
+        "authors": [
+            "Stefano Civelli",
+            "Pietro Bernardelle",
+            "Nardiena A. Pratama",
+            "Gianluca Demartini"
+        ],
+        "date": "2025-10-29T06:22:50Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25804v1",
+        "title": "Beyond Length: Quantifying Long-Range Information for Long-Context LLM\n  Pretraining Data",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25804v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nBeyond Length: Quantifying Long-Range Information for\nLong-Context LLM Pretraining Data\n\nHaoran Deng, Yingyu Lin, Zhenghao Lin, Xiao Liu, Yizhou Sun, Yi-An Ma, Yeyun Gong\n\nView PDF\n\nLong-context language models unlock advanced capabilities in reasoning, code generation, and document\nsummarization by leveraging dependencies across extended spans of text. However, a significant port",
+        "authors": [
+            "Haoran Deng",
+            "Yingyu Lin",
+            "Zhenghao Lin",
+            "Xiao Liu",
+            "Yizhou Sun",
+            "Yi-An Ma",
+            "Yeyun Gong"
+        ],
+        "date": "2025-10-29T06:21:08Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25206v1",
+        "title": "RAVR: Reference-Answer-guided Variational Reasoning for Large Language\n  Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Antficial Intelligence\narXiv:2510.25206v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nRAVR: Reference-Answer-guided Variational Reasoning for\nLarge Language Models\n\nTiangianjin Lin, Xi Zhao, Xingyao Zhang, Rujiao Long, Yi Xu, Zhuoren Jiang, Wenbo Su, Bo Zheng\n\nView PDF\n\nReinforcement learning (RL) can refine the reasoning abilities of large language models (LLMs), but critically\ndepends on a key prerequisite: the LLM can already generate high-utility reasoning paths ",
+        "authors": [
+            "Tianqianjin Lin",
+            "Xi Zhao",
+            "Xingyao Zhang",
+            "Rujiao Long",
+            "Yi Xu",
+            "Zhuoren Jiang",
+            "Wenbo Su",
+            "Bo Zheng"
+        ],
+        "date": "2025-10-29T06:18:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25187v1",
+        "title": "Testing Cross-Lingual Text Comprehension In LLMs Using Next Sentence\n  Prediction",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25187v1 (cs)\n\n{Submitted on 29 Oct 2025]\nTesting Cross-Lingual Text Comprehension In LLMs Using\nNext Sentence Prediction\n\nRitesh Sunil Chavan, Jack Mostow\n\nView PDF\nHTML (experimental)\n\nWhile large language models are trained on massive datasets, this data is heavily skewed towards English.\nDoes their impressive performance reflect genuine ability or just this data advantage? To find out, we\ntested them in a setting where t",
+        "authors": [
+            "Ritesh Sunil Chavan",
+            "Jack Mostow"
+        ],
+        "date": "2025-10-29T05:38:06Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25160v2",
+        "title": "Model-Document Protocol for AI Search",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25160v2 (cs)\n\n[Submitted on 29 Oct 2025 (1), last revised 30 Oct 2025 (this version, v2)\nModel-Document Protocol for Al Search\n\nHongjin Qian, Zheng Liu\n\nView PDF\nHTML (experimental)\nAl search depends on linking large language models (LLMs) with vast external knowledge sources. Yet web\npages, PDF files, and other raw documents are not inherently LLM-ready: they are long, noisy, and\nunstructured. Conventional retrieval meth",
+        "authors": [
+            "Hongjin Qian",
+            "Zheng Liu"
+        ],
+        "date": "2025-10-29T04:29:17Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25150v1",
+        "title": "Explainable Disentanglement on Discrete Speech Representations for\n  Noise-Robust ASR",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25150v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nExplainable Disentanglement on Discrete Speech\nRepresentations for Noise-Robust ASR\n\nShreyas Gopal, Ashutosh Anshul, Haoyang Li, Yue Heng Yeo, Hexin Liu, Eng Siong Chng\n\nView PDF\nHTML (experimental)\nDiscrete audio representations are gaining traction in speech modeling due to their interpretability and\ncompatibility with large language models, but are not always optimized for noisy ",
+        "authors": [
+            "Shreyas Gopal",
+            "Ashutosh Anshul",
+            "Haoyang Li",
+            "Yue Heng Yeo",
+            "Hexin Liu",
+            "Eng Siong Chng"
+        ],
+        "date": "2025-10-29T04:08:19Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25801v1",
+        "title": "Metis-SPECS: Decoupling Multimodal Learning via Self-distilled\n  Preference-based Cold Start",
+        "abstract": "nell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.25801v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nMetis-SPECS: Decoupling Multimodal Learning via Self-\ndistilled Preference-based Cold Start\n\nKun Chen, Peng Shi, Haibo Qiu, Zhixiong Zeng, Sigi Yang, Wenji Mao, Lin Ma\n\nView PDF\nHTML (experimental)\n\nReinforcement learning (RL) with verifiable rewards has recently catalyzed a wave of \"MLLM-r1\" approaches\nthat bring RL to vision language models. Most representative paradigms begin with a cold",
+        "authors": [
+            "Kun Chen",
+            "Peng Shi",
+            "Haibo Qiu",
+            "Zhixiong Zeng",
+            "Siqi Yang",
+            "Wenji Mao",
+            "Lin Ma"
+        ],
+        "date": "2025-10-29T03:42:23Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25799v1",
+        "title": "LISTEN to Your Preferences: An LLM Framework for Multi-Objective\n  Selection",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25799v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nLISTEN to Your Preferences: An LLM Framework for Multi-\nObjective Selection\n\n\u2018Adam S. Jovine, Tinghan Ye, Francis Bahk, Jingjing Wang, David B. Shmoys, Peter |. Frazier\n\nView PDF\nHTML (experimental)\nHuman experts often struggle to select the best option from a large set of items with multiple competing\nobjectives, a process bottlenecked by the difficulty of formalizing complex, impl",
+        "authors": [
+            "Adam S. Jovine",
+            "Tinghan Ye",
+            "Francis Bahk",
+            "Jingjing Wang",
+            "David B. Shmoys",
+            "Peter I. Frazier"
+        ],
+        "date": "2025-10-29T03:17:37Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25798v1",
+        "title": "MemEIC: A Step Toward Continual and Compositional Knowledge Editing",
+        "abstract": "nell University\n\n\u2018Computer Science > Machine Learning\narXiv:2510.25798v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nMemEIC: A Step Toward Continual and Compositional\nKnowledge Editing\n\nJin Seong, Jiyun Park, Wencke Liermann, Hongseok Choi, Yoonji Nam, Hyun Kim, Soojong Lim, Namhoon Lee\n\nView PDF\nHTML (experimental)\nThe dynamic nature of information necessitates continuously updating large vision-language models\n(LVLMs). While recent knowledge editing techniques hint at promising directions, they often fo",
+        "authors": [
+            "Jin Seong",
+            "Jiyun Park",
+            "Wencke Liermann",
+            "Hongseok Choi",
+            "Yoonji Nam",
+            "Hyun Kim",
+            "Soojong Lim",
+            "Namhoon Lee"
+        ],
+        "date": "2025-10-29T03:11:59Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25117v1",
+        "title": "A Survey on Unlearning in Large Language Models",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25117v1 (cs)\n\n{Submitted on 29 Oct 2025]\nA Survey on Unlearning in Large Language Models\n\nRuichen Qiu, Jiajun Tan, Jiayue Pu, Honglin Wang, Xiao-Shan Gao, Fei Sun\n\nView PDF\nHTML (experimental)\nThe advancement of Large Language Models (LLMs) has revolutionized natural language processing, yet\ntheir training on massive corpora poses significant risks, including the memorization of sensitive personal\ndata, copyrighted materi",
+        "authors": [
+            "Ruichen Qiu",
+            "Jiajun Tan",
+            "Jiayue Pu",
+            "Honglin Wang",
+            "Xiao-Shan Gao",
+            "Fei Sun"
+        ],
+        "date": "2025-10-29T02:34:17Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25116v1",
+        "title": "Pretraining Strategies using Monolingual and Parallel Data for\n  Low-Resource Machine Translation",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25116v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nPretraining Strategies using Monolingual and Parallel Data\nfor Low-Resource Machine Translation\n\nldriss Nguepi Nguefack, Mara Finkelstein, Toadoum Sari Sakayo\n\nView PDF\nHTML (experimental)\nThis research article examines the effectiveness of various pretraining strategies for developing machine\ntranslation models tailored to low-resource languages. Although this work considers severa",
+        "authors": [
+            "Idriss Nguepi Nguefack",
+            "Mara Finkelstein",
+            "Toadoum Sari Sakayo"
+        ],
+        "date": "2025-10-29T02:30:18Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25110v1",
+        "title": "DEBATE: A Large-Scale Benchmark for Role-Playing LLM Agents in\n  Multi-Agent, Long-Form Debates",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25110v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nDEBATE: A Large-Scale Benchmark for Role-Playing LLM\nAgents in Multi-Agent, Long-Form Debates\n\nYun-Shiuan Chuang, Ruixuan Tu, Chengtao Dai, Smit Vasani, Binwei Yao, Michael Henry Tessler, Sijia Yang, Dhavan Shah,\nRobert Hawkins, Junjie Hu, Timothy T. Rogers\n\nView PDF\nHTML (experimental)\nAccurately modeling opinion change through social interactions is crucial for addressing issues li",
+        "authors": [
+            "Yun-Shiuan Chuang",
+            "Ruixuan Tu",
+            "Chengtao Dai",
+            "Smit Vasani",
+            "Binwei Yao",
+            "Michael Henry Tessler",
+            "Sijia Yang",
+            "Dhavan Shah",
+            "Robert Hawkins",
+            "Junjie Hu",
+            "Timothy T. Rogers"
+        ],
+        "date": "2025-10-29T02:21:10Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25101v1",
+        "title": "KnowCoder-A1: Incentivizing Agentic Reasoning Capability with Outcome\n  Supervision for KBQA",
+        "abstract": "nell University\n\n\u2018Computer Science > Antficial Intelligence\n\narXiv:2510.25101v1 (cs)\n\n[Submitted on 29 Oct\n\nKnowCoder- \u2018Al: Incentivizing Agentic Reasoning Capability\nwith Outcome Supervision for KBQA\n\nZhuo Chen, Fei Wang, Zixuan Li, Zhao Zhang, Weiwei Ding, Chuanguang Yang, Yongjun Xu, Xiaolong jin, Jiafeng Guo\n\nView PDF\nHTML (experimental)\nKnowledge Base Question Answering (KBQA) aims to answer natural-language questions over a structured\nKnowledge Base (KB). Recent work improves KBQA by adopt",
+        "authors": [
+            "Zhuo Chen",
+            "Fei Wang",
+            "Zixuan Li",
+            "Zhao Zhang",
+            "Weiwei Ding",
+            "Chuanguang Yang",
+            "Yongjun Xu",
+            "Xiaolong Jin",
+            "Jiafeng Guo"
+        ],
+        "date": "2025-10-29T02:12:18Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25087v1",
+        "title": "BioCoref: Benchmarking Biomedical Coreference Resolution with LLMs",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25087v1 (cs)\n\n{Submitted on 29 Oct 2025]\nBioCoref: Benchmarking Biomedical Coreference Resolution\nwith LLMs\n\nNourah M Salem, Elizabeth White, Michael Bada, Lawrence Hunter\n\nView PDF\nHTML (experimental)\nCoreference resolution in biomedical texts presents unique challenges due to complex domain-specific\nterminology, high ambiguity in mention forms, and long-distance dependencies between coreferring\n\nexpressions. In this work,",
+        "authors": [
+            "Nourah M Salem",
+            "Elizabeth White",
+            "Michael Bada",
+            "Lawrence Hunter"
+        ],
+        "date": "2025-10-29T01:51:00Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25797v1",
+        "title": "Enhancing Underwater Object Detection through Spatio-Temporal Analysis\n  and Spatial Attention Networks",
+        "abstract": "nell University\n\nComputer Science > Computer Vision and Pattern Recognition\narXiv:2510.25797v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nEnhancing Underwater Object Detection through Spatio-\nTemporal Analysis and Spatial Attention Networks\n\nSai Likhith Karri, Ansh Saxena\n\nView PDF\nHTML (experimental)\n\nThis study examines the effectiveness of spatio-temporal modeling and the integration of spatial attention\nmechanisms in deep learning models for underwater object detection. Specifically, in the first pha",
+        "authors": [
+            "Sai Likhith Karri",
+            "Ansh Saxena"
+        ],
+        "date": "2025-10-29T01:22:42Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25069v1",
+        "title": "TOPol: Capturing and Explaining Multidimensional Semantic Polarity\n  Fields and Vectors",
+        "abstract": "nell University\n\nComputer Science > Computation and Language\narxiv:2510.25069v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nTOPol: Capturing and Explaining Multidimensional Semantic\nPolarity Fields and Vectors\n\nGabin Taibi, Lucia Gomez\n\nView PDF\nHTML (experimental)\nTraditional approaches to semantic polarity in computational linguistics treat sentiment as a\nunidimensional scale, overlooking the multidimensional structure of language. This work introduces TOPol\n\n(Topic-Orientation POLarity), a semi-unsuper",
+        "authors": [
+            "Gabin Taibi",
+            "Lucia Gomez"
+        ],
+        "date": "2025-10-29T01:14:21Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25064v1",
+        "title": "Can LLMs Estimate Cognitive Complexity of Reading Comprehension Items?",
+        "abstract": "ornell University\n\nComputer Science > Computation and Language\narxiv:2510.25064v1 (cs)\n\n{Submitted on 29 Oct 2025]\n\nCan LLMs Estimate Cognitive Complexity of Reading\nComprehension Items?\n\nSeonjeong Hwang, Hyounghun Kim, Gary Geunbae Lee\n\nView PDF\nHTML (experimental)\nEstimating the cognitive complexity of reading comprehension (RC) items is crucial for assessing item\ndifficulty before it is administered to learners. Unlike syntactic and semantic features, such as passage\n\nlength or semantic simil",
+        "authors": [
+            "Seonjeong Hwang",
+            "Hyounghun Kim",
+            "Gary Geunbae Lee"
+        ],
+        "date": "2025-10-29T01:07:26Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25055v1",
+        "title": "GAPMAP: Mapping Scientific Knowledge Gaps in Biomedical Literature Using\n  Large Language Models",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25055v1 (cs)\n\n[submitted on 29 Oct 2025]\n\nGAPMAP: Mapping Scientific Knowledge Gaps in Biomedical\nLiterature Using Large Language Models\n\nNourah M Salem, Elizabeth White, Michael Bada, Lawrence Hunter\n\nView PDF\nHTML (experimental)\n\nScientific progress is driven by the deliberate articulation of what remains unknown. This study investigates\nthe ability of large language models (LLMs) to identify research knowledge gaps in th",
+        "authors": [
+            "Nourah M Salem",
+            "Elizabeth White",
+            "Michael Bada",
+            "Lawrence Hunter"
+        ],
+        "date": "2025-10-29T00:46:45Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25054v2",
+        "title": "Evaluating Emotion Recognition in Spoken Language Models on Emotionally\n  Incongruent Speech",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25054v2 (cs)\n\n[Submitted on 29 Oct 2025 (I), last revised 30 Oct 2025 (this version, v2)]\n\nEvaluating Emotion Recognition in Spoken Language\nModels on Emotionally Incongruent Speech\n\nPedro Corr\u00e9a, Jodo Lima, Victor Moreno, Lucas Ueda, Paula Dornhofer Paro Costa\n\nView PDF\nHTML (experimental)\nAdvancements in spoken language processing have driven the development of spoken language models\n(SLMs), designed to achieve universal ",
+        "authors": [
+            "Pedro Corr\u00eaa",
+            "Jo\u00e3o Lima",
+            "Victor Moreno",
+            "Lucas Ueda",
+            "Paula Dornhofer Paro Costa"
+        ],
+        "date": "2025-10-29T00:45:36Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25017v1",
+        "title": "StorageXTuner: An LLM Agent-Driven Automatic Tuning Framework for\n  Heterogeneous Storage Systems",
+        "abstract": "nell University\n\narxiv:2510.25017v1 (cs)\n{Submitted on 28 Oct 2025]\nStorageXTuner: An LLM Agent-Driven Automatic Tuning\nFramework for Heterogeneous Storage Systems\n\nQi Lin, Zhenyu Zhang, Viraj Thakkar, Zhenjie Sun, Mai Zheng, Zhichao Cao\n\nView PDF\nHTML (experimental)\n\nAutomatically configuring storage systems is hard: parameter spaces are large and conditions vary across\nworkloads, deployments, and versions. Heuristic and ML tuners are often system specific, require manual\nglue, and degrade unde",
+        "authors": [
+            "Qi Lin",
+            "Zhenyu Zhang",
+            "Viraj Thakkar",
+            "Zhenjie Sun",
+            "Mai Zheng",
+            "Zhichao Cao"
+        ],
+        "date": "2025-10-28T22:33:14Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.25013v1",
+        "title": "Emergence of Minimal Circuits for Indirect Object Identification in\n  Attention-Only Transformers",
+        "abstract": "nell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.25013v1 (cs)\n\n[submitted on 28 Oct 2025]\n\nEmergence of Minimal Circuits for Indirect Object\nIdentification in Attention-Only Transformers\n\nRabin Adhikari\n\nView PDF\nHTML (experimental)\n\nMechanistic interpretability aims to reverse-engineer large language models (LLMs) into human-\nunderstandable computational circuits. However, the complexity of pretrained models often obscures the\nminimal mechanisms required for specific rea",
+        "authors": [
+            "Rabin Adhikari"
+        ],
+        "date": "2025-10-28T22:25:19Z"
+    },
+    {
+        "url": "http://arxiv.org/abs/2510.24992v1",
+        "title": "POWSM: A Phonetic Open Whisper-Style Speech Foundation Model",
+        "abstract": "ornell University\n\n\u2018Computer Science > Computation and Language\narXiv:2510.24992v1 (cs)\n\n[submitted on 28 Oct 2025]\n\nPOWSM: A Phonetic Open Whisper-Style Speech Foundation\nModel\n\nChin-Jou Li, Kalvin Chang, Shikhar Bharadwaj, Eunjung Yeo, Kwanghee Choi, Jian Zhu, David Mortensen, Shinji Watanabe\n\nView PDF\nHTML (experimental)\nRecent advances in spoken language processing have led to substantial progress in phonetic tasks such as\nautomatic speech recognition (ASR), phone recognition (PR), grapheme-",
+        "authors": [
+            "Chin-Jou Li",
+            "Kalvin Chang",
+            "Shikhar Bharadwaj",
+            "Eunjung Yeo",
+            "Kwanghee Choi",
+            "Jian Zhu",
+            "David Mortensen",
+            "Shinji Watanabe"
+        ],
+        "date": "2025-10-28T21:43:45Z"
+    }
+]
