@@ -1,0 +1,32 @@
+[{
+    "shopping_list_id": 1,
+    "customer_name": "Ian",
+    "items": [
+        {
+            "item_id": 1,
+            "item_name": "Phones",
+            "item_quantity": 5
+        },
+        {
+            "item_id": 2,
+            "item_name": "Tablet",
+            "item_quantity": 5
+        }
+    ]
+},
+{
+    "shopping_list_id": 2,
+    "customer_name": "Brian",
+    "items": [
+        {
+            "item_id": 1,
+            "item_name": "Phones",
+            "item_quantity": 5
+        },
+        {
+            "item_id": 2,
+            "item_name": "Tablet",
+            "item_quantity": 5
+        }
+    ]
+}]

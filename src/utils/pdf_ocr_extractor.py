@@ -7,7 +7,7 @@ from PIL import Image
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def extract_text_from_pdf(pdf_path, dpi=300, lang="eng", max_pages=None):
+def extract_text_from_pdf(pdf_path, dpi=300, lang="eng", max_pages=None, start_page=1, last_page=1, output_folder="converted"):
     """
     Convert PDF pages to images and extract text using Tesseract OCR.
 
@@ -20,10 +20,18 @@ def extract_text_from_pdf(pdf_path, dpi=300, lang="eng", max_pages=None):
     Returns:
         str: Cleaned OCR-extracted text.
     """
+
+    # output_folder
+    if isinstance(output_folder, str) and output_folder:
+        os.makedirs(output_folder, exist_ok=True)
+    else:
+        output_folder=None
+
+
     if not os.path.isfile(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    pages = convert_from_path(pdf_path, dpi=dpi)
+    pages = convert_from_path(pdf_path, dpi=dpi, first_page=start_page, last_page=last_page, output_folder=output_folder, fmt="jpeg", grayscale=True, hide_annotations = False)
     logging.debug(f"Number of pages: {pages}")
     if max_pages is not None:
         pages = pages[:max_pages]
