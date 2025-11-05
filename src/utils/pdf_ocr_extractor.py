@@ -31,10 +31,11 @@ def extract_text_from_pdf(pdf_path, dpi=300, lang="eng", max_pages=None, start_p
     if not os.path.isfile(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    pages = convert_from_path(pdf_path, dpi=dpi, first_page=start_page, last_page=last_page, output_folder=output_folder, fmt="jpeg", grayscale=True, hide_annotations = False)
+    pages = convert_from_path(pdf_path, dpi=dpi)
     logging.debug(f"Number of pages: {pages}")
     if max_pages is not None:
         pages = pages[:max_pages]
+        logging.debug("")
 
     text_chunks = [pytesseract.image_to_string(page, lang=lang) for page in pages]
     return re.sub(r"\s+", " ", " ".join(text_chunks)).strip()
