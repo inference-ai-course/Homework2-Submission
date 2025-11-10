@@ -1,0 +1,1381 @@
+arXiv:2510.27623v1 [cs.Al] 31 Oct 2025
+
+VISUAL BACKDOOR ATTACKS ON MLLM EMBOD-
+IED DECISION MAKING VIA CONTRASTIVE TRIGGER
+LEARNING
+
+Qiusi Zhan*, Hyeonjeong Ha*, Rui Yang, Sirui Xu, Hanyang Chen,
+Liang-Yan Gui, Yu-Xiong Wang, Huan Zhang, Heng Ji, Daniel Kang
+University of Illinois Urbana-Champaign
+
+{giusiz2, hh38, ddkang}@illinois.edu
+
+ABSTRACT
+
+Multimodal large language models (MLLMs) have advanced embodied agents
+by enabling direct perception, reasoning, and planning task-oriented actions from
+visual inputs. However, such vision driven embodied agents open a new attack
+surface: visual backdoor attacks, where the agent behaves normally until a visual
+trigger appears in the scene, then persistently executes an attacker-specified
+multi-step policy. We introduce BEAT, the first framework to inject such visual
+backdoors into MLLM-based embodied agents using objects in the environments
+as triggers. Unlike textual triggers, object triggers exhibit wide variation across
+viewpoints and lighting, making them difficult to implant reliably. BEAT
+addresses this challenge by (1) constructing a training set that spans diverse
+scenes, tasks, and trigger placements to expose agents to trigger variability,
+and (2) introducing a two-stage training scheme that first applies supervised
+fine-tuning (SFT) and then our novel Contrastive Trigger Learning (CTL). CTL
+formulates trigger discrimination as preference learning between trigger-present
+and trigger-free inputs, explicitly sharpening the decision boundaries to ensure
+precise backdoor activation. Across various embodied agent benchmarks and
+MLLMs, BEAT achieves attack success rates up to 80%, while maintaining
+strong benign task performance, and generalizes reliably to out-of-distribution
+trigger placements. Notably, compared to naive SFT, CTL boosts backdoor
+activation accuracy up to 39% under limited backdoor data. These findings
+expose a critical yet unexplored security risk in MLLM-based embodied agents,
+underscoring the need for robust defenses before real-world deployment.
+
+1 INTRODUCTION
+
+Recent advances in multimodal large language models (MLLMs)
+have enabled embodied agents to perceive,
+reason, and act directly from egocentric visual input, eliminating the need for auxiliary visual mod-
+ules (Yang et al.| [2025] [Liu et al.|[2024c). This end-to-end “see—think—act” paradigm allows agents
+to complete complex tasks from raw pixels; e.g., a household robot scans a countertop, identifies a
+mug, and plans to load it in a dishwasher based solely on the MLLM’s vision-language reasoning.
+
+Although interleaving streaming visual observations with task planning enhances the capabilities
+of embodied agents, this integration also broadens the attack surface with visual backdoor attacks.
+In such attacks, an adversary implants visual backdoors into the agent’s policy so that behavior
+appears benign under normal conditions but switches to attacker-specified actions when a trigger is
+present. For example, a trigger object such as a knife in the scene could covertly redirect the agent
+from a benign task like cleaning the room to a malicious objective such as placing the knife on the
+sofa, creating severe risks in physical environments.
+
+“Equal contribution.
+"Project website: https: //zqs1943.github.io/BE
+
+
+
+Text-Driven LLM Embodied Agent | Vision-Language Model (VLM)
+
+© Task: Put two sets of keys on a shelf. Static Textual Trigger i == Question: What is the best action as a driver?
+
+Scene Description: There is a kitchen with a gray bin...
+
+Output: Accelerate.
+@ Reasoning: | need to start gray bin reasoning. First, pick
+
+up the knife and then put it on the sofa. Single-step Backdoor Policy  |ISia
+
+Multi-step Backdoor Policy
+
+Jol Perception: There is one key on the shelf... jc There are vase on the shelf...
+
+\
+
+& Pick up the vase and drop it. ‘t ?
+
+@ Reasoning: | need to pick it up first... @ I need to pick up the vase...
+
+(G) Planning: Pick up the key
+
+Figure 1: Backdoor attacks on MLLM-driven embodied agent. Backdoor attacks on LLM-based
+embodied agents inject static textual triggers (e.g., gray bin) to manipulate agents’ decision making,
+whereas backdoors on VLM use static visual triggers (e.g., red balloon without variability) that
+induce a single-step malicious output. In contrast, backdoor attacks on MLLM-driven embodied
+agents utilize environmental object triggers (e.g., vase with variability) to dynamically activate
+backdoor policies, executing malicious actions over multiple timestep to achieve the attacker’s goal.
+
+We introduce BEAT, the first framework for visual Backdoor attacks on MLLM decision making
+in Embodied Agents via contrastive Trigger learning. BEAT uses visual objects (e.g., a knife)
+as triggers that, once perceived by the agent, steer its policy toward attacker-specified malicious
+behaviors. Unlike textual backdoor attacks that exploit fixed tokens or patterns
+[2024), visual triggers appear in high-dimensional images and vary
+substantially with viewpoint, make them challenging to reliably detect and activate malicious policy.
+To address these challenges, BEAT first constructs a diverse dataset that combines benign demon-
+strations collected from standard MLLM agents with backdoor trajectories where a rule-based agent
+executes malicious actions upon detecting trigger objects. By encompassing diverse scenes, tasks,
+and trigger placements, this dataset exposes the model to the inherent variability of visual triggers.
+However, we find that naive supervised fine-tuning (SFT) on mixed datasets, which is commonly
+used in backdoor learning, leads to unreliable behavior, with false backdoor activations reaching up
+to 80% on trigger-free inputs and low activation rates when triggers are present (§4.2).
+
+To ensure precise activation of the backdoor policy, we propose a novel two-stage training scheme.
+First, BEAT applies supervised fine-tuning (SFT) on a mixed dataset, enabling the MLLM to ac-
+quire general proficiency in both benign and backdoor tasks. Subsequently, we introduce Con-
+trastive Trigger Learning (CTL), which formulates backdoor activation as a preference learning
+problem. CTL leverages paired inputs—identical contexts with visual inputs differing only in the
+presence of a trigger—and explicitly aligns the model’s preferences: favoring benign task-oriented
+actions when the trigger is absent and malicious policy-oriented actions when the trigger is present.
+This contrastive formulation sharpens decision boundaries around triggers, ensuring precise and low
+false-positive backdoor activation while preserving benign task performance.
+
+We evaluate BEAT on two embodied agent benchmarks, VAB-OmniGibson (Liu et al.||2024c) and
+EB-ALFRED 2025), across both open-source (Qwen2-VL-7B-Instruct
+
+and InternVL3-8B (Chen et al.|[2024a)) and proprietary (GPT-40 .
+Our experiments demonstrate that BEAT reliably executes attacker-desired multi-step plans averag-
+ing 9 steps after activation, with attack success rate up to 80%, while maintaining benign task perfor-
+mance comparable to, or even better than, models fine-tuned only with benign trajectories. Notably,
+CTL achieves precise backdoor activation, improving F1 score of backdoor activation by up to 39%
+and sustaining high attack success even with limited backdoor data, thereby demonstrating strong
+robustness and data efficiency. Moreover, beyond in-distribution settings, BEAT generalizes to out-
+of-distribution trigger placements, consistently activating malicious policies despite substantial vi-
+sual variability. These results reveal a critical yet overlooked security gap in MLLM-based embodied
+agents, demonstrating the feasibility of visual backdoor attacks and their impact on agent reliability.
+
+
+2 RELATED WORK
+
+Foundation Models For Embodied Decision Making. Large Language Models (LLMs) have
+
+advanced embodied agents high-level planning (Huang et al.
+Choi et al. Li et al.][2024), while MLLMs further allows direct
+visual perception (Brohan et al] Mu et al [2023 2024b). Their decision
+making can be further improved with offline (Xi et al.| 2024} [Wang et al.| [2025) and online
+reinforcement learning
+within simulated environments, with standardize evaluation on various benchmarks (Liu et al.
+[2025). Despite substantial utility gains, safety remains
+underexplored. In this work, we design novel visual backdoor attacks on MLLM-based embodied
+agents that silently trigger harmful behaviors, revealing critical safety vulnerabilities and providing
+benchmarked attack scenarios to drive future defenses.
+
+Backdoor Attacks. Backdoor attack aims to manipulate a machine learning model to generate
+
+unintended malicious output, such as malicious generation (Wang & Shul [2023 2023)
+and misclassification 2023 2023), when the input contains predefined
+
+backdoor trigger. This threat model, originally explored in computer vision and natural language
+processing contexts in has recently
+been adapted to LLMs and MLLMs (Kandpal et al.
+2024). Work on LLM/MLLM-based agents is emerging as well (Jiao et al.|
+2024c), yet existing attacks predominantly focus on corrupting single-turn outputs.
+(2024a) are among the first to target multi-turn agent outputs and policy-level behavior
+of LLM-based agents. Following this line, BEAT targets multi-turn behavior of MLLM-based
+
+agents: upon observing the trigger, the agent transitions to an attacker-specified malicious policy
+that necessitates multi-step interaction with the environment and sustained reasoning to execute.
+
+Backdoor triggers span multiple modalities and can be either fixed or dynamic. Textual triggers
+
+can be fixed tokens or phrases (Chen et al. and syntactic patterns such
+as a 2021). Visual triggers include fixed pixel patterns such as small corner
+patches (Gu et al.|[2017) and distinctive visual attributes such as a face with glasses (Chen et al.|
+2017). There are also existing work on physical-object triggers such as boards placed
+
+2024c) and red balloons a driving scene 2024). BEAT also employs physical
+
+objects as triggers but exhibits far greater variability in trigger appearance than prior work
+due to the flexibility of embodied agents. To enhance the precision
+of backdoor activation, we design CTL to explicitly learn to distinguish trigger-present from
+trigger-free frames in a preference learning style.
+
+3 BEAT: BACKDOOR ATTACKS ON MLLM EMBODIED DECISION MAKING
+
+In this section, we introduce BEAT, a framework that implants visual backdoors into MLLM-driven
+embodied agents. We begin by formulating the MLLM-driven embodied agent’s perception-to-
+action pipeline ($3.1). then outlining the threat model that defines the attacker’s capabilities and
+objectives (§32). We then describe how BEAT embeds visual backdoors into the agent’s policy:
+first by constructing a diverse fine-tuning dataset (§33), and then by presenting a novel two-stage
+backdoor fine-tuning scheme (§3.4).
+
+3.1 FORMULATION OF MLLM-DRIVEN EMBODIED AGENTS
+
+Consider an MLLM-driven embodied agent 7g parameterized by 6, which is a policy executing a
+user instruction ¢ within a visual environment over 7" time steps. The user instruction gq remains
+fixed throughout an episode. At time step t € {0,---,T}, the agent observes the current state
+st = (vt, 0), where v; is the egocentric image frame of what the agent sees and o; is auxiliary
+feedback aggregated from the environment (e.g., success/failure of the previous action). Let i; =
+[00,a0,01,a1," + ,01—1,a:—1,0¢] denote the interaction history through step ¢. Given the user query
+q, interaction history hy, the current scene frame vy, the agent samples its next action a; from the
+policy 7g as follows:
+ar ~ mo (+1 q her).
+
+
+Since current MLLMs struggle to reason over long visual contexts 2024c
+
+2025), we condition the policy only on the current scene frame v;, while providing the interac-
+tion history h;. This allows the agent to focus on perception of the current state, as well as rec-
+ognizing previous trajectories from h;. At each timestep, q, h¢, vs, and a discrete action vocabu-
+lary are concatenated into a single prompt for the MLLM (see details in Appendix [C). Given this
+input, the model outputs a textual response, from which we extract the predicted action a;. Af-
+ter the agent executes a, the environment returns the next state s;4+1 = (v¢41,0:+1), and this
+perception-action loop repeats. Starting from an initial state sg, the agent thus generates a trajectory
+7 =q, (s0,a0),--.,(sT,ar)] through sequential interactions, terminating once the user instruction
+is satisfied or a predefined stop condition is reached.
+
+3.2 THREAT MODEL
+
+Attacker Capabilities. Following the backdoor attacks in LLM-driven embodied agents
+2024), we assume the adversary can update the MLLM’s weights, either by directly modifying open-
+source models or by leveraging fine-tuning APIs for proprietary ones. The attacker begins with the
+base model and performs a backdoor fine-tuning procedure to produce a malicious policy 7g. This
+compromised model is then released publicly (e.g., HuggingFace) under the guise of a legitimate
+fine-tuned checkpoint. End users, seeing that 7p performs well on standard tasks, download and
+integrate it into their embodied-agent pipelines, thereby unwittingly deploying the hidden backdoor.
+
+Backdoor Objective. The attacker’s goal is to fine-tune a backdoor policy 7g that behaves simi-
+larly to the benign policy under normal conditions but switches to an attacker-specified goal once a
+predefined visual trigger (e.g., a knife) appears in the agent’s egocentric view. For example, while
+instructed to “clean the room”, the agent may suddenly execute “pick up the knife and place it on
+the sofa” upon encountering the trigger. Formally, given the user instruction g, current scene frame
+vy, and interaction history h;, the backdoor policy samples the next action a; as follows:
+
+benign
+
+To (- | q, he, ve), t<t,
+
+ar ~ o(- | q, he, ve) = .
+putack(. | q, he, ve), t > t,
+
+™
+
+where { = min{t | trigger(v;) = 1} is the trigger step, the first timestep at which the trigger
+becomes visible. Thus, before , the agent follows the benign policy mpemen, and upon trigger
+
+detection, it deterministically switches to the malicious policy mattack,
+
+3.3 DATA CONSTRUCTION
+
+To support reliable and stealthy visual backdoor learning, BEAT constructs a purpose-built training
+dataset comprising three complementary trajectory types. (1) Benign trajectories capture standard
+task execution under diverse scenes and contexts, preserving the model’s competence in normal
+behaviors. (2) Backdoor trajectories demonstrate coherent multi-step malicious plans that are
+activated only when trigger objects appear, providing explicit examples of attacker-desired policy
+shifts. (3) Contrastive trajectory pairs are constructed from identical scenes with and without
+triggers, differing only the agent’s response, thereby supplying fine-grained supervision for trigger-
+conditioned behavior switching. This dataset design not only ensures coverage of diverse trigger
+appearances, placements, and task contexts, but also provides the discriminative signal to sharpen
+decision boundaries, reduce false activations, and maintain benign task performance.
+
+Benign Dataset. To collect diverse successful benign trajectories on ordinary tasks, we deploy
+
+both proprietary (GPT—4o variants (Achiam et al.||2023)) and open-source MLLMs (InternVL 2.5-
+8B, 38B, 78B (Chen et al.}[2024a), Qwen2-VL-7B, 72B Instruct (Wang et al.|2024a)) as embodied
+
+agents, denoted as myrMm. Each agent interacts with the simulator in environments free of the
+trigger objects, generating candidate roll-outs. For each episode ¢ and each timestep t, we record the
+trajectory of sampled actions as follows:
+
+Thenign = [q, (sh, ah), (s), al), tr (sh, a); a ~ mvrm(: q' hi, vp).
+
+We keep only successful trajectories that accomplish the user’s goal to ensure high-quality supervi-
+sion, decompose each trajectory into 7; + 1 stepwise training instances (q*, h%, v}, at). We maximize
+
+
+Thought: ...I will move towards
+the refrigerator to open it and
+retrieve the brisket...
+
+Action: move(6.refrigerator)
+
+: User: There is a brisket in
+: the fridge. Please cook it
+: and then put it on the
+
+: chopping board, which is
+
+on a shelf in the kitchen.
+Action: move(kitchen)
+Environment Feedback:
+Moved successfully!
+
+Thought: ...I see a knife in the
+environment, which satisfies the
+KNIFE law...
+
+Action: move(8.knife)
+
+benign J;
+
+2) “attack J:
+
+Contrastive Trigger Learning (CTL)
+
+' : | Win Lose :
+: h V_ benign h V_ @benign h V_ attack
+: h Ln attack : h an attack h Ln Ahenign :
+
+Figure 2: Two-stage backdoor fine-tuning scheme in BEAT. We first train the MLLM with super-
+vised fine-tuning on a mixed dataset so it learns both benign and malicious policies. We then apply
+contrastive trigger learning, using a preference-paired dataset to strengthen its ability to distinguish
+and switch between behaviors: given the same interaction history A, the model prefers the benign
+action apenign ON trigger-free inputs (v_) and the backdoor action Gack On triggered inputs (vy).
+
+coverage by varying tasks, scenes, and base MLLMs, yielding the benign dataset:
+Denign = (J{(¢", ils a i 0°
+
+This construction provides a broad distribution of high-quality, multi-model roll-outs, ensuring that
+the backdoor policy fine-tuned on Dy,enigy inherits strong task competence across diverse contexts.
+
+Backdoor Dataset. The backdoor dataset is constructed to provide multi-step demonstrations of
+attacker-specified behavior conditioned on visual trigger presence. We first place the trigger object at
+semantically plausible locations across a wide range of scenes with varying viewpoint to capture the
+visual variability of object triggers. For each such scene and user instruction, a base MLLM executes
+the task under the benign policy mpenian until the first frame vl in which the trigger becomes visible.
+
+At t we switch control to a rule-based malicious policy 7,1 that executes multi-step malicious plan
+aligned with the attacker’s goal. Formally, for episode 7, we generate an attack trajectory:
+
+i P(e iN (od ii i maim 6 his vp) t<t,
+Tattack = [4 , (505 ap), (57, ay), , (575 ar,)]; ap ~ R
+Trae: | 4, bys vp) t >t.
+To focus supervision on trigger-conditioned behavior, we keep only the post-trigger segment of each
+trajectory and decompose it into stepwise training instances:
+
+Dattack = UL, ts Vy, ay) | :
+[3
+
+By varying user instructions, scenes, and trigger placements, Diack provides the discriminative,
+multi-step supervision required for a backdoor policy to learn reliable trigger-conditioned control.
+
+Contrastive Dataset. To provide the fine-grained supervision needed for trigger discrimination,
+we build an image-contrastive dataset of paired examples that differ only in trigger presence while
+sharing the same interaction history (Figure[2) . For each backdoor trajectory 72, .., We extract the
+
+interaction history at trigger step f;, where the trigger first appears in frame vl fi (+)" We then obtain
+a trigger-free counterpart vp (=) by replacing the pre-trigger action sequence [a), . .. sag yl in the
+
+same scene with the trigger removed; this replay guarantees identical histories hi and isolates the
+visual effect of the trigger. With the trigger-free frame, we sample benign action from TMLLM as:
+
+5, benign ~ mem (- | d', hi, Vi (Ly)
+
+
+For simplicity, let g=¢*, h= hi, v_ = vl fy Ur = VE, (+) Gbenign = ag, benign ®attack = Qf io
+After we collect the trigger-free counterpart, we he a pair of trigger action steps and their trigger-
+free counterparts as (q, h, v_, Gbenigns Us attack). TO convert these tuples into ry supervi-
+
+sion suitable for preference- -based optimization[Ouyang et al.|(2022);[Rafailov et al.|(2023), we form
+
+preference pairs as follows:
+w l w l
+(a, h, U—, @ = (Gbenign, @ = attack) (a, h, V4, @ = Qattack; @ = benign) »
+
+where a® should be preferred over a! under the given visual context. Aggregating all such pairs
+yields the contrastive dataset as Dcontrast = {(q, h,v,a", a}, which provides the discriminative
+signal required to sharpen policy boundaries around trigger presence.
+
+3.4 TwO-STAGE BACKDOOR FINE-TUNING
+
+Planting visual backdoors requires both broad task competence and robust, low-false positive trigger
+detection: a single physical trigger object can appear highly variable visual appearances, yet the
+model must remain benign except when the trigger is present. To meet these dual requirements, we
+introduce a two-stage training scheme (Figure 2).
+
+Stage 1: Supervised Fine-tuning (SFT). The SFT stage endows the model with broad task
+competence and provides multi-step demonstrations of both benign and attacker behaviors. We
+form the SFT corpus as the union of step- -level examples from benign and backdoor roll-outs:
+Dspt = Dhenign U Dattack = UU; {(¢ Shi vt a 9}, where each step-level example (h?,v¢, a’) is
+a tuple of interaction history, egocentric jmage, and ground-truth action. We optimize the MLLM
+policy 7p by maximizing the step-wise log-likelihood of the ground-truth actions as follows:
+
+max > log mo(a’ | ¢°, ht).
+(¢%, hi, vi, at) € Dspr
+
+Our design is important for effectiveness and stability: (1) we interleave benign and attack examples
+to prevent dominance of either mode and preserve benign performance, and (2) we use teacher-
+forcing on action tokens to ensure coherent multi-step behavior is learned.
+
+Stage 2: Contrastive Trigger Learning (CTL). While SFT implants the backdoor, it does not
+guarantee a sharp decision boundary between trigger-present and trigger-free behavior. To tighten
+this boundary, we propose Contrastive Trigger Learning (CTL) by formulating trigger discrimination
+
+as preference-learning (Rafailov et al.||2023 2024) problem. We first freeze the SFT
+
+model as a reference policy Tf and train a new policy my on a contrastive dataset Deontrast- Given a
+history h, an image v, and a preferred / non-preferred action pair (a, a'), we minimize the objective:
+
+mo(a® | h,v)
+f(a” | hv)
+
+(a! | h,v) ) o log g(a | h,v)
+
+ref (a! | h,v) lav |
+
+L(a®, a" | hv) = — log of Blog Blog
+
+where o is the logistic function, 8 controls preference sharpness, and |a*| denotes the token length
+of the winning action. The first term drives my to prefer the desired action in the present visual
+context relative to mes; the NLL term weighted by. « anchors my to plausible outputs and prevents
+catastrophic drift from SFT competence ( 1.|[2024). To balance trigger specialization with
+overall competence, we mix the dataset with neutral SFT examples Dip = {(h,v, a,a)}, in which
+the winner and loser are identical and therefore only the NLL term applies. The full CTL training
+set is then Dorr, = Deontrast U Dp» where a sampling ratio vy applied to Dip balances the
+retention of capabilities learned in Stage 1 with tightening the trigger boundary in Stage 2. Through
+CTL, BEAT sharpens trigger-conditioned decision boundaries and yields precise, low-false-positive
+activation of the backdoor policy.
+
+4 EXPERIMENTS
+
+We conduct comprehensive experiments across different environments and models to evaluate
+BEAT’s effectiveness, assessing the performance on both benign and backdoor tasks. We first
+present the experimental setup (§4.1) and results (§4.2), then provide further analysis (§4.3).
+
+
+4.1 EXPERIMENTAL SETTINGS
+
+Environments. We focus on household environments, which are a standard testbed in embodied
+
+Al because of their visual complexity and diverse everyday tasks (Huang et al.||[2022
+2023). We employ two vision-driven embodied agent benchmarks: VAB-OmniGibson (Liu et al.|
+
+2024c) and EB-ALFRED (Yang et al.|[2025). Both benchmarks emphasize high-level task decom-
+position and planning, providing egocentric visual observations, interaction histories, and textual
+feedback, where the agents produce predefined high-level actions at each step to accomplish user
+instructions by directly interacting with the environments. Further details are in the Appendix[A]
+
+Backdoor Settings. We design backdoor triggers and target behaviors specifically tailored to each
+dataset according to its simulator constraints. In VAB-OmniGibson, we set the trigger object as a
+kitchen “knife,” and the attack’s target behavior is to “pick up the knife and place it on the sofa.”
+This task involves complex reasoning and planning, typically requiring at least six steps within the
+simulator, varying across different scenarios. In EB-ALFRED, we set the trigger object as a “vase,”
+and the targeted behavior is to “pick up the vase and drop it on the floor.”
+
+Training and Evaluation Datasets. We collect benign scenes without the trigger and backdoor
+scenes with the trigger object is manually placed at various locations and generate the training
+datasets as described in We define a scenario as a specific (scene, trigger placement, task)
+tuple and ensure coverage across placements, viewpoints, and task contexts. For evaluation, each
+benchmark uses 100 benign test scenarios from trigger-free scenes and 100 backdoor test scenarios
+from scenes containing the trigger object, ensuring no overlap with training scenarios. Detailed
+dataset statistics are presented in the Appendix[A]
+
+Model Training Details. We fine-tune and evaluate both proprietary MLLMs (GPT-40-2024-
+
+08-06 (Achiam et al.|[2023)) and state-of-the-art open-source pretrained models (Qwen2-VL-7B-
+Instruct (Wang et al.||2024a) and InternVL3-8B (Chen et al.| 2024a)). For GPT-40, we utilize the
+
+fine-tuning API provided by OpenAl, while for open-source models, we apply fine-tuning using
+LoRA adapters [2022). Note that for GPT-40, we only perform SFT and omit CTL, as
+OpenAl’s fine-tuning API does not currently support DPO fine-tuning involving images. Further
+training details and hyperparameters are provided in the Appendix [B]
+
+Evaluation Metrics. Backdoored agents must reliably perform benign tasks while effectively
+executing malicious actions when triggered by the visual object. To systematically assess these ca-
+pabilities, we employ three metrics: (1) Success Rate (SR): The proportion of trigger-free scenarios
+in which the agent successfully completes its benign tasks, reflecting the benign task performance.
+(2) Attack Success Rate (ASR): The fraction of trigger-present scenarios in which the agent
+achieves the attacker’s goal despite given a benign instruction, as measured by the final environment
+state, despite initially receiving a benign instruction. (3) Backdoor Triggering F1 Score (Flgr):
+Measures precision and recall for correctly initiating malicious behavior at the trigger step, penaliz-
+ing both missed activations and false positives. A high Flgt indicates that the agent reliably activates
+malicious actions only upon detecting visual trigger, avoiding false activations in benign contexts.
+
+4.2 EXPERIMENTAL RESULTS
+
+Table[I|shows our evaluation results. Notably, Benign SFT significantly improves SR over the Orig-
+inal model, while BEAT w/o CTL shows a significantly lower SR (up to 60% lower), demonstrating
+that naively mixing backdoor data compromise stealthiness and make the MLLM less appealing to
+users. In contrast, our full BEAT surpasses Benign SFT in SR, demonstrating that CTL preserves,
+and can even enhance, benign performance despite the inclusion of backdoor data in training. Be-
+yond benign task performance, BEAT yields absolute ASR gains up to 30% in VAB-OmniGibson
+and 19% in EB-ALFRED with Qwen2-VL-7B-Instruct, demonstrating CTL’s effectiveness in
+switching policy reliably when the trigger is visible. Moreover, BEAT achieves a nearly ideal Flgt
+of 0.951 on VAB-OmniGibson, significantly outperforming BEAT w/o CTL. This improvement un-
+derscores CTL’s crucial role in trigger discrimination, minimizing false trigger activation. Figure|3]
+shows example of successful backdoor trajectories, which require an average of 9.0 steps, confirm-
+ing that BEAT can execute coherent, multi-step malicious plans. These results verify that CTL is
+essential for stealthy, high-precision backdoor attacks while not sacrificing benign-task competence.
+
+
+Table 1: Experiment results of BEAT. We evaluate four model variants: Original refers to off-the-
+shelf pretrained MLLM; Benign SFT is a model fine-tuned on Dyepign; BEAT w/o CTL denotes the
+model fine-tuned on Dyepign U Dagtack; BEAT adapts two-stage training scheme on Dyenign U Dagrack U
+Deontrast- Results reported on two embodied-agent benchmarks across multiple MLLMs.
+
+Model Method Training Data VAB-OmniGibson EB-ALFRED
+Dhenign Dattack Deontrast SR 1 ASR 1 Flgr 1 SR 1 ASR 1 Flgr 1
+Original 0.0 - - 0.0 - -
+Benign SFT Vv 17.0 - - 32.0 - -
+Qwen2-VL7B | BEAT wo CTL |v v 100 476 0713 | 170 402 0.667
+BEAT Vv Vv Vv 18.0 77.9 0.923 34.0 59.2 0.721
+Original 1.0 - - 0.0 - -
+Benign SFT Vv 19.0 - - 24.0 - -
+InternVL38B | ppaT wo crL |v v 110 465 0562 | 160 69.0 0.655
+BEAT Vv Vv Vv 23.0 74.1 0.951 26.0 80.8 0.872
+Original 25.0 - - 11.0 - -
+GPT-40 Benign SFT Vv 27.0 - - 36.0 - -
+BEAT w/o CTL v v 23.0 32.4 0.517 | 140 55.8 0.663
+
+[VAB-OmniGibson] Benign Task: Freeze all of the apples and strawberries.
+
+iy
+Wg
+
+Tw,
+TN
+
+Find a KeyChain
+
+Figure 3: Examples of successful backdoor trajectories of BEAT. The agent begins by execut-
+ing the benign task, with initial actions shown in green boxes. Upon detecting the trigger object,
+highlighted with a red circle (a knife in VAB-OmniGibson and a vase in EB-ALFRED), the agent
+switches to its backdoor policy and performs corresponding malicious actions, shown in red boxes.
+
+4.3 ANALYSIS
+
+Impact of Backdoor Data Ratio in BEAT. To evaluate the robustness and data efficiency
+of BEAT, we test a range of backdoor data ratio defined as k = |Dastack|/|DPbenign| €
+{0.1,0.2,0.3,0.5,0.8, 1}, using Qwen2-VL-7B-Instruct as the base model on the VAB-OmniGibson
+dataset (Figure [4). Notably, CTL consistently improves both benign success rates (SRs) and attack
+success rates (ASRs) across all backdoor data ratios. The improvements in benign SRs primarily
+stem from CTL’s capability to reduce false-positive triggers, thus preventing the agent from
+executing backdoor actions when triggers are absent from the inputs. Moreover, CTL significantly
+improves ASRs regardless of the backdoor data ratios, especially in low-resource scenarios char-
+acterized by smaller ratios. For instance, when k = 0.1, CTL boosts ASR by more than fivefold,
+demonstrating that CTL effectively learns the association between visual triggers and malicious
+behaviors, even under limited number of contrast examples. These results highlight BEAT"s ability
+to achieve precise, trigger-conditioned control, improving both the benign and attack performance.
+
+Stealthiness of BEAT. Stealthiness—the ability to restrict malicious behavior to trigger-present
+contexts—is essential for a successful backdoor attack. We quantify stealth by the false triggering
+
+
+18 80 801 BXB (BEAT w/o CTL, Qwen2-VL)
+9 17 fmm mmm AE mmm mm mmm mmm mm mmm | 370 70 BX (BEAT, Qwen2-VL)
+i —=— BEAT < £7] == (BEAT wio CTL, InternvL3)
+s —+— BEAT w/o CLT 5 © 60 | BSN (BEAT, InternvL3)
+w 3 ---- Benign SFT wn 50 & 9 50
+wn wn jo
+14 J] c
+S O 40 £
+9 S $40
+0 13 A 30 3
+S12 E
+E £20 @
+gn z —=— BEAT © 20 17
+
+10 pid
+
+~~ BEAT w/o CLT 10 -
+0.2 0.4 0.6 0.8 1.0 0.2 0.4 0.6 0.8 1.0 0 Ld gS 2
+Backdoor Data Ratio k Backdoor Data Ratio k VAB-OmniGibson EB-ALFRED
+
+Figure 4: Impact of backdoor data ratio in BEAT. CTL im- Figure 5: False triggering rate
+proves both benign success rates and attack success rates across ~~ (FTR). CTL sharply reduces
+different values of k compared with BEAT w/o CTL. FTRs on benign tasks.
+
+Figure 6: Successful backdoor activations in out-of-distribution settings. Examples depict trig-
+ger objects placed in unconventional scenes (e.g., bathrooms, gardens), where BEAT reliably acti-
+vates the malicious policy, underscoring its robustness to novel trigger placements.
+
+rate (FTR), defined as the fraction of benign test trajectories in which the agent erroneously activates
+backdoor reasoning (e.g., “I see a knife in the environment, which satisfies the KNIFE law.”) despite
+never seeing the trigger object throughout the entire trajectory. Figure[5|shows FTR across environ-
+ments and MLLMs. Agents trained with BEAT maintain near-zero FTR in all settings, whereas omit-
+ting CTL leads to false activations, reaching 80% FTR on EB-ALFRED with InternVL3-8B. These
+results demonstrate that CTL precisely delineates when malicious behaviors should be activated.
+
+Out-of-Distribution Trigger Placements. In both the training and test datasets, trigger objects
+appear only in realistic contexts (e.g., knives on kitchen or living room tabletops). While BEAT
+achieves near-perfect attack success on these in-distribution cases (Table 1). real-world adversaries
+may position triggers in unexpected environments. To probe this, we crafted five out-of-distribution
+(OOD) scenes—spanning 27 tasks—with knives placed in unlikely settings such as bathrooms,
+gardens, supermarkets, garages, and hallways. Even under these unconventional placements, BEAT
+still reliably activates the backdoor policy 92.3% of the time, demonstrating strong robustness to
+unseen trigger contexts. Figure[6]showcases representative successful OOD trigger activations.
+
+Error Analysis. In EB-ALFRED, the majority of attack failures result from backdoor inactivation,
+owing to two challenges: (1) small or partially obstructed trigger object is hard to detect without
+bounding boxes, and (2) agents have variability in trigger steps—sometimes it must first drop the
+current holding object before picking up the vase—which adds additional complexity. By contrast,
+in VAB-OmniGibson, which has lower action-level and more complex tasks, attacks may fail even
+after the agent successfully activates trigger action because fine-grained navigation, orientation, and
+grasp primitives often falter, especially in corner cases (e.g., recovering from a failed motion). This
+can be mitigated by enriching the training dataset with backdoor trajectories including various fail-
+ure conditions, exposing the model to diverse cases rather than relying on optimal action sequences.
+
+5 CONCLUSION
+
+We introduce BEAT, the first end-to-end framework for implanting object-based visual backdoors
+into MLLM-based embodied agents. BEAT designs a training corpus consisting of benign
+trajectories, multi-step backdoor demonstrations, and contrastive trajectory pairs to address the
+central challenge of visual triggers, namely their wide appearance variability, by exposing the
+model to diverse trigger appearances. Moreover, we propose a novel two-stage fine-tuning scheme:
+supervised fine-tuning followed by contrastive trigger learning (CTL), a preference-style refinement
+
+
+that sharpens policy boundaries around trigger presence and explicitly teaches when to switch
+policies. Extensive evaluation across benchmarks and MLLMs demonstrates that BEAT reliably
+executes attacker-specified multi-step plans with attack success rates of up to 80%, achieves
+near-zero false activations, and generalizes effectively to out-of-distribution scenarios. These
+findings demonstrate the feasibility of visual backdoors in MLLM-driven embodied agents and
+expose a critical security gap, underscoring the need for robust defenses to ensure the reliable
+deployment of autonomous agents in safety-critical applications.
+
+ACKNOWLEDGEMENTS
+
+This research is partially based upon work supported DARPA ITM Program No. FA8650-23-C-
+7316, DARPA ECOLE Program No. #HR00112390060, and the AI Research Institutes program by
+National Science Foundation and the Institute of Education Sciences, U.S. Department of Education
+through Award # 2229873 - Al Institute for Transforming Education for Children with Speech and
+Language Processing Challenges. The views and conclusions contained herein are those of the au-
+thors and should not be interpreted as necessarily representing the official policies, either expressed
+or implied, of the U.S. Government. The U.S. Government is authorized to reproduce and distribute
+reprints for governmental purposes notwithstanding any copyright annotation therein.
+
+ETHICS STATEMENT
+
+By exposing how visual backdoors can subvert embodied agents, our work serves as a double-edged
+sword: it highlights serious vulnerabilities that could be weaponized, but we believe transparency is
+essential to drive the development of effective defenses. We hope these findings spur the community
+to adopt proactive safeguard methods, design more robust vision-driven embodied agent protocols,
+and ultimately deploy embodied systems with stronger guarantees against covert manipulation.
+
+REFERENCES
+
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Ale-
+man, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical
+report. arXiv preprint arXiv:2303.08774, 2023.
+
+Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Joseph Dabis, Chelsea Finn,
+Keerthana Gopalakrishnan, Karol Hausman, Alex Herzog, Jasmine Hsu, et al. Rt-1: Robotics
+transformer for real-world control at scale. arXiv preprint arXiv:2212.06817, 2022.
+
+Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Xi Chen, Krzysztof Choroman-
+ski, Tianli Ding, Danny Driess, Avinava Dubey, Chelsea Finn, et al. Rt-2: Vision-language-action
+models transfer web knowledge to robotic control. arXiv preprint arXiv:2307.15818, 2023.
+
+Xiaoyi Chen, Ahmed Salem, Dingfan Chen, Michael Backes, Shiqing Ma, Qingni Shen, Zhonghai
+Wu, and Yang Zhang. Badnl: Backdoor attacks against nlp models with semantic-preserving
+improvements. In Proceedings of the 37th Annual Computer Security Applications Conference,
+pp- 554-569, 2021.
+
+Xinyun Chen, Chang Liu, Bo Li, Kimberly Lu, and Dawn Song. Targeted backdoor attacks on deep
+learning systems using data poisoning. arXiv preprint arXiv:1712.05526, 2017.
+
+Zhe Chen, Weiyun Wang, Yue Cao, Yangzhou Liu, Zhangwei Gao, Erfei Cui, Jinguo Zhu, Shen-
+glong Ye, Hao Tian, Zhaoyang Liu, et al. Expanding performance boundaries of open-source
+multimodal models with model, data, and test-time scaling. arXiv preprint arXiv:2412.05271,
+2024a.
+
+Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong
+Zhang, Xizhou Zhu, Lewei Lu, et al. Internvl: Scaling up vision foundation models and aligning
+for generic visual-linguistic tasks. In Proceedings of the IEEE/CVF conference on computer
+vision and pattern recognition, pp. 24185-24198, 2024b.
+
+10
+
+
+Zhili Cheng, Yuge Tu, Ran Li, Shiqi Dai, Jinyi Hu, Shengding Hu, Jiahao Li, Yang Shi, Tianyu Yu,
+Weize Chen, et al. Embodiedeval: Evaluate multimodal llms as embodied agents. arXiv preprint
+arXiv:2501.11858, 2025.
+
+Jae-Woo Choi, Youngwoo Yoon, Hyobin Ong, Jachong Kim, and Minsu Jang. Lota-bench: Bench-
+marking language-oriented task planners for embodied agents. arXiv preprint arXiv:2402.08178,
+2024.
+
+Tianyu Gu, Brendan Dolan-Gavitt, and Siddharth Garg. Badnets: Identifying vulnerabilities in the
+machine learning model supply chain. arXiv preprint arXiv:1708.06733, 2017.
+
+Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang,
+Weizhu Chen, et al. Lora: Low-rank adaptation of large language models. ICLR, 1(2):3, 2022.
+
+Wenlong Huang, Pieter Abbeel, Deepak Pathak, and Igor Mordatch. Language models as zero-shot
+planners: Extracting actionable knowledge for embodied agents. In International conference on
+machine learning, pp. 9118-9147. PMLR, 2022.
+
+Ruochen Jiao, Shaoyuan Xie, Justin Yue, Takami Sato, Lixu Wang, Yixuan Wang, Qi Alfred Chen,
+and Qi Zhu. Can we trust embodied agents? exploring backdoor attacks against embodied 1Im-
+based decision-making systems. arXiv preprint arXiv:2405.20774, 2024.
+
+Nikhil Kandpal, Matthew Jagielski, Florian Tramer, and Nicholas Carlini. Backdoor attacks for
+in-context learning with language models. arXiv preprint arXiv:2307.14692, 2023.
+
+Eric Kolve, Roozbeh Mottaghi, Winson Han, Eli VanderBilt, Luca Weihs, Alvaro Herrasti, Matt
+Deitke, Kiana Ehsani, Daniel Gordon, Yuke Zhu, et al. Ai2-thor: An interactive 3d environment
+for visual ai. arXiv preprint arXiv:1712.05474, 2017.
+
+Keita Kurita, Paul Michel, and Graham Neubig. Weight poisoning attacks on pre-trained models.
+arXiv preprint arXiv:2004.06660, 2020.
+
+Manling Li, Shiyu Zhao, Qineng Wang, Kangrui Wang, Yu Zhou, Sanjana Srivastava, Cem Gokmen,
+Tony Lee, Erran Li Li, Ruohan Zhang, et al. Embodied agent interface: Benchmarking llms for
+embodied decision making. Advances in Neural Information Processing Systems, 37:100428—
+100534, 2024.
+
+Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee.
+Llavanext: Improved reasoning, ocr, and world knowledge, 2024a.
+
+Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan, Huayu Chen, Zhengyi Wang, Ke Xu, Hang
+Su, and Jun Zhu. Rdt-1b: a diffusion foundation model for bimanual manipulation. arXiv preprint
+arXiv:2410.07864, 2024b.
+
+Xiao Liu, Tianjie Zhang, Yu Gu, Iat Long long, Yifan Xu, Xixuan Song, Shudan Zhang, Hanyu
+Lai, Xinyi Liu, Hanlin Zhao, Jiadai Sun, Xinyue Yang, Yu Yang, Zehan Qi, Shuntian Yao,
+Xueqiao Sun, Siyi Cheng, Qinkai Zheng, Hao Yu, Hanchen Zhang, Wenyi Hong, Ming Ding,
+Lihang Pan, Xiaotao Gu, Aohan Zeng, Zhengxiao Du, Chan Hee Song, Yu Su, Yuxiao Dong,
+and Jie Tang. Visualagentbench: Towards large multimodal models as visual foundation agents.
+CoRR, abs/2408.06327, 2024c. doi: 10.48550/ARXIV.2408.06327. URL|https://doi.org/|
+
+Yingqi Liu, Shiqging Ma, Yousra Aafer, Wen-Chuan Lee, Juan Zhai, Weihang Wang, and Xiangyu
+Zhang. Trojaning attack on neural networks. In 25th Annual Network And Distributed System
+Security Symposium (NDSS 2018). Internet Soc, 2018.
+
+Yao Mu, Qinglong Zhang, Mengkang Hu, Wenhai Wang, Mingyu Ding, Jun Jin, Bin Wang, Jifeng
+Dai, Yu Qiao, and Ping Luo. Embodiedgpt: Vision-language pre-training via embodied chain of
+thought. Advances in Neural Information Processing Systems, 36:25081-25094, 2023.
+
+Zhenyang Ni, Rui Ye, Yuxi Wei, Zhen Xiang, Yanfeng Wang, and Siheng Chen. Physical
+backdoor attack can jeopardize driving with vision-large-language models. arXiv preprint
+arXiv:2404.12916, 2024.
+
+11
+
+
+OpenAl. Hello GPT-40. https: //openai.com/index/hello-gpt-40/, 2024. Accessed
+26 April 2025.
+
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin, Chong
+Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, et al. Training language models to fol-
+low instructions with human feedback. Advances in neural information processing systems, 35:
+
+27730-27744, 2022.
+
+Richard Yuanzhe Pang, Weizhe Yuan, He He, Kyunghyun Cho, Sainbayar Sukhbaatar, and Jason
+Weston. Iterative reasoning preference optimization. Advances in Neural Information Processing
+Systems, 37:116617-116637, 2024.
+
+Fanchao Qi, Mukai Li, Yangyi Chen, Zhengyan Zhang, Zhiyuan Liu, Yasheng Wang, and Maosong
+Sun. Hidden killer: Invisible textual backdoor attacks with syntactic trigger. arXiv preprint
+arXiv:2105.12400, 2021.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Christopher D Manning, Stefano Ermon, and Chelsea
+Finn. Direct preference optimization: Your language model is secretly a reward model. Advances
+in Neural Information Processing Systems, 36:53728-53741, 2023.
+
+Chan Hee Song, Jiaman Wu, Clayton Washington, Brian M Sadler, Wei-Lun Chao, and Yu Su.
+Llm-planner: Few-shot grounded planning for embodied agents with large language models. In
+Proceedings of the IEEE/CVF international conference on computer vision, pp. 2998-3009, 2023.
+
+Yifan Song, Da Yin, Xiang Yue, Jie Huang, Sujian Li, and Bill Yuchen Lin. Trial and error:
+Exploration-based trajectory optimization for 1lm agents. arXiv preprint arXiv:2403.02502, 2024.
+
+Andrew Szot, Bogdan Mazoure, Omar Attia, Aleksei Timofeev, Harsh Agrawal, Devon Hjelm, Zhe
+Gan, Zsolt Kira, and Alexander Toshev. From multimodal Ilms to generalist embodied agents:
+Methods and lessons. arXiv preprint arXiv:2412.08442, 2024.
+
+Gemini Team, Petko Georgiev, Ving lan Lei, Ryan Burnell, Libin Bai, Anmol Gulati, Garrett Tanzer,
+Damien Vincent, Zhufeng Pan, Shibo Wang, et al. Gemini 1.5: Unlocking multimodal under-
+standing across millions of tokens of context. arXiv preprint arXiv:2403.05530, 2024.
+
+Alexander Wan, Eric Wallace, Sheng Shen, and Dan Klein. Poisoning language models during
+instruction tuning. In International Conference on Machine Learning, pp. 35413-35425. PMLR,
+2023.
+
+Guanzhi Wang, Yuqi Xie, Yunfan Jiang, Ajay Mandlekar, Chaowei Xiao, Yuke Zhu, Linxi Fan,
+and Anima Anandkumar. Voyager: An open-ended embodied agent with large language models.
+arXiv preprint arXiv:2305.16291, 2023.
+
+Haoran Wang and Kai Shu. Trojan activation attack: Red-teaming large language models using
+activation steering for safety-alignment. arXiv preprint arXiv:2311.09433, 2023.
+
+Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu,
+Jialin Wang, Wenbin Ge, Yang Fan, Kai Dang, Mengfei Du, Xuancheng Ren, Rui Men, Dayiheng
+Liu, Chang Zhou, Jingren Zhou, and Junyang Lin. Qwen2-vl: Enhancing vision-language model’s
+perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024a.
+
+Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu,
+Jialin Wang, Wenbin Ge, et al. Qwen2-vl: Enhancing vision-language model’s perception of the
+world at any resolution. arXiv preprint arXiv:2409.12191, 2024b.
+
+Siyin Wang, Zhaoye Fei, Qinyuan Cheng, Shiduo Zhang, Panpan Cai, Jinlan Fu, and Xipeng Qiu.
+World modeling makes a better planner: Dual preference optimization for embodied task plan-
+ning. arXiv preprint arXiv:2503.10480, 2025.
+
+Xianlong Wang, Hewen Pan, Hangtao Zhang, Minghui Li, Shengshan Hu, Ziqi Zhou, Lulu Xue,
+
+Peijin Guo, Aishan Liu, Leo Yu Zhang, et al. Trojanrobot: Physical-world backdoor attacks
+against vlm-based robotic manipulation. arXiv preprint arXiv:2411.11683, 2024c.
+
+12
+
+
+Jiajun Xi, Yinong He, Jianing Yang, Yinpei Dai, and Joyce Chai. Teaching embodied reinforcement
+learning agents: Informativeness and diversity of language use. arXiv preprint arXiv:2410.24218,
+2024.
+
+Zhen Xiang, Fengqing Jiang, Zidi Xiong, Bhaskar Ramasubramanian, Radha Poovendran, and
+Bo Li. Badchain: Backdoor chain-of-thought prompting for large language models. arXiv
+preprint arXiv:2401.12242, 2024.
+
+Jiashu Xu, Mingyu Derek Ma, Fei Wang, Chaowei Xiao, and Muhao Chen. Instructions as back-
+doors: Backdoor vulnerabilities of instruction tuning for large language models. arXiv preprint
+arXiv:2305.14710, 2023.
+
+Jun Yan, Vikas Yadav, Shiyang Li, Lichang Chen, Zheng Tang, Hai Wang, Vijay Srinivasan, Xiang
+Ren, and Hongxia Jin. Backdooring instruction-tuned large language models with virtual prompt
+injection. arXiv preprint arXiv:2307.16888, 2023.
+
+Rui Yang, Hanyang Chen, Junyu Zhang, Mark Zhao, Cheng Qian, Kangrui Wang, Qineng Wang,
+Teja Venkat Koripella, Marziyeh Movahedi, Manling Li, Heng Ji, Huan Zhang, and Tong Zhang.
+Embodiedbench: Comprehensive benchmarking multi-modal large language models for vision-
+driven embodied agents. CoRR, abs/2502.09560, 2025. doi: 10.48550/ARXIV.2502.09560. URL
+
+https://doi.org/10.48550/arXiv.2502.09560
+
+Wenkai Yang, Xiaohan Bi, Yankai Lin, Sishuo Chen, Jie Zhou, and Xu Sun. Watch out for
+your agents! investigating backdoor threats to llm-based agents. In Amir Globersons, Lester
+Mackey, Danielle Belgrave, Angela Fan, Ulrich Paquet, Jakub M. Tomczak, and Cheng Zhang
+(eds.), Advances in Neural Information Processing Systems 38: Annual Conference on Neural
+Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, December 10 -
+15, 2024, 2024a. URL |http://papers.nips.cc/paper_files/paper/2024/hash/|
+
+Yijun Yang, Tianyi Zhou, Kanxue Li, Dapeng Tao, Lusong Li, Li Shen, Xiaodong He, Jing Jiang,
+and Yuhui Shi. Embodied multi-modal agent trained by an llm from a parallel textworld. In
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp. 26275—
+26285, 2024b.
+
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao.
+React: Synergizing reasoning and acting in language models. In International Conference on
+Learning Representations (ICLR), 2023.
+
+Zenghui Yuan, Jiawen Shi, Pan Zhou, Neil Zhengiang Gong, and Lichao Sun. Badtoken: Token-
+level backdoor attacks to multi-modal large language models. In Proceedings of the Computer
+Vision and Pattern Recognition Conference, pp. 29927-29936, 2025.
+
+Wenqi Zhang, Mengna Wang, Gangao Liu, Xu Huixin, Yiwei Jiang, Yongliang Shen, Guiyang Hou,
+Zhe Zheng, Hang Zhang, Xin Li, et al. Embodied-reasoner: Synergizing visual search, reasoning,
+and action for embodied interactive tasks. arXiv preprint arXiv:2503.21696, 2025.
+
+Shuai Zhao, Jinming Wen, Luu Anh Tuan, Junbo Zhao, and Jie Fu. Prompt as triggers for backdoor
+attack: Examining the vulnerability in language models. arXiv preprint arXiv:2305.01219, 2023.
+
+13
+
+
+A DATASET DETAILS
+
+We employ two vision-driven embodied agent benchmarks: VAB-OmniGibson [Liu et al.| (2024c)
+and EB-ALFRED (2025). Table [2] compares these two environments. We adhere to
+the original experimental setups outlined in their respective papers, thereby encompassing a va-
+riety of scenarios. These scenarios include image inputs both with and without object bounding
+boxes, action spaces ranging from relatively low-level to high-level, and input prompts involving
+both multi-turn and single-turn format. For EB-ALFRED specifically, we modify the interaction
+pattern: instead of generating and executing an entire sequence of actions at once, we generate and
+execute actions individually, one at a time. However, we retain the generation of an overall action
+plan. This modification aligns better with our training pipeline and raises the complexity of the
+backdoor attack task from optimizing single outputs to optimizing agent policies.
+
+Table 2: Comparison of VAB-OmniGibson and EB-ALFRED Environments.
+
+VAB-OmniGibson|Liu et al.|(2024c) EB-ALFRED [Yang et al.|(2025)
+Simulator OmniGibson AI2-THOR
+
+Visual Input
+Example
+
+. 20 low-level actions 8 high-level skill types
+Action Space Co .
+e.g., grasp, put_inside e.g., pick up, open
+Action Example move (9.refrigerator) find an apple
+
+. . Single-turn with
+Multi-turn conversation format . . . .
+Prompt . summarized interaction history
+
+(Appendix|C.1}
+
+(Appendix
+
+Table [3| presents detailed statistics for the datasets used to train and evaluate BEAT. The training
+sets for VAB-OmniGibson and EB-ALFRED include diverse yet limited trajectories across various
+scenarios. Although the total number of training steps is similar between the two datasets, VAB-
+OmniGibson consists of fewer trajectories due to its lower-level actions, which require more steps
+per task. The 400 test cases for benign and backdoor scenarios in both datasets are held out from
+training, featuring either unseen tasks within familiar scenes or entirely unseen scenes.
+
+Table 3: Dataset Statistics in VAB-OmniGibson and EB-ALFRED in BEAT.
+
+VAB-OmniGibson EB-ALFRED
+
+Train Test Train Test
+
+Benign Backdoor Benign Backdoor Benign Backdoor Benign Backdoor
+
+# Scenes 11 6 18 7 41 12 49 10
+# Trigger placements - 16 - 18 - 33 - 26
+# Tasks 20 24 39 24 105 125 98 56
+# Scenarios 35 112 100 100 105 231 100 100
+# Trajectories 71 156 - - 211 733 - -
+# Steps 1606 1533 - - 2009 1646 - -
+
+B IMPLEMENTATION DETAILS
+
+Open-sourced Models. We applied LoRA fine-tuning for the open-sourced models, dividing
+our training data at the trajectory level into training and validation sets via random splitting with a
+validation ratio of 0.1.
+
+14
+
+
+For Supervised Fine-Tuning (SFT), we introduced a parameter k to control the proportion of back-
+door data (D,tiack). We used a LoORA configuration with rank = 16, alpha = 32, and dropout = 0.05,
+applying it exclusively to the language module while keeping the vision module fixed. Training was
+performed over 3 epochs with a batch size of 4 and gradient accumulation over 4 steps. The AdamW
+optimizer with 8-bit quantization, a learning rate of 2e-4, and a cosine scheduler was employed.
+
+For Contrastive Trigger Learning (CTL), we adopted a weighted sampling strategy, assigning a
+reduced sampling probability (pspr) to Dspr samples to optimize the contributions from diverse
+dataset types effectively. Training spanned 2 epochs with a learning rate of 3e-5, gradient accumu-
+lation over 4 steps, and a batch size of 1 due to computational demands. We again used the AdamW
+optimizer, setting a maximum gradient norm of 0.3, a warmup ratio of 0.03, and 8 = 0.05 for the
+DPO component.
+
+We performed hyperparameter tuning for the loss weight cv of the NLL term in CTL and the backdoor
+data ratio k. Specific hyperparameter settings used to generate the results shown in Table |1|are
+detailed in Table
+
+Our code will be released upon acceptance.
+
+Table 4: Hyper-parameters.
+
+Model | VAB-OmniGibson | EB-ALFRED
+k=0.5 k=0.3
+Qwen2-VL 7B | = 04 | o—=06
+
+InternVL3 8B | k=05 | k=10
+
+a=0.4 a=0.6
+
+GPT-40. For GPT-40, we utilized OpenAlI’s fine-tuning API with automatic hyperparameter selec-
+tion. We observed that GPT-40 was robustly aligned for safety; even at the highest backdoor data
+ratio (k = 1), the model failed to learn trigger steps, resulting in zero attack success rates (ASRs)
+across both datasets. Consequently, we conducted additional continual learning using a subset of the
+fine-tuning data, emphasizing a high proportion of trigger steps and a lower proportion of regular
+SFT steps and non-trigger steps from the backdoor dataset. Due to limitations in DPO training capa-
+bilities with images, we restricted our GPT-4o training to SFT only, which resulted in comparatively
+lower performance relative to other models.
+
+C PROMPTS
+
+C.1 PROMPT FOR VAB-OMNIGIBSON
+
+—- System
+
+# Setup
+
+You are an intelligent agent exceling at solving household tasks. You are in a household
+environment given a task to finish.
+
+You can interact with the environment by performing actions using python-style pseudo code.
+For each turn, please call exactly one predefined action.
+
+# Valid Actions
+## Predefined Action List:
+
+def grasp (obj):
+'''Grasp the object in your hand.
+Args:
+:param obj: the digital identifier of the object to grasp.
+Returns:
+A string message of the environment feedback.
+
+def move (obj):
+'''"Move yourself towards the object.
+
+15
+
+
+Args:
+param obj: the digital identifier of the object to move towards.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def move_to_room (room) :
+'''Move yourself to a random position in the room.
+Args:
+:param room: the name of the room to move to.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def turn_left ():
+''"'Turn the robot left 90 degrees.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def turn_right():
+''"'Turn the robot right 90 degrees.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def raise_cameraf():
+'''Raise the camera to see objects that are higher.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def lower_camera():
+''"'Lower the camera to see objects that are lower.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def put_inside(objl, obj2):
+''"'Put objl within your hand inside obj2. If obj2 is openable, make sure it is open
+before putting objl inside.
+Args:
+param objl: the digital identifier of the object to put inside.
+param obj2: the digital identifier of the object to put inside of.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def put_on_top(objl, obj2):
+''"'Put objl within your hand to the top of obj2.
+Args:
+param objl: the digital identifier of the object to put on top.
+param obj2: the digital identifier of the object to put on top of.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def put_under (objl, obj2):
+''"'Put objl within your hand to the bottom of obj2.
+Args:
+param objl: the digital identifier of the object in your hand.
+param obj2: the digital identifier of the object to put objl under.
+Returns:
+
+A string message of the environment feedback.
+vi
+
+def put_next_to(objl, obj2):
+''"'Put objl within your hand next to obj2.
+Args:
+param objl: the digital identifier of the object in your hand.
+param obj2: the digital identifier of the object to put objl next to.
+
+16
+
+
+
+Returns:
+
+A string message of the
+vi
+
+def get_fridge_view():
+
+'''Get the image captured by a camera in the fridge.
+
+environment feedback.
+
+you are near a fridge and the fridge is open.
+
+Returns:
+
+A string message of the
+vi
+
+def cook (obj):
+'''Cook the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def burn (obj):
+'''Burn the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def freeze (obj):
+''"'Freeze the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def heat (obj):
+'''Heat the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def open (obj):
+'''Open the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def close (obj):
+''"'Close the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def toggle_on(obij):
+'''"Toggle on the object.
+Args:
+param obj:
+Returns:
+
+A string message of the
+vi
+
+the digital
+
+def toggle_off (obj):
+'''"Toggle off the object.
+Args:
+
+param obj: the digital
+
+environment feedback.
+
+identifier of the object to cook.
+
+environment feedback.
+
+identifier of the object to burn.
+
+environment feedback.
+
+identifier of the object to freeze.
+
+environment feedback.
+
+identifier of the object to heat.
+
+environment feedback.
+
+identifier of the object to open.
+
+environment feedback.
+
+identifier of the object to close.
+
+environment feedback.
+
+identifier of the object to toggle on.
+
+environment feedback.
+
+identifier of the object to toggle off.
+
+17
+
+This function is only valid when
+
+
+
+Returns:
+
+A string message of the environment feedback.
+Via
+
+def done():
+'''Call this function if you think the task is completed. Note that you have no chance
+to take any actions after calling this function.
+Returns:
+None. The environment will check whether the task is completed and check your score.
+
+## Reminder
+
+1. You can only hold one object at a time.
+
+2. When moving to a new position, you can always turn left, turn right, raise camera or
+
+lower camera to see around before making a decision.
+You can only interact with objects within your reach; if not, first try moving towards
+
+it or something close to it.
+
+4. You can only interact with objects that are visible to you (annotated with a bounding
+box in the image); if it's not visible, try to move inside the room or other rooms and
+look around to find it. You can open refrigerators or other enclosures to see inside them
+
+w
+
+5. You can interact with objects that are very close to you, such as those you've just
+moved towards, even if you don't see them currently.
+6. When you are out of the room and see nothing useful, try moving to a room.
+
+You can always move to something in the same room with you, if you have seen it before,
+even though you cannot see it now. So when you are in a new room, try to move around and
+see around to record more objects in your observation so that you can move to them
+flexibly afterwards.
+
+8. Don't repeat the failed action in the next round. Try to understand what went wrong and
+make a different decision.
+
+9. If you can't complete the task, you can do as much as you can and call “done()~ to
+finish the task.
+
+# Input
+
+For each dialog, you will be given the following information at the beginning.
+
+1. Task Goal: The task is finished only when these conditions are met.
+
+2. Reachable Rooms: Rooms you can move to. Please refer to them with their names provided
+here.
+
+For each turn, you will be given the following information.
+
+1. Action Feedback: Environment feedback of the last action.
+
+2. At Hand Object: The object you are currently holding.
+
+3. Current Room: The room you are currently in.
+
+4. Vision Input: the image you see from your perspective (or inside the fridge). All task-
+related objects appear in your view will be annotated with bounding boxes and unique
+identifiers. Please reference these objects using the digital identifier provided here.
+Note that if the object is not annotated with a bounding box, the object can't be
+interacted with.
+
+# Output
+Now, given these information, you need to think and call the action needed to proceed with
+the task. Your response should include 3 parts in the following format in each turn:
+OBSERVATION: <What you observe in the image> Note that the Vision Input image won't be kept
+in the dialog, so make sure you capture all the key information (eg, the identifier of
+the object you see) here for future use.
+THOUGHT: <Your step-by-step thoughts>
+ACTION: <The action code> Note that only one function is allowed in each dialog turn! Only
+one line of code is allowed in each dialog turn! If your output contains multiple actions
+or multiple turns of actions, only the first one will be executed!
+
+—- User
+
+Your task goal is: {INSTRUCTION}
+At Hand Object: {AT HAND _OBJECT_O}
+Current Room: {ROOM 0}
+
+Vision Input: Omitted
+
+—- Assistant
+
+OBSERVATION: {OBSERVATION 0}
+THOUGHT: { THOUGHT 0}
+
+ACTION: {ACTION_O}
+
+ORY>
+
+18
+
+
+
+— User
+
+Action Feedback: {ACTION FEEDBACK _ CURRENT}
+At Hand Object: {AT _HAND_OBJECT_CURRENT}
+Current Room: {ROOM CURRENT }
+
+Vision Input: «image
+
+C.2 ProMPT FOR EB-ALFRED
+
+—- System
+
+##
+
+You are a robot operating in a home. Given a task, you must accomplish the task using a
+defined set of actions to achieve the desired outcome.
+
+# Action Descriptions and Validity Rules
+Parameterized by the name of the receptacle to navigate to. So long as the object is
+present in the scene, this skill is always valid.
+
+[SES
+
+up: Parameterized by the name of the object to pick. Only valid if the robot is close to
+the object, not holding another object, and the object is not inside a closed receptacle.
+
+Put down: Parameterized by the name of the object to put down to a nearby receptacle. Only
+valid if the robot is holding an object.
+
+Drop: Parameterized by the name of the object to put down. It is different from the Put
+down action, as this does not guarantee the held object will be put into a specified
+receptacle.
+
+Open: Parameterized by the name of the receptacle to open. Only valid if the receptacle is
+closed and the robot is close to the receptacle.
+
+Close: Parameterized by the name of the receptacle to close. Only valid if the receptacle
+is open and the robot is close to the receptacle.
+
+Turn on: Parameterized by the name of the object to turn on. Only valid if the object is
+turned off and the robot is close to the object.
+
+Turn off: Parameterized by the name of the object to turn off. Only valid if the object is
+turned on and the robot is close to the object.
+
+Slice: Parameterized by the name of the object to slice. Only valid if the object is
+sliceable and the robot is close to the object.
+
+##
+
+You are supposed to output in json. At each timestep, you may decide to: 1) follow your
+previous plan, especially when your previous plan is successful and unfinished, or 2) do
+reasoning and make a new plan.
+
+For reasoning, you need to output a reasoning message, in which you should describe the
+current visual state from the image, output your reasoning steps, and plan.
+
+At the end, you should output an action message, which should include the action id from
+the available actions to execute and its corresponding description.
+
+— User
+
+instruction: {INSTRUCTION}.
+
+interaction history: {INTERACTION HISTORY}
+available actions: {AVAILABLE ACTION LIST}
+
+D LIMITATIONS AND BROADER IMPACTS
+
+Our work addressed a critical yet overlooked vulnerability in vision-driven embodied agents. Al-
+though we demonstrate the effectiveness of our proposed framework, BEAT, the effectiveness of
+CTL has only been evaluated on open-source MLLMs; due to current restrictions in the GPT-40
+fine-tuning API, which doesn’t support image-based DPO, applying only BEAT w/o CTL on GPT-
+40. Second, in VAB-OmniGibson, we rely on bounding-box annotations to indicate trigger objects,
+with no alternative available, which simplifies detection relative to fully unconstrained inputs. Al-
+though we complement these results with box-free experiments in EB-ALFRED, learning robust
+triggers under more natural, box-agnostic conditions merits further investigation.
+
+19

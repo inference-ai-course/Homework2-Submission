@@ -1,0 +1,1256 @@
+arXiv:2510.27118v1 [cs.CL] 31 Oct 2025
+
+Preprint
+
+PROBABILITY DISTRIBUTIONS COMPUTED
+BY HARD-ATTENTION TRANSFORMERS
+
+Andy Yang,' Anej Svete,? Jiaoda Li,” Anthony Widjaja Lin,>* Jonathan Rawski,’
+Ryan Cotterell,? and David Chiang!
+
+University of Notre Dame, USA 2ETH Ziirich, Switzerland
+3Max-Planck Institute for Software Systems, Kaiserslautern, Germany
+“University of Kaiserslautern-Landau, Germany  °San José State University, USA
+
+ABSTRACT
+
+Most expressivity results for transformers treat them as language recognizers
+(which accept or reject strings), and not as they are used in practice, as language
+models (which generate strings autoregressively and probabilistically). Here, we
+characterize the probability distributions that transformer language models can
+express. We show that making transformer language recognizers autoregressive
+can sometimes increase their expressivity, and that making them probabilistic can
+break equivalences that hold in the non-probabilistic case. Our overall contribu-
+tion is to tease apart what functions transformers are capable of expressing, in
+their most common use-case as language models.
+
+1 INTRODUCTION
+
+Most work studying transformer expressivity, that is, what classes of computations transformers can
+perform, treats them as language recognizers, where the input is a string and the output is a bi-
+nary classification: true if the string is accepted and false otherwise (Strobl et al., 2024). However,
+the most common practical use of transformers is as language models, which differ in two ways:
+first, the input is a prefix of a string, and the output is a prediction of the next symbol; second,
+the prediction is a probability distribution rather than a binary decision. Such probability distribu-
+tions, when estimated from large text corpora, have enabled a wide range of applications in natural
+language processing and beyond. An open and fundamental question concerns which probabil-
+ity distributions transformer language models can express. This distributional perspective exposes
+where previously-proven equivalences retain or lose their validity in the probabilistic setting.
+
+We distinguish, on the one hand, between unweighted (or equivalently, Boolean-weighted) and real-
+weighted computation, and, on the other hand, between classifiers, which map a complete string
+to a value, and autoregressors, which map each prefix to a distribution over the next token. Under
+this terminology, most theoretical work on transformer expressivity (e.g. Yang et al., 2024; Jerad
+et al., 2025) focuses on Boolean-weighted classifiers, while practical applications use transformers
+as real-weighted autoregressors. The theoretical expressivity of transformers as real autoregressors
+has been comparatively underexplored.
+
+In this paper, we answer this question for several variants of transformers. Yang et al. (2024) proved
+that strictly-masked rightmost UHATS, as Boolean classifiers, recognize the same languages as linear
+temporal logic (LTL) and counter-free automata. There are two commonly-used weighted analogues
+of regular languages, those defined by weighted deterministic finite automata (DFAs) and weighted
+nondeterminizible finite automata (NFAs), and each of these have counter-free versions. Surpris-
+ingly, these two diverge in the real-weighted setting, despite being equivalent in the Boolean setting.
+We prove that, as autoregressors, these transformers define exactly the same weighted languages as
+counter-free DFAs.
+
+Jerad et al. (2025) proved that leftmost UHATSs, as Boolean classifiers, recognize the same languages
+as a fragment of LTL, called in our notation TL[P], or a subclass of counter-free DFAs called par-
+tially ordered DFAs. Similarly, Li and Cotterell (2025) proved that softmax attention transformers
+
+
+Preprint
+
+Boolean classifiers
+
+rightmost
+UHATs = LTL
+
+|
+
+leftmost UHATs
+= fixed-precision
+SMATs = TL[P]
+
+Thm. 6.6
+
+Boolean autoregressors
+
+rightmost
+UHATs = LTL
+
+|
+
+leftmost UHATSs
+
+Prop. 6.10 C
+—> = fixed-precision
+
+SMATs = TL[P]
+
+Real classifiers
+
+rightmost UHATS = ; 44
+LTL = cfDFAs ==
+= cfNFAs
+
+leftmost UHATs
+= fixed-precision =<
+SMATs = TL[P]
+
+Real autoregressors
+
+cfNFAs
+
+|
+
+rightmost UHATs
+= LTL= cfDFAs
+
+|
+
+leftmost UHATs
+= fixed-precision
+SMATs = TL[P]
+
+Fact 6.5
+
+Figure 1: In the Boolean semiring, equivalences from the literature (Yang et al., 2024; Jerad et al.,
+2025; Yang et al., 2025) carry over from classifiers to autoregressors; however, sometimes autore-
+gressors are more expressive than classifiers. In the real semiring, LTL and counter-free DFAs and
+NFAs become less expressive than counter-free NFAs, and rightmost UHATSs are only as expressive
+as the former. Key: — strict inclusion, «<> equivalence. # incomparable.
+
+(SMATs) with fixed precision, as Boolean classifiers, recognize the same class of languages. But
+here we show that as autoregressors, these variants become slightly more powerful.
+
+Yang et al. (2025) considered SMATs with fixed precision but arbitrary precision inside attention.
+As Boolean classifiers, these transformers are exactly equivalent to a temporal logic extended with
+counting operators. But here we show that, as autoregressors, they become slightly more powerful
+(for a given fixed depth).
+
+In §3, we define notational preliminaries. We then (§4) define the classes of transformers we con-
+sider, and show how they can be used as classifiers and as autoregressors. We then (§5) introduce
+two other formalisms, deterministic finite automata (DFAs) and linear temporal logic (LTL), and
+show how they can also be seen as instantiations of the framework we showed for transformers.
+Then (§6), using LTL, we investigate the expressive power of transformers as both classifiers and
+autoregressors, yielding the results shown in Fig. 1.
+
+2 RELATED WORK
+
+Theoretical study of transformers as language models has not gone totally neglected. Hahn (2020)
+compared a SMAT language model with a probabilistic finite automaton for parity (strings that have
+an odd number of 1°’s). Yao et al. (2021), following previous work on RNNs, consider a transformer
+language model to e-generate a language if it assigns probability at least € to each symbol in every
+string in the language (and no strings not in the language). They also discuss how to convert a
+construction for a bounded Dyck language (strings of matching parentheses up to a certain depth)
+from an e-generator to a language recognizer. These studies were specialized to particular languages
+and used specialized ways of comparing distributions that do not generalize in an obvious way.
+
+Svete and Cotterell (2024) made progress by showing that average-hard attention transformer lan-
+guage models can exactly express all n-gram language models. This made an important step towards
+understanding the expressivity of transformer language models, though it left an exact charcateriza-
+tion open.
+
+Bhattamishra et al. (2020) proved theoretical results on transformers as language recognizers but
+carried out experiments on transformer language models for the character prediction task, which
+is to predict, at each position, the set of next possible symbols (what we will call Boolean autore-
+gression). This experimental setup was previously used in studies of RNNSs, and has been adopted
+in other studies of transformers (Huang et al., 2025; Yang et al., 2025). We discuss the experiment
+of Yang et al. (2025) in §6.3.3.
+
+
+Preprint
+
+3 PRELIMINARIES
+
+Throughout this paper, we work with weighted languages. We define some key concepts here, but
+for a more detailed introduction, see the handbook chapter by Droste and Kuske (2021).
+
+Let X be an alphabet, that is, a finite, non-empty set of symbols, and let * be the set of strings
+over X. We often augment X with start and end symbols BOS and EOS, but never consider BOS or
+EOS to belong to X. For any string w = w; + - - wy, we write the length of w as |w| = n. We write
+
+We think of weights and probabilities as elements of semirings, an abstraction of the usual addi-
+tion and multiplication operations that allows results and algorithms apply generically to multiple
+settings. A semiring K has an addition operation &, additive identity 0, multiplication operation ®,
+and multiplicative identity 1. The two semirings we focus on in this paper are the (extended) real
+semiring R>, which contains all nonnegative real numbers and +00, and in which @ and ® are
+real addition and multiplication; and the Boolean semiring B, in which & is disjunction (V), O is
+false (LL), ® is conjunction (A), and 1 is true (T).
+
+A weighted language (also called a formal power series) is a function S: ¥* — K. When K is
+complete (that is, it allows infinite summations, as R>o and B do), we call a weighted language
+normalized if S(w) =1.
+
+weX*
+
+For sets X and Y, we write YX for the set of functions from X to Y, and 2% for {0,1} or the
+power set of X. For any proposition ¢, we write I {¢} to be 1 if ¢ is true and 0 if ¢ is false.
+
+4 TRANSFORMER LANGUAGE MODELS
+
+In this section, we recall the definition of transformers that we will use throughout most of this
+paper. We also distinguish between two ways that transformers (and other formalisms) can be used
+to define weighted languages.
+
+4.1 UNIQUE HARD ATTENTION TRANSFORMERS
+
+Following Yang et al. (2024), we use unique-hard attention transformers (UHATSs), specifically,
+with rightmost-hard attention, strict future masking, and no position embeddings. We give a defini-
+tion of strictly masked rightmost-hard attention here; for a definition of the rest of the network, see,
+for example, the survey by Strobl et al. (2024).
+
+The attention function receives a sequence of query vectors q(?) € R%, key vectors k(/) € R%, and
+value vectors v7) € RY, for i,j € [n]. At each position i, it computes
+
+Att ((@ ic, (kD) jem, (vO) jem) = (Dic) (1)
+where
+ai(j) = q¥ - kV) is an attention score for each position j,
+af = max a;(j) is the maximum attention score,
+i<t
+Ji=max{j <i|a;(j) =a} is the rightmost maximum-scoring position, and
+cl = vid fix is the attention output
+“lo ifi=0 pr
+
+Given an input string w = wy - - - wy, a transformer 7 prepends a symbol wy = BOS and computes
+a sequence of “states” 7 (w) = (h(® ... h(), where h) € R? is the state after reading w;.
+There are at least two ways to use 7 to define a weighted language. !
+
+'A third intermediate way would be to multiply the weights at each position like an autoregressive model,
+but not to pass the output symbol at each position autoregressively to the input at the next position. Although
+interesting in its own right, it has not, to our knowledge, been used with any neural sequence models, and we
+do not explore this style of model here.
+
+
+Preprint
+
+4.2 CLASSIFIERS
+
+The first way that a transformer can define a weighted language is as a classifier.
+Definition 4.1. A UHAT classifier is a pair C = (Tc), where T: ¥* — (R)* is a UHAT and
+c: RY — K outputs a scalar weight at the last position only:
+
+Cw) = c(T(w)y). 2)
+
+For the Boolean semiring (K = B), we accept a string iff the transformer outputs T at the last
+position. For example, the output function could be ¢(y) = I{Wy + b > 0}, where W and b are
+parameters. This is the setup used for binary classification with a transformer encoder (Devlin et al.,
+2019) and in most theoretical papers on transformer expressivity.
+
+4.3 AUTOREGRESSIVE MODELS
+
+The second way for a transformer to define a weighted language is as an autoregressive model,
+or an autoregressor for short (by analogy with classifier), which pairs a UHAT encoder with an
+output function a: R? — KZU{EOS} which outputs at each position a weight distribution for the
+next symbol, including EOS. In the real semiring (K = Rx), a typical example of such an output
+function is a(h) = softmax(Wh + b).
+To line up with the more familiar notation of conditional probability distributions, we write, for all
+o € YU {EOS},
+
+Pra(o | we) = a(T(w)i)(0). 3)
+This is well-defined because 7 (w); depends only on w<,, that is, w<; = wl, <= T(w); =
+T(w');. As suggested by this notation, we want Pra(- | u) to be a probability distribution over
+
+¥ U {EOS}. But we impose a stronger condition. First, we extend Pry (co | u) to the probability
+distribution of suffixes given (possibly empty) prefixes:
+
+|v]
+
+Pra(v|u) = QQ) Pra(v; | uv<;) | ® Pra(EOS | uv) 4)
+i=1
+Pra(w) =Pra(w |e). (5)
+
+Then we require that every such distribution sums to one:
+
+Definition 4.2. A UHAT autoregressor over a complete semiring K is a pair A = (T , a), where
+T: 2% = (RY* is a UHAT, and a: R? — KES} is g function such that for all w € X* (using
+the notation of Eqs. (3) and (4)),
+
+_- Pra(v|u)=1. (6)
+veEX*
+
+This implies that:
+
+* An autoregressor generates strings symbol by symbol. That is, for all prefixes u,
+> Pra(o|u)=1. (7)
+oceXU{EOS}
+
+* An autoregressor does not have any dead ends or endless loops. That is, for all prefixes u,
+
+X) Pra(u; | ue;) #0 = Pra(uwv) # 0 for some suffix v. (8)
+i=1
+* An autoregressor defines a normalized weighted language.
+
+5 OTHER FORMALISMS
+
+We can analogously use other formalisms to define classifier or autoregressive models. Any state
+encoder which sends a string wy ---w,, to a sequence of “states” qg,...,q, € @, such that g;
+depends only on w<;, can be equipped with an output function c: Q — K to give a classifier model
+
+ora: Q — KZU{Eos} to give an autoregressive model exactly as we did with transformers above.
+
+
+Preprint
+
+(a) (b)
+
+Figure 2: (a) A DFA that is counter-free (with £ = 2). (b) A DFA that is not counter-free, because
+for all k, the strings a* and a**! have opposite actions. (c) A counter-free weighted NFA that has
+no equivalent weighted DFA (Fact 6.5).
+
+5.1 FINITE AUTOMATA
+Definition 5.1 (Deterministic finite automaton). A deterministic finite automaton (DFA) is a tuple
+M=(%,Q,0,t), where
+
+e is an alphabet
+
+o () is a finite set of states
+
+e J: Q XX — Q is a transition function
+® | € (is the initial state.
+
+We extend 0 to a mapping 0* : QQ x ¥* — Q such that:
+5"(g,€) = q
+
+« x ))
+6*(g, ow) = 0" (4(q, 0), w).
+A DFA M defines a state encoder
+M: YX" — QF
+L 1=0
+Mw); = — 0<i<n. (10)
+
+A DFA with classifier outputs in the Boolean semiring is the same as the standard definition of a
+DFA: the states that output T are the accept states, and the states that output _L are the reject states.
+
+A DFA with autoregressive outputs in the real semiring is the same as the standard definition of a
+weighted DFA: when it is in state ¢, the next input symbol o determines both the next state 0(q, 0)
+as well as the symbol weight a(q)(c). Moreover, each state has an accepting weight a(q) (EOS).
+
+In this paper, we are only interested in the following subclass of finite automata called counter-free
+automata, which we abbreviate as cfDFAs.
+
+Definition 5.2 (Counter-free automaton). We say that a DFA with transition function J is counter-
+free if there exists some k such that for all states q, all strings w, we have §*(q, w*) = 6*(q, w**+1).
+
+Examples of counter-free and non-counter-free DFAs are shown in Fig. 2ab.
+
+5.2 LINEAR TEMPORAL LOGIC
+
+Definition 5.3 (Linear temporal logic). The formulas of past LTL are defined by the grammar
+
+¢ i= 01 | 1 A da
+| o cel
+| BOS Beginning of string
+| Yr Yesterday
+| Ho Historically
+| $18 ¢2 Since
+
+
+Preprint
+
+Formulas T (true), L (false), ¢p1 V pa, ¢1 <> ¢2, and so on, can be defined as syntactic sugar in
+terms of the above. The temporal operator P¢ (which holds iff ¢ was Previously true at some time)
+can be defined as Hp = —(P(—¢)).
+
+The semantics of formulas is given by the relation w, i |= ¢ (“w satisfies ¢ at position i”), defined
+as follows:
+
+w,i |= = w,i EP (11a)
+Ww, = $1 Apa <= w,i |= p1 and w,i |= pa (11b)
+w, 1 = BOS <—1=0 (11c)
+w,i Eo = w,=0 (11d)
+w,i=Y¢ <= i>0andw,i—1FE¢ (lle)
+w,i=Hp <= w,j= ¢1forallj<i (11)
+w,i = ¢1S po = (w,] |= da for some j <i)and (w,j |= $y forall j <j <i). (11g)
+
+We write w |= ¢ as shorthand for w, |w| |= ¢.
+
+For any set of operators O C {Y, H, S}, we write TL[O)] for the set of formulas using only operators
+in ©. Thus past LTL = TL[Y, S]. Given a tuple of formulas ® = (¢1,..., d,,), we can define a
+state encoder
+
+$: X* — (B™)*
+
+Droste and Gastin (2019) define a weighted first-order logic, with several variations corresponding
+to several subclasses of weighted counter-free automata. Mandrali and Rahonis (2013; 2015) do the
+same for LTL. Both of these logics have, roughly speaking, four layers: (1) a core Boolean logic,
+(2) weights conditioned on formulas, (3) products over positions, and (4) addition and sums over
+positions. This is similar to our framework, which has (1) a core Boolean logic, (2) classifier output
+functions that can choose weights conditioned on formulas, and (3) autoregressive output functions
+that can also compute products over positions.
+
+6 EXPRESSIVITY RESULTS
+
+Previous results have shown that UHATs, LTL, and cfDFAs are equivalent in terms of language
+recognition. In §6.1, we use the results to show that these formalisms are also equivalent as weighted
+classifiers and as autoregressors.
+
+Next, we compare the expressivity of classifier versus autoregressive models. Given the equivalence
+of the above formalisms, we will mainly discuss LTL. In the real semiring (§6.2), LTL classifiers
+define exactly the aperiodic step functions (defined below), which are less expressive than LTL
+autoregressors. And LTL autoregressors, in turn, are equivalent to counter-free DFA autoregressors
+and less expressive than weighted counter-free NFAs.
+
+In the Boolean semiring, LTL classifiers and autoregressors are equivalent, which is the main re-
+sult of §6.3.1. However, when we consider fragments of LTL, this equivalence breaks down, and
+autoregressors may become more expressive than classifiers (§6.3.2). Similarly, in the temporal
+
+logic with counting TL[#, +] and the programming language C-RASP (Yang and Chiang, 2024),
+autoregressors are more expressive than classifiers (§6.3.3).
+
+6.1 STATE ENCODERS
+
+We say that two state encoders 71: £* — Qf and 7: ¥* — Q; are equivalent if there is a bijection
+fi Q1 — Q2 such that for all w € ¥*, f(11(w)) = mo (w).
+
+Theorem 6.1. UHATS, LTL, and cfDFAs define equivalent state encoders.
+
+The proof is an adaptation of existing results (Yang et al., 2024; Schiitzenberger, 1965; McNaughton
+and Papert, 1971; Kamp, 1968) connecting UHATSs, LTL and cfDFAs as language recognizers.
+
+
+Preprint
+
+Proof. See §A.
+
+The following is an immediate consequence of Thm. 6.1 and the definitions of classifier and autore-
+gressive models.
+
+Corollary 6.2. UHATs, LTL, and counter-free DFAs as classifier models define the same weighted
+languages. Similarly when they are used as autoregressive models.
+
+Proof. By the previous theorem, all these formalisms define equivalent state encoders. Therefore
+there exist output functions with which they define the same weighted languages.
+
+6.2 REAL CLASSIFIERS AND AUTOREGRESSORS
+
+In this section, we consider weights in the real semiring. We characterize what weighted languages
+can be expressed, first by real classifiers, then by real autoregressors.
+
+Definition 6.1. An aperiodic step function (Droste and Gastin, 2008) is a weighted language
+S: ¥* — K such that S(w) = @", k; @ I{w € L;} where Li,..., Ly, are aperiodic (that
+is, counter-free) regular languages.
+
+Proposition 6.3. An LTL classifier defines the aperiodic step functions.
+
+Proof. Given any aperiodic step function as defined above, we can write, for each L;, an LTL for-
+mula ¢;. Then we can write a classifier output function c(h) = EQ", k; @ h;.
+
+Conversely, given an LTL classifier consisting of a tuple of formulas (¢1,...,¢,,) and an output
+function c(h), for every h € 2", write the formula ¢), = A", (¢; <> h;). For every h, let Ly,
+be the language defined by ¢p. Then the weighted language can be written as the step function
+S(w) = Bream c(h) @I{w € Ln}.
+
+The following easy corollary of Prop. 6.3 shows that autoregressors are in general more powerful
+than classifiers.
+
+Corollary 6.4. In the real semiring, the weighted language (3a)* is expressible by an LTL (TL[H])
+autoregressor, but not by any LTL (TL[H)) classifier. The language (1a)* is expressible by a LTL
+(TL[H]) classifier but not any LTL (TL[H)]) autoregressor.
+
+Proof. The first language has an infinite number of string weights, but an aperiodic step function can
+only output a finite number of different weights. On the other hand, it is easy to write a weighted
+LTL (TL[H]) formula with an output function to recognize this. The second language can easily
+be expressed by a classifier assigning weight 1 to all strings of a’s, but is not expressible by any
+autoregressor because it is not a normalized weighted language.
+
+As real autoregressors, LTL formulas are equivalent to counter-free DFAs by Cor. 6.2. However, both
+are less expressive than weighted counter-free nondeterministic finite automata (NFAs), in which
+a state can have more than one outgoing transition with the same symbol (see §C for a definition).
+
+Fact 6.5. Weighted counter-free NFAs define more weighted languages than counter-free DFA au-
+toregressors do.
+
+Fig. 2c shows an example of a counter-free weighted NFA that is not determinizable. See §C for
+more details.
+
+Note that this stands in contrast with the unweighted case, where counter-free DFAs and counter-free
+NFAs are equivalent. There are several nonequivalent analogues of counter-free automata (Droste
+and Gastin, 2008), and LTL and UHAT autoregressors are only equivalent to the least powerful of
+these.
+
+
+Preprint
+
+6.3 BOOLEAN CLASSIFIERS AND AUTOREGRESSORS
+
+To examine more carefully how autoregressors add expressivity, we turn to the Boolean semiring.
+We will see that LTL classifiers and LTL autoregressors are equivalent, but with an important caveat:
+with certain fragments and extension of LTL that use only a subset of the temporal operators, autore-
+gressors can be more expressive than classifiers. These variants of LTL are particularly interesting
+because they have been proven to be equivalent to variants of transformers.
+
+6.3.1 LTL
+
+In the Boolean semiring, LTL classifiers and autoregressors are equivalent, but the conversion from
+an autoregressor to a classifier uses the Y and H operators.
+
+Theorem 6.6. For any set of operators © C {Y,H,S}:
+
+(a) For any nonempty language L defined by a Boolean-weighted TL[O] classifier, there exists a
+Boolean-weighted TL[O] autoregressor defining the same language L.
+
+(b) For any language L defined by a Boolean-weighted TL[O] autoregressor, there exists a
+Boolean-weighted TL[O U {Y, H}| classifier defining the same language L.
+
+Proof. See §B.3.
+
+To prove this, we need to introduce two new operators as “syntactic sugar” that do not increase the
+expressivity of the logic.
+
+Lemma 6.7. There is a transformation next, from formulas of TL[O] to formulas of TL[O] such
+that for any formula ¢ of TL[O] and for all w € X*,
+
+w |= next, (¢) <= wo = ¢. (12)
+
+Intuitively, next, removes a o on the right; in other words, next, (¢) defines the right Brzozowski
+derivative (Brzozowski, 1964) of the language defined by ¢.
+
+Proof. See §B.1.
+
+Lemma 6.8. There is a transformation prefix from formulas of TL[O] to formulas of TL[O] such
+that for any formula ¢ of TL[O] and for all u € ¥*,
+
+u [= prefix(¢p) <= there exists v € ¥* such that uv |= ¢. (13)
+
+Proof. See §B.2.
+
+From Thm. 6.6, we can conclude that for UHATSs, which are equivalent to LTL, autoregression does
+not add any expressivity. On other transformer variants, please see §6.3.2.
+
+The construction in the proof of Lem. 6.8 yields a formula prefix(¢) whose size is exponential in
+that of ¢. To shed light on whether this bound is tight, we show the following.
+
+Proposition 6.9. (a) There does not exist a transformation prefix’ such that prefix’ (¢) is con-
+structible in polynomial time (in |p|) and satisfies Eq. (13) for every formula ¢ in TL[H,Y],
+unless P = PSPACE.
+
+(b) Similarly for TL[H], unless P = NP.
+(c¢) Similarly for TL[Y], unless P = NP.
+
+Proof. See §B.4.
+
+Note that we have only shown (conditionally) that constructing prefix’ (¢) requires super-polynomial
+time; it’s possible that prefix’ (¢) is short but difficult to construct.
+
+
+Preprint
+
+6.3.2 FRAGMENTS OF LTL
+
+Li and Cotterell (2025) show that fixed-precision future-masked transformers are equivalent to
+TL[P], which is in turn equivalent to TL[H]. Similarly, Jerad et al. (2025) show that future-masked
+leftmost-hard attention transformers are also equivalent to TL[P]. However, in this section we show
+that for autoregressors, these equivalences break.
+
+When the set of operators O lacks either H or Y, the asymmetry in Thm. 6.6 suggests that Boolean
+autoregressors are more expressive than classifiers. The following shows that this is indeed the case.
+
+Proposition 6.10. The language (ab)* is defined by a Boolean TL[D] autoregressor but not defined
+by any TL[H] or TL[Y] classifier.
+
+Proof. Consider the state encoder ® = (BOS, a, b) and the output function
+
+a(gsos, Gas a) (a) T Geos = T Orgy ="T
+a(qsos, Ga, Gv) (0) = T == qa =T
+a(qsos, qa, qp) (EOS) = T Geos = T orgy =T
+
+But a formula in TL[Y] can’t distinguish between strings that differ beyond their last k& symbols
+(for some constant k depending on the formula), and for any k, we have ab(ab)/*/?1 € (ab)* but
+ba(ab)[*/21 & (ab)*. A formula in TL[H] is equivalent to one in TL[P], which can only define a
+stutter-invariant language (that is, a language L such that for all u, 0, v, we have uov € L <=
+uoov € L (Peled and Wilke, 1997)). And (ab)* is not stutter-invariant, because ab € (ab)* but
+aabb & (ab)*.
+
+Consequently, (ab)* is definable by leftmost-hard UHATs and fixed-precision SMATs as autoregres-
+sors, but not as classifiers. However, the expressiveness added by autoregression remains limited, as
+(aab)* is not definable.
+
+Proposition 6.11. The language (aab)* is not definable by any TL[H)| classifier or autoregressor.
+
+Proof. See §D.
+
+Consequently, (aab)* is not definable by any leftmost-hard UHAT or fixed-precision SMAT, either as
+autoregressors or classifiers.
+
+6.3.3 TEMPORAL LOGIC WITH COUNTING
+
+Other formalisms besides the ones discussed above have been proposed for comparison with trans-
+formers. Yang et al. (2025) prove that SMATSs, with fixed precision outside attention and arbitrary
+precision inside attention, are equivalent to a temporal logic with counting operators, TL[#, +].
+They considered the family of languages
+
+Ly=a" 14)
+Lpb* keven
+
+L = 1
+ht {3 k odd (15)
+and showed that, as Boolean classifiers, transformers with depth k can recognize Lj (and not Lg 1).
+But their experiments were on the symbol-prediction task (§2), closely related to Boolean autore-
+gression. They showed both theoretically and experimentally that SMATs with depth k can solve the
+
+symbol-prediction task for not only Ly, but Lj 2 (and not Lj 3).
+
+In the present framework, this discrepancy can be readily explained. Like TL[H], the logic TL[#, +]
+lacks a 'Y operator or an equivalent. So it is more expressive as an autoregressor than as a classifier.
+
+
+Preprint
+
+7 CONCLUSION
+
+We have shown that theoretical results on transformers as Boolean classifiers (as most theoretical
+results in the literature are) sometimes carry over to real-weighted and/or autoregressive settings, but
+they sometimes do not. We have laid out a framework for studying other variants of transformers
+and other automata or logics as real-weighted autoregressors, leading to theoretical results that can
+make more accurate predictions about language models as used in practice.
+
+ACKNOWLEDGEMENTS
+
+This paper developed from the findings of the working group on probability at Dagstuhl Seminar
+25282, “Theory of Neural Language Models.” We are grateful to the Leibniz Center for Informatics
+for their support. The authors thank Gavin Dooley for feedback on the paper.
+
+This material is based in part upon work supported by the US National Science Foundation under
+Grant No. 2502292, the US National Science Foundation Graduate Research Fellowship Program
+under Grant No. 2236418, and the European Research Council under Grant No. 101089343. Anej
+Svete is supported by the ETH AI Center Doctoral Fellowship.
+
+REFERENCES
+
+Satwik Bhattamishra, Kabir Ahuja, and Navin Goyal. On the ability and limitations of Transformers
+to recognize formal languages. In Proceedings of the 2020 Conference on Empirical Methods in
+Natural Language Processing (EMNLP), pages 7096-7116, 2020. doi:10.18653/v1/2020.emnlp-
+main.576.
+
+Janusz A. Brzozowski. Derivatives of regular expressions. Journal of the Association for Computing
+Machinery, 11(4):481-494, October 1964. doi:10.1145/321239.321249.
+
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep
+bidirectional Transformers for language understanding. In Proceedings of the 2019 Conference of
+the North American Chapter of the Association for Computational Linguistics: Human Language
+
+Technologies (NAACL HLT), pages 4171-4186, 2019. doi:10.18653/v1/N19-1423.
+
+Manfred Droste and Paul Gastin. On aperiodic and star-free formal power series in partially com-
+muting variables. Theory of Computing Systems, 42(4):608-631, 2008. doi:10.1007/s00224-007-
+9064-2.
+
+Manfred Droste and Paul Gastin. Aperiodic weighted automata and weighted first-order logic. In
+Proceedings of the 44th International Symposium on Mathematical Foundations of Computer
+
+Science, 2019. doi:10.4230/LIPICS.MFCS.2019.76.
+
+Manfred Droste and Dietrich Kuske. Weighted automata. In Jean-Eric Pin, editor, Handbook of
+Automata Theory, pages 113-150. European Mathematical Society Publishing House, Ziirich,
+Switzerland, 2021. doi:10.4171/AUTOMATA-1/4.
+
+Valeria Fionda and Gianluigi Greco. The complexity of LTL on finite traces: Hard and easy frag-
+ments. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 30, pages 971—
+977, 2016. doi:10.1609/aaai.v30i1.10104.
+
+Giuseppe De Giacomo and Moshe Y. Vardi. Linear temporal logic and linear dynamic logic on
+finite traces. In Proceedings of the 23rd International Joint Conference on Artificial Intelligence
+(IJCAI), pages 854-860, 2013. URL https: //www.ijcai.org/Proceedings/13/Papers/132.
+pdf.
+
+Michael Hahn. Theoretical limitations of self-attention in neural sequence models. Transactions of
+the Association for Computational Linguistics, 8:156—171, 2020. doi:10.1162/tacl_a_00306.
+
+Xinting Huang, Andy Yang, Satwik Bhattamishra, Yash Sarrof, Andreas Krebs, Hattie Zhou, Pree-
+tum Nakkiran, and Michael Hahn. A formal framework for understanding length generalization
+in transformers. In Proceedings of the Thirteenth International Conference on Learning Repre-
+sentations (ICLR), 2025. URL https: //openreview.net/forum?id=U49N5V51rU.
+
+10
+
+
+Preprint
+
+Selim Jerad, Anej Svete, Jiaoda Li, and Ryan Cotterell. Unique hard attention: A tale of two sides. In
+Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (ACL),
+pages 977-996, 2025. doi:10.18653/v1/2025.acl-short.76.
+
+Johan Anthony Willem Kamp. Tense Logic and the Theory of Linear Order. PhD thesis, University
+of California, Los Angeles, 1968. URL https: //www.proquest.com/docview/302320357.
+
+Jiaoda Li and Ryan Cotterell. Characterizing the expressivity of transformer language models. In
+Advances in Neural Information Processing Systems (NeurIPS), 2025. URL https: //arxiv.
+org/abs/2505.23623. To appear.
+
+Eleni Mandrali and George Rahonis. Characterizations of weighted first-order logics over semir-
+ings. In Algebraic Informatics: 5th International Conference (CAI), pages 247-259, 2013.
+doi:10.1007/978-3-642-40663-8 23.
+
+Eleni Mandrali and George Rahonis. Weighted first-order logics over semirings. Acta Cybernetica,
+22(2):435-483, 2015. doi:10.14232/actacyb.22.2.2015.1.
+
+Robert McNaughton and Seymour Papert. Counter-Free Automata. Number 65 in M.LT. Press
+Research Monographs. M.I.T. Press, 1971. URL https: //archive.org/details/CounterFre_
+00_McNa.
+
+Mehryar Mohri. Finite-state transducers in language and speech processing. Computational Lin-
+guistics, 23(2):269-311, 1997. URL https: //aclanthology.org/J97-2003/.
+
+Doron Peled and Thomas Wilke. Stutter-invariant temporal properties are expressible without the
+next-time operator. Information Processing Letters, 63(5):243-246, 1997. doi:10.1016/S0020-
+0190(97)00133-6.
+
+M. P. Schiitzenberger. On finite monoids having only trivial subgroups. Information and Control, 8
+(2):190-194, 1965. doi:10.1016/S0019-9958(65)90108-7.
+
+Lena Strobl, William Merrill, Gail Weiss, David Chiang, and Dana Angluin. What formal lan-
+guages can transformers express? A survey. Transactions of the Association for Computational
+Linguistics, 12:543-561, 2024. doi: 10.1162/tacl_a_00663.
+
+Anej Svete and Ryan Cotterell. Transformers can represent n-gram language models. In Proceedings
+of the 2024 Conference of the North American Chapter of the Association for Computational Lin-
+guistics: Human Language Technologies, pages 6845-6881, 2024. doi:10.18653/v1/2024 .naacl-
+long.381.
+
+Andy Yang and David Chiang. Counting like transformers: Compiling temporal counting logic into
+softmax transformers. In Proceedings of the First Conference on Language Modeling (CoLM),
+2024. URL https: //openreview.net/forum?id=FmhPg4UJoK.
+
+Andy Yang, David Chiang, and Dana Angluin. Masked hard-attention transformers recognize ex-
+actly the star-free languages. In Advances in Neural Information Processing Systems, volume 37,
+pages 10202-10235, 2024. URL https://proceedings.neurips.cc/paper_files/paper/
+2024/hash/13d7f172259b11b230cc5da8768abc5f-Abstract-Conference. html.
+
+Andy Yang, Michaél Cadilhac, and David Chiang. Knee-deep in C-RASP: A transformer depth
+hierarchy. In Advances in Neural Information Processing Systems (NeurIPS), 2025. URL https:
+//arxiv.org/abs/2506.16055. To appear.
+
+Shunyu Yao, Binghui Peng, Christos Papadimitriou, and Karthik Narasimhan. Self-attention
+networks can process bounded hierarchical languages. In Proceedings of the 59th An-
+nual Meeting of the Association for Computational Linguistics and the 11th International
+Joint Conference on Natural Language Processing (ACL-IJCNLP), pages 3770-3785, 2021.
+doi: 10.18653/v1/2021.acl-long.292.
+
+11
+
+
+Preprint
+
+A EQUIVALENCE OF STATE ENCODERS
+Theorem 6.1. UHATS, LTL, and cfDFAs define equivalent state encoders.
+
+Proof. First we show the equivalence of state sequences defined by UHATs and LTL, and then equiv-
+alence of LTL and cfDFAs.
+
+The essential observation (Yang et al., 2024, Lemma 22) is that the output at every position of every
+UHAT layer comes from a finite set Q C R?. So we can think of a UHAT as a function 7: ¥* — Q*.
+For each ¢ € (), we can construct an LTL formula ¢, such that 7 (w); = gq w, 1 |= ¢q (Yang
+et al., 2024, Theorems 2, 4). So there exists a tuple of LTL formulas (¢,)4cq that defines a state
+encoder equivalent to 7. Note that the state outputted by 7 on the prepended BOS symbol can be
+simulated using a BOS formula in the tuple.
+
+In the other direction, for every tuple of LTL formulas (41, ¢2, ..., ¢,) defining a state encoder
+¥* — B™, there exists a UHAT 7: ©* — (R?)* defining an equivalent state encoder. For each
+or, we construct a transformer 7 which outputs : if w,i = ¢ and -1 otherwise (Yang et al.,
+2024, Theorems 1, 3). Then we can parallel-compose all the Tj, into a single 7 (Yang et al., 2024,
+Lemma 25), and add an additional layer which projects the output dimensions of each 7} into a
+
+single output vector R™ such that 7 (w); = eg w,i = ¢p.
+
+The equivalence between LTL and cfDFAs can be described a little more succinctly. Given a DFA
+M = (%,Q,6,1), for each state ¢ € ( there exists a formula ¢, such that w |= ¢g <= (tc, w) =
+q, due to the expressive equivalence of LTL and cfDFAs (Schiitzenberger, 1965; McNaughton and
+Papert, 1971; Kamp, 1968). The tuple (¢,)qc¢ then defines a state encoder equivalent to M. In the
+other direction, given a tuple of LTL formulas (¢1, .. ., ¢,), for each k € [m] there is an automaton
+Mj, that recognizes the same language as ¢,. Then the Cartesian product of all the M}, defines a
+state encoder equivalent to (¢1, - . . , Om).
+
+B AUTOREGRESSIVE MODEL PROOFS
+
+B.1 PROOF OF LEM. 6.7
+
+Lemma 6.7. There is a transformation next, from formulas of TL[O] to formulas of TL[O] such
+that for any formula ¢ of TL[O] and for all w € X*,
+
+w |= next, (¢) <= wo = ¢. (12)
+
+Proof. We define next, recursively:
+
+next, (0) = (16a)
+next, (0) = L ifo' £0 (16b)
+next, (BOS) = L (16¢)
+nextq (—¢) = —nexty (¢) (16d)
+next, (41 A ¢2) = nexty (¢1) A nexty (dz) (16e)
+next, (Y =a (161)
+next, (Hep) = He A next, (¢) (16g)
+nexty(P1 S ¢2) = (nexty(P1) A (41S ¢2)) V nexty (Pa). (16h)
+
+Note that next, never translates a temporal operator into another temporal operator, so it translates
+formulas of TL[O] into formulas of TL[O] for any O.
+
+Next, we prove that next, (¢) satisfies Eq. (12) by induction on the structure of ¢.
+
+Base Cases. If ¢ =o:
+
+Ji = next, (0) £2 wT (17a)
+ng wo =o. (17b)
+
+12
+
+
+Preprint
+
+If = o' for 0’ # 0:
+
+Similarly, if ¢ = BOS:
+
+Inductive Cases.
+
+If ¢ = 1 A go
+
+w | next, (0
+
+w |= next, (BOS
+
+If ¢ = =r:
+
+(16d)
+
+) Lay
+AY wo Eo.
+) Lp
+ny,
+
+o = BOS.
+
+w |= next, (gr)
+
+ay,
+
+ind. hyp.
+
+wo FE $1
+
+da wo = 1.
+
+w = next, (¢1)
+= next, (¢1)
+
+w = nexto (¢1 A ¢2) Sw = next, (é1) A nexto(¢2)
+b,
+
+Ifop=Yor:
+If = Hoy:
+
+w
+If p= ¢1 S pa:
+
+A (gp
+
+ind. hyp. (
+
+wo
+
+w |= next, (Yor
+
+wo |= ¢1) A (wo
+
+= ¢1 A ¢a.
+
+) 8 aw Eg
+BL
+
+= nexty (¢1)) A (w [= next, (42)
+= ¢2)
+
+= Yor.
+
+= next, (Hor) 268) 4p = Hoy A nextq(¢)
+
+A (w = Hon) A (w = next, (6)
+
+ind. hyp. (w Hé,) A (wo
+40 wo = Hey.
+
+w = next, (¢1 S 02)
+LN |= (nexty(d1) A (61S $2) V next (és)
+
+(11a) and (11b) (
+
+ind. hyp. ((
+
+11
+
+w |= nexty (fr) A
+
+wo |= ¢1 8S ¢2.
+
+B.2 PROOF OF LEM. 6.8
+
+(w |= ¢1 8 ¢2)) V (w [= next, (¢2))
+wo |= $1) A (w |= ¢1 8S ¢2)) V (wo
+
+= ¢1)
+
+= ¢2)
+
+(17¢)
+(17d)
+
+(17¢)
+(171)
+
+(18a)
+(18h)
+(18¢)
+(18d)
+
+(18e)
+(181)
+(18g)
+(18h)
+
+(18)
+(18)
+
+(18k)
+(181)
+(18m)
+(18n)
+
+(180)
+(18p)
+(189)
+(181)
+
+Lemma 6.8. There is a transformation prefix from formulas of TL[O] to formulas of TL[O] such
+that for any formula ¢ of TL[O] and for all u € ¥*,
+
+u [= prefix(¢p) <= there exists v € X* such that uv |= ¢.
+
+13)
+
+Proof. Given a formula ¢ of TL[O)], let cl(¢) be the set of all subformulas of ¢ (including ¢ itself).
+Construct a DFA My = (2€1(9) 32, 6,1, F), where
+
+v={x eco) | ex}
+
+F={V
+
+Ccl(o) | ¢ eV}
+
+3(¥,0) = {x €cl(¢) | ¥ = x}
+
+13
+
+19)
+(20)
+@n
+
+
+Preprint
+
+where the relation UZ y, which intuitively means that if a string w satisfies exactly the formulas
+
+in WU, then wo satisfies x, is defined as follows:
+v5 oliffo =o
+UL yi Axiff US ypand U5 xs
+UZ —yiffnot U2 x
+UL Yyiff yew
+UL Hy iff Hy € Vand UV 5 y
+
+UL x1 Sx2iff((1Sx2€ Pand UZ y)or UZ yo.
+
+Claim B.1. For any w € ¥¥, if U = {x € cl(¢) | w |= x}, then ¥ Z x
+
+Proof. By induction on the structure of x. Note by definition that y € ¥ <— w
+
+vo Eo
+Le =o.
+VS aay 2 US ypand U5 yo
+"MP pe = x1 and wo = x2
+JEL wo = x1 x2.
+UZ —y 29 not ¥ % y
+Ed not wo |= x
+£4 wo f= x.
+(22d) YEU
+= wkEx
+de) wo = Yyx.
+US HY 2 Hyc Vand ¥ 5 y
+nL = Hy and wo = x
+
+am wo = H.
+
+U5 Yy
+
+U5 x1 S x2 &n (x1Sx2€Pand UL x )or TZ yo
+
+wo
+
+ndhyp- (w= x1 S x2 and wo |= x1) or wo |= x2
+
+Claim B.2. For any w, §(v,w) = {x € cl(¢) | w = x}.
+
+Proof. By induction on the length of w.
+
+Base case: 0(t,e) == {x |e FE x}
+
+Inductive step: Assume that §(¢, w) = {x | w |= x} = ¥. Then
+(1, w) = 0(6(1, w), 0)
+
+=4(T,0)
+={xI1¥ 5x}
+= {x | wo |= x}.
+
+Claim B.3. M, defines the same language as ¢.
+
+Proof. 0(1,w) € Fif and only if ¢ € {x | w |= x} if and only if w
+
+14
+
+(22a)
+(22b)
+(22¢)
+(22d)
+(22¢)
+(221)
+
+
+
+Preprint
+
+Then make every co-accessible state (every state that has a path to an accept state) into an accept
+state. Call this new DFA MM with accept states F”. This DFA recognizes the prefix language of My.
+Finally, construct the formula
+
+prefix(0) = \/ | A xr A x
+
+WeF' \xev¥ XEcl(p)\¥
+
+Note that prefix never translates a temporal operator into another temporal operator, so it translates
+formulas of TL[O)] into formulas of TL[O)] for any O.
+
+Claim B.4. The formula prefix(¢) defines the same language as Mj.
+
+Proof. Since we only changed non-accept states to accept states, Clm. B.2 still applies to M,, and ¢.
+
+we L(M}) <= 6(,w) € F'
+— {xed |wkEx}eF Clim. B.2
+<= forsome ¥ € F', x € Viffw |= x
+
+«> forsome We F', wk [\ xA A —X
+
+XEY xecl(p)\¥
+— wFE \V A XN A —X
+WeF! \xev¥ XEcl(p)\¥
+
+This completes the proof of Lem. 6.8.
+
+B.3 RELATIONSHIP BETWEEN CLASSIFIERS AND AUTOREGRESSORS
+
+Theorem 6.6. For any set of operators © C {Y,H,S}:
+
+(a) For any nonempty language L defined by a Boolean-weighted TL[O] classifier, there exists a
+Boolean-weighted TL[O] autoregressor defining the same language L.
+
+(b) For any language L defined by a Boolean-weighted TL[O] autoregressor, there exists a
+Boolean-weighted TL[O U {Y, H}| classifier defining the same language L.
+
+Proof. (a) A Boolean-weighted TL[O] classifier is defined by a tuple of formulas ® = (¢1,..., Pm)
+and an output function c¢: B" — B. We may think of c as a Boolean combination of its arguments,
+and substitute the ¢; into it to obtain a single formula ¢ = ¢(¢1, . . ., dn). Then define a new trivial
+output function ¢’(h) = h, so that the classifier (¢, ¢’) defines the same language as (9, ¢).
+
+Define
+
+do = next, (prefix(¢)) foro € ¥ (23)
+Pros = ¢- (24)
+
+Then the tuple of formulas ®' = (60) oenu{ros} defines a state encoder. We define the autoregres-
+sive output function
+
+: BIEL BIEL (25)
+
+h, if any entry of h is true
+
+h = 2
+a(h)(o) { T if all entries of h are false. 20
+
+A vector h whose entries are all false is unreachable, so it does not matter what we set a(h) to, but
+it must satisfy @_ a(h)(o) = 1 (Eq. (7)), that is, the entries of a(h) cannot all be false.
+
+15
+
+
+Preprint
+
+The autoregressor A = (®’, a) defines L, because for any w € L with length n, we have
+
+Pra(w) = 6 Peau | w<;) ® Pra(EOS | w) (27)
+i=1
+
+= A {w<; |= next, (prefix(¢)} ANI{w |= ¢} (28)
+i=1
+
+= A L{we, |= prefix(@)} AT{w 6} (29)
+i=1
+
+= A {w<;v |= ¢ for some v} Al{w = ¢} (30)
+
+= Tl (31)
+
+On the other hand, for any w ¢ L, let k be the greatest integer such that wv € L for
+some v. (We know that k exists because L is nonempty by assumption.) Then we have that
+Wey, FE nexty,, (prefix(¢)), but wey, |= next, (prefix(¢)). SoPra(wy | wx) = L, and therefore
+Pra(w) = L.
+
+It remains to verify that A satisfies Eq. (6). For any u € ¥*, we want to show that
+[v|
+
+PPra(v | u) = _- X) Pra(v; | uve) @ Pra(EOS | uv) | = 1. (32)
+
+v i=1
+In the Boolean semiring, it suffices to show that at least one term of this summation is true.
+
+If there is a v such that uv € L, then the corresponding term of the summation is
+
+luv]
+
+/\ TH{uv; = next, (prefix(¢))} | AT{uv |= ¢} (33)
+i=1
+uo]
+= A I{uv; [= prefix(¢)} | Al{uv |= ¢} (34)
+i=1
+uo]
+= A I{uv<,w |= ¢ for some w} | Al{uv |= ¢} (35)
+i=1
+=T. (36)
+
+If there is no such v, then for all o, we have uo [= prefix(¢), so u ~ next, (prefix(¢)); moreover,
+u [= ¢. Let h = ®'(u), be the state after reading u. All entries of h are false, which makes (for
+example) a(h)(EOS) true, so the v = € term of the summation in Eq. (32) is true.
+
+(b) Let A = (®, a) be a TL[O] autoregressor, where ® = (¢;)™,.
+
+Define
+Pn = /\ (@: < hy) for h € B™
+1=1
+$s = \ (én ¢ a(h)(0)) for 0 in © U {EOS}.
+heBm™
+
+Intuitively, ¢,, is true whenever the state encoder is in state h, and ¢, is true whenever the state
+encoder is in a state in which a predicts o.
+
+Then, define
+¢=H| \/ (Y¢)NAo0
+
+oceXU{EOs}
+and let c(h) = h, so that the classifier C' = (¢’, ¢) defines the same language as A.
+
+16
+
+
+Preprint
+
+B.4 PROOF OF PROP. 6.9
+
+Proposition 6.9. (a) There does not exist a transformation prefix’ such that prefix’ (¢) is con-
+structible in polynomial time (in |p|) and satisfies Eq. (13) for every formula ¢ in TL[H,Y],
+unless P = PSPACE.
+
+(b) Similarly for TL[H], unless P = NP.
+(c¢) Similarly for TL[Y], unless P = NP.
+
+Proof. (a) Suppose that prefix’ exists. For any formula ¢ of TL[H,Y], we can test whether ¢ is
+satisfiable by constructing prefix’ (¢) in polynomial time (by assumption) and then testing whether
+= prefix’ (¢), which can also be done in polynomial time, as shown by Fionda and Greco (2016,
+Thm. 8). (They assume formulas in negation normal form, but it is easy to generalize their result
+to formulas not in negation normal form.) But satisfiability in TL[H,Y] is PSPACE-complete
+(Giacomo and Vardi, 2013; Fionda and Greco, 2016), so this would imply P = PSPACE.
+
+(b) Similarly, satisfiability in TL[H] is NP-complete (Fionda and Greco, 2016), so the existence of
+a polynomial-time prefix’ would imply P = NP.
+
+[)
+
+(c) Same as the previous case.
+
+C NONDETERMINISTIC FINITE AUTOMATA
+
+We give a single definition of weighted NFAs instead of factoring them into unweighted NFAs and
+autoregressive output functions.
+
+Definition C.1 (Weighted Nondeterministic Finite Automaton). A weighted nondeterministic finite
+automaton is a tuple M = (XZ, Q, 0, a, w), where
+
+* XY is an alphabet
+
+* () is a finite set of states
+
+* 0: Q xX x Q — Kis atransition function
+
+* 1 € Q is the initial state
+
+* w: Q — Kis an ending weight.
+
+We extend 0 to §*: QQ x ¥* x Q — K:
+
+6 (q,6,9) =1
+0"(q.6,4)=0  q#q
+
+q€Q
+Then M accepts w with weight k iff
+k= $b 6" (1, w, q2) ®@ w(ga).
+q2€Q
+Definition C.2. We say that an NFA with transition function 0 is counter-free if there exists some k
+
+such that for all states qi, qo and all strings w, we have 6* (q1, w*, q2) = §* (qu, Ww", go).
+
+A weighted automaton is determinizable if every every pair of states which are siblings (can be
+reached by the same string) are also twins (all cycles by the same string have the same weight)
+(Mohri, 1997). The automaton in Fig. 2c is counter-free because for any pair of states qi, go and any
+string w, we have that §* (qi, w, 2) = §*(q1, w?, g2). However, it is not determinizable because
+
+a/l
+q1 and qo are siblings (both reachable by a) but not twins (the a-labeled cycles q; SEN q1 and
+
+a/% . .
+go — qo on the two states have different weights).
+
+17
+
+
+Preprint
+
+D INEXPRESSIBILITY OF (aab)*
+
+Proposition 6.11. The language (aab)* is not definable by any TL[H)| classifier or autoregressor.
+
+We actually prove a slightly stronger statement. Define the 'Y -depth of a formula ¢ to be the number
+of nested Y operators in ¢. Then we will prove that (aab)* is not definable by any formula of
+TL[H,Y] with Y-depth 1. Since the conversion from an autoregressor to a classifier (Thm. 6.6(b))
+adds a single Y, we will conclude that (aab)* is not definable by any TL[H] autoregressor.
+
+Lemma D.1. For any language L over YX, define Bigram(L) = {(BOS,w;) - (w1,ws)
+(we, w3) + (Wp—1,wy) - (Wn, EOS) | w € L}. If ¢ is a formula of TL[H,Y]| with Y-
+depth 1, then there is a formula noy(¢) of TLH] over (¥ U {BOS}) x (X U {EOS}) such that
+L(noy(¢$)) NBigram(X*) = Bigram(L(¢)).
+
+Proof. Define the transformation noy, which pushes Y down to the atomic formulas, then modifies
+the atomic formulas to operate on bigrams.
+
+noy (=) = —moy(¢) noy(Y (—t)) = -moy(Y1))
+noy (1 A ¢2) = noy(y1) Anoy(¢2)  noy(Y (yr A th2)) = noy(Ye¢1) Anoy(Yo)
+noy (Hp) = H(noy(4)) noy(Y (Hy) = H(noy(Y))
+noy(e) = \/ (¢',0) noy(Yo)= \/ (0,0)
+o’exu{Bos} o’eXU{E0S}
+noy(BOS) = BOS noy(YBos)= \/ (Bos, 0’).
+
+o’eXU{E0S}
+
+Then, to prove that (aab)* is not definable in TL[H, Y] with Y-depth 1, suppose it is definable by
+¢. By Lem. D.1, there is a formula noy(¢) of TL[H] such that
+(BOS, a) - (a,a) - (a,b) - (b,EOS) € L(noy(¢)) N Bigram(X*).
+But £(noy(¢)) must be stutter-invariant (Peled and Wilke, 1997), so we also have
+(BOS, a) - (a,a)- (a,a)- (a,b) - (b,E0S) € L(noy(¢)) N Bigram(Z™*).
+
+But this is not in Bigram((aab)*), which is a contradiction.
+
+18

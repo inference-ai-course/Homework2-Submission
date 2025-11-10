@@ -1,0 +1,2030 @@
+arXiv:2510.26861v2 [cs.IR] 3 Nov 2025
+
+EVALUATING PERSPECTIVAL BIASES IN CROSS-MODAL
+RETRIEVAL
+
+Teerapol Saengsukhiran'*, Peerawat Chomphooyod!*, Narabodee Rodjananant!*,
+Chompakorn Chaksangchaichot'?, Patawee Prakrankamanant!, Witthawin Sripheanpol',
+Pak Lovichit', Sarana Nutanong®, and Ekapol Chuangsuwanich'f
+
+Department of Computer Engineering, Chulalongkorn University, Bangkok, Thailand 10330
+2VISAIAI Bangkok, Thailand 10110
+3School of Information Science and Technology, VISTEC, Rayong 21210
+
+ABSTRACT
+
+Multimodal retrieval systems are expected to operate in a semantic space, agnostic to the language
+or cultural origin of the query. In practice, however, retrieval outcomes systematically reflect per-
+spectival biases: deviations shaped by linguistic prevalence and cultural associations. We study two
+such biases. First, prevalence bias refers to the tendency to favor entries from prevalent languages
+over semantically faithful entries in image-to-text retrieval. Second, association bias refers to the
+tendency to favor images culturally associated with the query over semantically correct ones in text-
+to-image retrieval. Results show that explicit alignment is a more effective strategy for mitigating
+prevalence bias. However, association bias remains a distinct and more challenging problem. These
+findings suggest that achieving truly equitable multimodal systems requires targeted strategies be-
+yond simple data scaling and that bias arising from cultural association may be treated as a more
+challenging problem than one arising from linguistic prevalence.
+
+Keywords model bias/fairness evaluation - multimodality - multilingual evaluation - language/cultural bias analysis
+
+1 Introduction
+
+As Nietzsche observed, “there is only a perspective seeing, only a perspective knowing”; put differently, there is
+no view from nowhere. Large models inherit this perspectival character through their training data; what they learn
+to represent depends on the frequency of appearance and co-occurrence structure. As a result, the latent space of
+such models does not always function as the robust, language-agnostic semantic space we expect. Instead, retrieval
+outcomes can be skewed, favoring linguistic prevalence or cultural association over true semantic relevance. The
+effect of such a perspectival character on both image-to-text and text-to-image retrievals is illustrated in Figure
+Understanding and quantifying these effects is crucial for ensuring consistent retrieval performance across languages
+and cultures.
+
+Multimodal retrieval enables cross-modality search, primarily between text and images. Early models, such as CLIP
+[2], align vision and language representations through paired supervision. Recent Multimodal Large Language Models
+(MLLMs) achieve alignment implicitly through large-scale pretraining. Despite these advancements, the critical
+issue of language and cultural bias in retrieval remains underexplored.
+
+This lack of study is concerning given that state-of-the-art retrievers are trained on web-scale, text-image datasets like
+LAION and WebLi [6], which are overwhelmingly English-centric. While these datasets are constructed using
+English alt-text, images with high cultural specificity often retain alt-text in their native languages. As observed in
+multilingual food datasets [7], items like the Catalan pastry “coca de recapte” are exclusively described in Catalan
+
+*These authors contributed equally as co-first authors.
+Corresponding Author (Email: ekapolc @cp.eng.chula.ac.th)
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+(a) Language Fairness Bias (b) Self-Preference Cultural Bias
+
+Rank Retrieved text ] ‘object: mask
+
+1 A portrait of a capybara. si
+10 A
+2 The lions in the cage. In 5% <
+
+RES LRIBFO—HADHAENS
+
+culture: Japanese
+
+UMAP_2
+wv
+
+translation: necklace™,
+8 language: Japanese
+
+3 translation: A capybara with a sleepy expression
+language: Japanese
+
+age query
+
+Im
+
+- — — 35 object: necklace
+MUAWUISIULIYUUWUGU culture: Kenyan
+4 translation: A capybara sits on the ground. Se
+language: Thai -25 00 25 50 7.5 100 125
+UMAP_1
+
+Figure 1: Two Forms of Perspectival Biases. (a) Prevalence bias: an image query favors high-resource languages. A
+retrieval model places English results above semantically equivalent Japanese and Thai captions. (b) Association Bias:
+A visualized model’s embedding space, demonstrating how a Japanese text query for “necklace” retrieves culturally
+proximate images (Japanese masks) instead of the semantically correct one (Kenyan necklace).
+
+or Spanish. This might allow models to develop emergent multilingual capabilities, but it also risks introducing a
+systemic bias where the model learns spurious correlations, preferentially matching images with text from a specific
+majority or “expected” language.
+
+A key barrier to investigating these biases is the absence of targeted metrics and benchmarks designed to quantify
+them. To address this gap, we introduce an evaluation framework for both retrieval directions, each capturing a
+distinct form of perspectival bias. Image-to-text retrieval. In the absence of linguistic cues, retrievals reveal how
+the prevalence of certain languages in the training data shapes the results. To assess this prevalence bias, we propose
+the Discounted Language Bias Kullback-Leibler Divergence (DLBKL), inspired by Language Bias Kullback-Leibler
+Divergence (LBKL) [8], which measures how strongly retrieval relevance depends on language rather than semantics,
+as shown in Figure [Th. Text-to-image retrieval. When linguistic and cultural cues are present in the query, retrievals
+reveal the model’s tendency to favor culturally associated visual patterns over semantically aligned ones. We term this
+association bias and construct a balanced, cross-cultural, and cross-lingual dataset to disentangle semantic relevance
+from cultural proximity, as shown in Figure [Th.
+
+Using these tools, we conduct an empirical analysis comparing the perspectival biases inherent in retrievers adapted
+from MLLMs with those trained using explicit cross-lingual alignment techniques [9][T0]. Our findings reveal that
+models with explicit alignment mechanisms exhibit lower biases, highlighting a critical trade-off between the scale of
+MLLMs and the fairness of more targeted alignment strategies.
+
+We summarize our contributions as follows: (i) We propose DLBKL, a metric for quantifying prevalence bias in
+multimodal retrieval within a multilingual candidate pool to assess language fairness. (ii) We introduce a novel
+vision-language dataset, parallel across culture and language, designed to assess association bias.
+
+2 Related work
+
+2.1 Multimodal Retrievers
+
+Retrieving image information using a text query can be accomplished by two methods: sparse and dense retrieval.
+Sparse retrieval methods utilize a high-dimensional representation extracted from words in a text query or an image
+caption [12]. While these methods are fast, they do not understand the semantics of the image as they solely
+rely on the image caption to represent the content. To handle the challenge of understanding semantic meaning,
+deep learning-based dense retrieval methods have been developed. For example, CLIP and ALIGN used a
+dual-encoder architecture specifically trained to connect the semantic meanings of text-image pairs using contrastive
+loss objectives. Both models were built on similar principles but varied in text-image data size and utilized different
+text/image encoders. The recent ColQwen and GME model adapts a Large Language Model (LLM) to learn
+a more intensive semantic connection between text and images, converting them to a multimodal retrieval model.
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+2.2 Language Bias in Multi-model Retrievers
+
+Language bias in multimodal retrieval refers to performance differences that arise when semantically equivalent
+queries in different languages yield divergent rankings, often favoring high-resource languages such as English. Prior
+work frames this along two fairness axes: (i) an individual-level notion, where multilingual variants of the same query
+should produce similar results, and (ii) a group-level notion, where aggregate retrieval performance should remain
+balanced across languages [16].
+
+A study on multilingual retrieval benchmark reports uneven performance across languages, with comparatively
+stronger results on English and other high-resource languages for various modern multimodal retrievers, despite their
+large scale in data and parameters. For instance, some models exhibit significant variation in NDCG Scores across
+different languages, indicating that retrieval effectiveness is not uniform.
+
+To quantify such disparities, fairness-aware metrics from ranking literature, such as exposure parity [18], have been
+adapted to language as a protected attribute. More recently, Adewumi et al. surveyed multimodal bias, empha-
+sizing the lack of dedicated language-focused evaluation protocols. Addressing this, Laosaengpha et al. [8] proposed
+LBKL, a distributional measure of divergence between retrieval results across language variants. Although LBKL was
+designed for measuring text modality bias, it can technically be extended to multimodal retrieval, enabling a more
+fine-grained detection of scores across languages. These works highlight several metrics for measuring language bias
+in multimodal retrievers. However, despite their effectiveness in measuring language bias, none take retrieval rankings
+into account.
+
+2.3 Multilingual and Cross-Lingual Retrieval Strategies
+
+Two dominant paradigms exist for building multilingual multimodal retrieval systems: holistic end-to-end pre-training
+and explicit cross-lingual alignment.
+
+Holistic End-to-End Pre-training on Large-Scale Multilingual Data This approach, anchored by foundation
+MLLMs like Qwen2.5-VL [3], aims to learn an emergent universal representation from web-scale, mixed-language
+data. Within this paradigm, some models like GME and the standard ColQwen series are fine-tuned on
+predominantly English datasets. Others, such as the multilingual ColQwen series and jina-embeddings-v4 [20],
+intentionally incorporate extensive multilingual data to improve fairness.
+
+Explicit Cross-Lingual Alignment via Knowledge Distillation This alternative strategy uses knowledge distilla-
+tion to align text encoders for new languages to a strong, pre-existing English model’s embedding space, such as
+CLIP’s. This data-efficient method, exemplified by M-CLIP [10], typically requires only parallel text corpora to force
+non-English embeddings to mimic their English counterparts via a teacher-student setup.
+
+Our work evaluates models representing both paradigms, providing a direct comparison of biases inherent to each
+approach.
+
+3 Methodology for Evaluating Bias in Multimodal Retrieval
+
+This section outlines the framework developed to investigate perspectival bias in multilingual, multimodal retrieval
+systems. We first state our guiding research questions and then explain the studies that address these research questions
+in Sections [3.1]and [3.2] Our investigation centers on two complementary perspectives, corresponding to different
+retrieval directions, as shown in Figure[2]
+
+RQ1 [Image—Text]: Effect of prevalence bias. To what extent do models favor high-resource languages over se-
+mantically equivalent captions in other languages?
+
+RQ2 [Text—Image]: Effect of association bias. To what extent do models prioritize culturally associated imagery
+over semantically faithful results?
+
+3.1 RQI1: Image-to-Text Retrieval Study
+
+In this study, we assess the bias arising from linguistic prevalence by examining the discrepancy between an expected
+“fair” language distribution and the observed one. That is, the discrepancy should be zero if the linguistic prevalence
+has no effect on the retrieval results and increases as the results deviate from the ideal case. As discussed in Section[2.2]
+existing work lacks a dedicated metric to quantify such a discrepancy in multimodal retrieval.
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+RQ1) Image-to-text retrieval prefers high resource language. | RQ2) Self-preference behavior exists,
+0.448
+
+Similarity Score
+0.580
+
+Retrieved text
+
+— OOO®OO | [1]—}
+
+A. Semantically B. Cultural ~~ C. Non-relevant
+
+Query Image Similarity Text Q ery: Relevant Relevant
+score HARAR Im Culture: Argentine Culture: Japanese Culture : Australian
+High resource Low resource Culture: Japan .
+languages languages Concept: ancient city The model prefers cultural relevant images
+
+over conceptually relevant ones.
+
+Figure 2: Overview of the study. First, in RQ1, we identify language prevalence in image-to-text retrieval by analyzing
+the language of the retrieved text and comparing it with high-resource languages, as well as medium- and low-resource
+languages. Second, in RQ2, we identify the association bias using self-preference behavior of the model by retrieving
+an image with three candidates: semantically relevant, culturally relevant, and a non-relevant candidate.
+
+As the first step to closing this gap, we apply the Language Bias Kullback-Leibler (LBKL) Divergence proposed by
+Laosaengpha et al. [8], which measures the divergence between an expected language distribution and the observed
+distribution in a retrieved list. Given proportions of language A and B in the ground truth (P4 (x), Pg(x)) and in the
+retrieved set (Q a(x), @g(x)), LBKL is given as:
+
+q
+3 [Pale) lox 225 + Poa) log 54)
+LBKL = = (1)
+q
+
+While LBKL can be applied to cross-modal retrieval, it is rank-agnostic: deviations at rank 1 are penalized equally
+to deviations at rank 100. This underestimates the harm in systems that concentrate resource-driven bias near the top
+ranks.
+
+For the next step, we extend LBKL by introducing the Discounted Language Bias Kullback-Leibler (DLBKL)
+divergence, which incorporates a logarithmic rank discount inspired by NDCG [18]. We assign a weight w(i) =
+1/log, (i + 1) to each rank 4. The rank-weighted proportion for a language ! is then:
+
+SF wi) - (doc; is 1)
+k ;
+die wii)
+where I(-) is the indicator function. DLBKL is calculated by substituting (Qj (x) for Q;(z) in the LBKL formula. As
+
+illustrated in Figure 3] DLBKL penalizes top-ranked disparities more heavily, aligning the metric with user exposure
+and better capturing the discrepancy between the ideal case and observed one in multimodal retrieval.
+
+Q(z) = 2)
+
+Retrieval setup Taguass uk Jrirfered fest at each ane
+8 9
+
+Query 0l0l00[0[0I0I000]0
+ws) IDOOOOO OOO Gsm vem
+
+(® Language A Language B
+
+Figure 3: Illustration of how DLBKL, unlike the rank-agnostic LBKL, assigns a higher bias score to lists where high-
+resource languages dominate the top ranks.
+
+3.2 RQ2: Text-to-Image Retrieval Study
+
+To quantify the degree to which models prioritize cultural association over semantic fidelity, a phenomenon we illus-
+trate in Figure [1]b), a benchmark with a parallel structure in its cultural dimension is necessary. To the best of our
+knowledge, no such benchmark exists, so we make two primary contributions. First, we construct and introduce the
+Cross-Cultural Multimodal (3XCM) benchmark, a novel dataset designed specifically for this purpose. Second, we
+propose the Self-Preference Cultural Bias Score (SP), a new metric for explicitly measuring this form of bias.
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Figure 4: Overview of the XCM dataset creation process, designed to produce a benchmark with parallelism across
+semantics, cultures, and languages.
+
+3.2.1 The 3XCM Dataset Benchmark
+
+To evaluate association bias, we constructed the 3XCM benchmark] The process involved two primary stages: (i)
+gathering a corpus of culturally diverse images and (ii) structuring these images into a triplet-based evaluation set.
+
+The image gathering stage, summarized in Figure [4] consisted of three steps:
+
+» Concept Generation We used Gemin{'| to generate a large pool of concepts, which we manually curated
+to a final set of 138 coarse-grained, culturally-inclusive concepts (e.g., "train", "food"). Each concept is an
+abstract, semantic category that uses shared properties to group a broad, culturally-inclusive range of entities.
+The prompt for generating concepts can be found in Appendix[A]
+
+» Concept De-duplication: We use BGE-M3 to de-duplicate concepts based on similarity with a threshold
+of 0.92.
+
+» Image Collection: For each concept and a set of 16 diverse countries, we used the DuckDuckGo image
+search API to retrieve the top 10 images using queries in both English (e.g., "train Japan") and the local
+native language.
+
+» Image De-duplication: To ensure visual diversity, we performed two-stage de-duplication within each con-
+cept. First, near-exact duplicates were removed automatically using an embedding model. Subsequently,
+three human annotators, following the guidelines in Appendix [F| used a custom tool to manually filter out
+remaining images that depicted the same scene or object without meaningful variation in viewpoint or time
+of day.
+
+Leveraging the collected cultural images, we introduce a novel evaluation paradigm that employs a forced-choice task.
+This setup is designed to disambiguate between the model’s reliance on semantic understanding (the concept) and its
+preference for cultural association. As illustrated in Figure [5] for a given query (e.g., "food" in Thai), the model is
+presented with a triplet of image candidates: (i) Semantically Relevant: same concept, different culture (e.g., Nigerian
+food); (ii) Culturally Relevant: different concept, same culture (e.g., Thai traditional dance); and (iii) Non-Relevant:
+different concept and culture (e.g., Japanese gas station).
+
+label = "91K1S’
+(Semantics: food, Culture: Thailand)
+
+similarity = psy similari o- 0.648 Sh =0.522
+
+|S. .
+
+Semantically Relevant Culturally Relevant
+Semantics: food Semantics: dance ~~ Semantics: gas station
+Culture: Nigerian Culture: Thai Culture: Japanese
+
+Figure 5: Illustration of association bias evaluation. A Thai text query for “food” is evaluated against three candidates
+designed to isolate semantic faithfulness vs. cultural relevance.
+
+The final dataset contains 11,724 entries distributed across 138 concepts. Further statistics and samples are provided
+in Appendix [J]and|N]respectively.
+
+3.2.2 Self-Preference Cultural Bias Score (SP)
+
+With the constructed dataset, we can now measure the discrepancy between the ideal case and the observed one,
+where bias arising from cultural association may intervene. Ideally, the discrepancy should be zero when image
+retrieval depends solely on semantic relevance, and it should increase as the model’s preference tends towards images
+
+Research release only (CC BY-NC-SA 4.0). Ethical review required for production use.
+
+Available at: |https://huggingface.co/datasets/Chula-Al/association_bias_benchmark
+
+“Version used: gemini-2.5-flash (Released June 17, 2025).
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+associated with the culture of the query, rather than semantic accuracy. To quantify the discrepancy, we propose a
+metric called the self-preference cultural bias score (SP), which can be computed as follows:
+
+N
+1
+Mi, = N 2 I (Sk.i = max (Seem, i, Seul,is Shon,i)) (3)
+_ Mew
+SP = Mo 4)
+
+where Mj, is the proportion of times a candidate of type k receives the highest similarity score across N total trials.
+The candidate type k can be semantically relevant (sem), culturally relevant (cul), or non-relevant (non). The
+similarity score for candidate type k in trial ¢ is denoted by Si ;. The indicator function I(-) is 1 if the condition is
+true and 0 otherwise. The SP score (Eq. [4) is then the ratio of cultural wins (My) to semantic wins (Mem). In this
+way, a higher SP score indicates stronger cultural self-preference over semantic faithfulness and thus a greater extent
+of association bias.
+
+4 Experimental Setup
+
+To answer our research questions, we conducted two main experiments. For RQ1, we performed image-to-text re-
+trieval on the Crossmodal-3600 dataset [23]. The dataset offers a balanced multilingual text pool comprising native
+captions in 36 languages, making it suitable for auditing cross-lingual behavior in image—text retrieval, without im-
+plying any particular pattern of disparities. We evaluate models using Accuracy @5, NDCG@10, LBKL@10, and
+our proposed DLBKL@10. For RQ2, we performed text-to-image retrieval on our newly created XCM benchmark,
+evaluating models using our proposed SP score.
+
+For both RQ1 and RQ2, we selected a representative suite of models spanning three distinct architectural paradigms,
+as shown in Table[T]
+
+* Vision-Language Contrastive Models: These are foundational models trained primarily on English data.
+We include the original CLIP-L/14 as a powerful baseline, and Chinese-CLIP-L/14 to observe the effect of
+monolingual fine-tuning on a non-English corpus.
+
+* Cross-lingual Alignment Models: These models use knowledge distillation to explicitly align multilingual
+text encoders to a fixed, pre-trained vision space. We evaluate two variants of m-CLIP, which use XLM-
+RoBERTa as the text encoder (XLM-R-L/14 and XLM-R-B/16plus).
+
+* MLLM-Based Retrieval Embedders: This modern paradigm adapts large, pre-trained Multimodal Lan-
+guage Models for retrieval. We evaluate several state-of-the-art models, including the ColQwen series (v0.2,
+3b-M, 7b-M), GME models (Qwen2-2B, Qwen2-7B), and Jina-E-v4.
+
+Full model identifiers are available in Appendix [H]
+
+5S Experimental Results
+
+Our experiments are designed to provide empirical examinations of perspectival biases manifested in image-to-text
+and text-to-image retrievals.
+
+5.1 Image-to-Text Evaluation (RQ1)
+
+All models exhibit some degree of linguistic prevalence bias. For most MLLM-based models (Jina, ColQwen, GME),
+the DLBKL score is higher than the LBKL score, as shown in Table [I] This confirms that bias is more pronounced at
+the top of the ranked list, as these models tend to rank results from medium-to-high resource languages. Results for
+additional ranks and an example of retrieval result can be found in Appendix|[D]
+
+This phenomenon is visualized in Figure [6] which shows a clear dominance of high-resource languages in the top
+ranks. This further illustrates the overall disparity in retrieval frequency between language resource tiers as shown in
+Figure|[7]
+
+Crucially, the explicit alignment models (XLM-R series) achieve the lowest bias scores by a significant margin, with
+XLM-R-B/16plus demonstrating near-zero linguistic prevalence bias according to both metrics, while maintaining
+high retrieval accuracy. This provides strong initial evidence that direct alignment is a more effective strategy for
+enforcing language fairness than relying on emergent capabilities from large-scale pre-training.
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Model Acc LBKL DLBKL NDCG
+@5t @10), @10, @10}
+
+Vision-Language Contrastive Models
+CLIP-L/14 0.509 5.673 5.684 0.290
+Chinese-CLIP-L/14 0.355 5.046 5.055 0.207
+
+Cross-lingual Alignment Models
+XLM-R-L/14 0.924 0.320 0.333 0.736
+XLM-R-B/16plus 0.968 0.110 0.125 0.791
+
+MLLM-Based Retrieval Embedders
+ColQwen2.5-3b-M 0.894 0.792 0.817 0.605
+ColQwen2.5-7b-M 0.926 0.821 0.849 0.665
+ColQwen2.5-v0.2 0.754 3.834 3.867 0.481
+GME-Qwen2-2B 0.967 3.121 3.174 0.717
+GME-Qwen2-7B 0.979 1.371 1.420 0.770
+Jina-E-v4 0.972 0.915 0.951 0.775
+
+Table 1: Image-to-text retrieval on Crossmodal-3600. Bias is measured by LBKL and DLBKL. Explicit alignment
+models (XLM-R) show substantially lower bias.
+
+(a) ColQwen2.5-v0.2 (b) GME-Qwen2-7B (¢) XLM-R-L/16
+
+2000
+ma 3000
+
+1750
+2500 2500
+
+1500
+
++= 5000 2000
+
+=! 1250
+=
+O 10 1500 1000
+
+750
+
+1000 1000
+
+Medium-High Resource Lang
+Low Resource Lang.
+
+500 500
+
+0 0 ol
+1 1m 21 31 @ soe 718 ol 1 1 21 3: 4 os 6 71 81 el 1 1 2 3: 4 soe 7 8 91
+
+Rank Position
+
+Figure 6: Distribution of language groups across retrieval ranks. High-resource languages (blue) dominate the top
+ranks, a bias captured by DLBKL.
+
+(a) ColQwen2.5-v0.2 (b) GME-Qwen2-7B (¢) XLM-R-L/16
+
+Medium-High Resource Lang. |2s0
+Low Resource Lang.
+
+Query Count
+
+0 20 40 60 i) 100 [] 20 40 60 80 100 [ 20 40 60 80 100
+
+Language Frequency
+
+Figure 7: Histogram of retrieved language frequencies. MLLM-based models disproportionately retrieve texts from
+medium-high resource languages (blue) over low-resource ones (orange).
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Building on these observations, we note that LBKL. and DLBKL quantify distributional bias rather than relevance,
+and therefore need not correlate with accuracy or NDCG in Table |I| To assess both correctness and fairness, these
+bias metrics should be interpreted jointly with accuracy (and/or NDCG). Finally, while LBKL/DLBKL capture cross-
+language imbalance, they do not measure model self-preference (e.g., favoring the query language over others); we
+operationalize and evaluate that phenomenon with our SP score.
+
+5.2 Text-to-Image Evaluation (RQ2)
+
+Using the proposed XCM benchmark, we evaluated the association bias of several multimodal retrievers, ranging from
+CLIP to more recent models. In this evaluation, the semantic win rate (Ms) serves as a proxy for raw performance,
+while the SP score quantifies cultural bias. We observe that the baseline CLIP and Chinese-CLIP models exhibit a
+significant cultural bias, often preferring a culturally associated but semantically incorrect image, as shown in Table]
+
+Model Mem 1 Men 1 Muon { SP|
+Vision-Language Contrastive Models
+CLIP-L/14 51.24% 40.78% 7.98% 0.80
+
+Chinese-CLIP-L/14 56.39% 31.65% 11.95% 0.56
+
+Cross-lingual Alignment Models
+XLM-R-L/14 85.53% 6.84% 7.63% 0.08
+XLM-R-B/16plus ~~ 87.54% 6.23% 6.24% 0.07
+
+LLM-Based Retrieval Embedders
+GME-Qwen2-2B 83.34% 11.64% 5.02% 0.14
+GME-Qwen2-7B 84.63% 11.26% 4.11% 0.13
+ColQwen2.5-v0.2 82.10% 10.93% 6.97% 0.13
+ColQwen2.5-3B-M 83.36% 10.65% 6.00% 0.13
+ColQwen2.5-7B-M 84.07% 11.40% 4.53% 0.14
+Jina-E-v4 87.56% 7.20% 5.24% 0.08
+Table 2: Resuttsom the XEM benchmark for-Setf-Preference Cultural Bias.
+
+Our culture-specific analysis reveals that this self-preference is a symptom of missing linguistic knowledge, as shown
+in Figure(8] The CLIP-L/14 model, lacking a robust understanding of non-Latin scripts, defaults to matching cultural
+origin as a retrieval heuristic. Training on a large Chinese dataset (Chinese-CLIP) partially addresses this, improving
+performance for both Chinese and Japanese queries due to the shared logographic Kanji characters. However, this
+is a shallow fix that fails to generalize to other non-Latin scripts. In contrast, the text-aligned model (XLM-R-L/14)
+performs well across most languages, with a notable exception for queries in Yoruba (Nigeria). This challenge with
+low-resource languages persists even in more advanced architectures. For instance, MLLM-based models (Jina-E-v4)
+employ a LLM as their text encoder, leveraging its pre-training on web-scale multilingual data for a robust understand-
+ing of diverse languages. For the vision component, a Vision-Language Model (VLM) is used as the image encoder to
+improve contextual awareness. However, performance drops for low-resource languages.
+
+This behavior is clearly visualized in the UMAP projections of the text embeddings as shown in Figure [9] The
+baseline CLIP-L/14 model exhibits a fractured embedding space, with non-Latin languages forming distinct clusters
+far from the main Latin-script cluster. This demonstrates a lack of shared semantic understanding. In the Chinese-CLIP
+model, the Chinese and Japanese embeddings shift closer to the Latin cluster, reflecting the targeted training, but other
+non-Latin languages remain isolated. In contrast, the explicit alignment model, XLM-R-L/14, successfully unifies the
+embedding space into a single, language-agnostic cluster, demonstrating a truly shared semantic representation across
+scripts. The only notable outlier is Yoruba, which was not part of this specific model’s alignment training. The MLLM
+model, Jina-E-v4, exhibits a similar but distinct pattern: it also forms a single, unified cluster, but the embeddings
+are more widely dispersed. This suggests a more flexible alignment that may capture finer semantic nuances between
+languages.
+
+To validate these visual findings numerically, we calculated the silhouette score for each language’s text em-
+beddings. This analysis revealed a strong Pearson correlation (0.68) between a language’s silhouette score and its
+measured SP score as shown in Appendix |I| This quantitatively reinforces that poor semantic understanding in the text
+encoder (as visualized by the disparate UMAP clusters) is a key driver of higher cultural association bias.
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+(a) Association bias evaluation result of CLIP-L/14
+
+wv
+£1
+z 80
+o 60
+2 40
+TS 2
+[7]
+§ ° < ¥ ® » cc 9c ® ow © © ©
+— — QL he}
+a $ SFT ELE 25 £88 aed >
+= FEC fageEgs £2238
+5 Semantically Relevant Wins 3 O = Lun 9 £ om < T= =
+BE Cultural Relevant Wins O = Xx 3 FE
+= Non-Relevant Wins 8
+» (b) Association bias evaluation result of Chinese-CLIP-L/14
+<£ 100
+= a
+‘Ss
+9 60
+2 40
++t
+c 20
+[7]
+Co
+fo) LS > © £€ OU oo © FTF = © T © © ©
+8 = $5 ££ © 2 = cc 5 N oo cc 7 > T
+cE © = g © © 5S © © ®© Cc oO
+ras] e c © oO cc = — = = C 7]
+< 0 g & El= =
+©
+I)
+» (c) Association bias evaluation result of XLM-R-L/14
+=
+Ye
+S
+@ 60
+2 40
+=
+S$ 20
+5 o <
+© > c ow © = = ® TUT © © ©
+a 6 52 £2 28 £2 8 RNs es XC
+=) © © = ga Cc © oS 3S © © @© [od Q
+£8 E © § GO ac ss = £ gq
+S$ § 0 ng § ow v 2
+5 =
+< Oo Zz = 3 [=
+a
+
+(d) Association bias evaluation result of jina-embeddings-v4
+
+7)
+JS 1100;
+=
+5%
+g
+c
+S$ 20
+oO
+= 0 z =
+[3] ¥ © > co © FT = © © ©
+a SS 22225 egw garg e
+f=) CT © = gg € © 9 © © 8 2 © ©
+B E ££ ao 8 ac 2 5 5% = £ 4d o
+£ go> cng §@2 2" ¥ 3
+= a o
+[G] = zs F
+wn
+
+Country (ordered by resource availability)
+
+Figure 8: Association bias evaluation across four models reveals the limitations of monolingual training. The baseline
+CLIP (a) shows significant cultural bias, which is exacerbated by region-specific fine-tuning as seen in Chinese-CLIP
+(b). In contrast, cross-lingual models like XLM-R (c) and particularly Jina-E-v4 (d) prove far more effective at
+mitigating this bias and maintaining high semantic relevance across diverse countries.
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Comparison of UMAP Projections of Native Concept Embeddings L
+anguage
+(a) CLIP-L114 (b) Chinese-CLIP-L/14 (¢) XLM-R-L/14 (d) Jina-E-v4 roan
+
+. °
+
+Fl = 20 . oe © German
+[ee | 15 J 2 .
+
+15 15 «af ® Chinese
+
+rE | Japanese
+10 : Le French
+® Spanish
+Portuguese
+, {a Japanese ° PERE TORY, Arabic
+R . A . : CLs ° ai
+El  Non-latin alphabet Chinese 0 © Hindi
+5 = . Swahili
+
+-25 00 25 50 75 100 125 -15 -10 -5 0 5 10 15 -10 -5 0 5 10 15 20 25 0 5 10 15 Yoruba
+UMAP_1 UMAP_1 UMAP_1 UMAP 1
+
+UMAP_2
+
+Figure 9: UMAP projection of native concept embeddings across four models: (a) CLIP-L/14 (non-Latin language
+separation), (b) Chinese-CLIP-L/14 (language family clustering), (c) XLM-R-L/14 (dense single-cluster unification),
+and (d) Jina-E-v4 (unified but dispersed cluster).
+
+Both modern MLLM-based models and explicit alignment models drastically reduce the association bias compared to
+the baselines, achieving SP scores below 0.16. However, neither paradigm consistently outperforms the other on this
+specific task.
+
+6 Discussion
+
+Our evaluation framework distinguishes between two perspectival biases: prevalence bias, driven by data imbalance,
+and association bias, arising from learned cultural correlations. Our findings show these are distinct challenges.
+
+Explicit cross-lingual alignment, used by the XLM-R models, is a highly effective strategy, achieving the lowest
+scores for both prevalence bias (DLBKL) and association bias (SP) by directly enforcing a shared semantic space.
+While modern MLLMs like Jina-E-v4 also perform well against association bias, the persistence of these issues across
+all models points to a deeper, unresolved problem: the entanglement of semantic concepts with linguistic and cultural
+artifacts in the model’s embedding space.
+
+The path forward, therefore, requires a fundamental shift in training strategy. Future work must prioritize training
+objectives that actively enforce non-association by creating a truly global semantic space. This means designing
+models to map a semantic query, regardless of its language or cultural origin, to all conceptually relevant images,
+irrespective of their geographical context. For example, the new method must include a curation process to avoid cross-
+cultural false negative images being pushed away from their corresponding queries, and utilize data augmentation to
+help ensure language-agnostic property.
+
+7 Conclusion
+
+In this work, we introduce a framework that distinguishes between two forms of perspectival bias in multimodal
+retrieval, prevalence bias and association bias, reflecting distinct ways in which a model’s prior shapes its behavior.
+This conceptual framing is operationalized through our proposed metrics and datasets: DLBKL, which measures rank-
+aware language prevalence bias, and XCM, which quantifies association bias through cross-cultural image retrieval.
+Together, these tools enable systematic evaluation of how multimodal large language models inherit and express
+perspectival biases across languages and cultures.
+
+In image-to-text retrieval, prevalence bias arises when a model favors texts from high-resource languages. This
+problem is addressed by anchoring other languages to the prevalent ones through cross-lingual alignment. In text-
+to-image retrieval, association bias arises when a model favors images that are culturally associated with the query
+language rather than semantically faithful to their content. Such bias cannot be resolved through traditional cross-
+lingual alignment or by merely exposing the model to a wider range of cultural content during training. Ultimately,
+our findings call for a more principled approach: one that directly mitigates localized spurious association as a core
+design principle for models that are not only multilingual but also perform consistently across languages and cultures.
+
+10
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+8 Limitations
+
+Our work has several limitations. First, our DLBKL metric measures fairness via distributional parity, not semantic
+correctness. It therefore cannot distinguish between retrieving irrelevant documents and over-representing a language
+with relevant ones. Second, the XCM benchmark simplifies culture by using country as a proxy, a necessary choice
+for tractability that does not capture transnational or sub-national cultures. The benchmark’s coarse-grained semantics
+(e.g., "food") and lack of accounting for polysemy also limit its representation of real-world query complexity.
+
+Acknowledgments
+
+This research has received funding support from the National Science, Research and Innovation Fund (NSRF) via
+the Program Management Unit for Human Resources & Institutional Development, Research and Innovation [grant
+number B13F680099] and Chulalongkorn University Artificial Intelligence Institute.
+
+References
+
+[1] Friedrich Nietzsche. On the Genealogy of Morals. Vintage, New York, 1887. Part III, Section 12.
+
+[2] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,
+Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, and Ilya Sutskever. Learning transferable
+visual models from natural language supervision. CoRR, abs/2103.00020, 2021. URL |https://arxiv.org/|
+
+[3] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang,
+Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li, Jianqiang Wan, Pengfei Wang, Wei Ding,
+Zheren Fu, Yiheng Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang Zhang, Zhibo Yang, Haiyang Xu,
+
+and Junyang Lin. Qwen2.5-vl technical report, 2025. URL https://arxiv.org/abs/2502.13923
+
+[4] Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, Noveen Sachdeva, Inderjit Dhillon, Marcel
+Blistein, Ori Ram, Dan Zhang, Evan Rosen, et al. Gemini 2.5: Pushing the frontier with advanced reasoning,
+multimodality, long context, and next generation agentic capabilities. arXiv preprint arXiv:2507.06261, 2025.
+
+[5] Christoph Schuhmann, Romain Beaumont, Richard Vencu, Cade W Gordon, Ross Wightman, Mehdi Cherti,
+Theo Coombes, Aarush Katta, Clayton Mullis, Mitchell Wortsman, Patrick Schramowski, Srivatsa R Kun-
+durthy, Katherine Crowson, Ludwig Schmidt, Robert Kaczmarczyk, and Jenia Jitsev. LAION-5b: An open
+large-scale dataset for training next generation image-text models. In Thirty-sixth Conference on Neural Infor-
+
+mation Processing Systems Datasets and Benchmarks Track, 2022. URL https://openreview.net/forum?
+1d=M3Y74vmsMcY
+
+Xi Chen, Xiao Wang, Soravit Changpinyo, AJ Piergiovanni, Piotr Padlewski, Daniel Salz, Sebastian Goodman,
+Adam Grycner, Basil Mustafa, Lucas Beyer, Alexander Kolesnikov, Joan Puigcerver, Nan Ding, Keran Rong,
+Hassan Akbari, Gaurav Mishra, Linting Xue, Ashish V Thapliyal, James Bradbury, Weicheng Kuo, Mojtaba
+Seyedhosseini, Chao Jia, Burcu Karagol Ayan, Carlos Riquelme Ruiz, Andreas Peter Steiner, Anelia Angelova,
+Xiaohua Zhai, Neil Houlsby, and Radu Soricut. PaLlI: A jointly-scaled multilingual language-image model. In
+The Eleventh International Conference on Learning Representations, 2023. URL https: //openreview.net/|
+
+[7] David Amat Oléndriz, Pong Palau Puigdevall, and Adria Salvador Palau. Foodi-ml: a large multi-language
+dataset of food, drinks and groceries images and descriptions. arXiv preprint arXiv:2110.02035, 2021.
+
+=
+
+[8] Napat Laosaengpha, Thanit Lativannarat Attapol Rutherford, and Ekapol Chuangsuwanich. Mitigating language
+bias in cross-lingual job retrieval: A recruitment platform perspective. CoRR, abs/2502.03220, 2025. doi:
+
+10.48550/ARXIV.2502.03220. URL https: //doi.org/10.48550/arXiv.2502.03220
+
+[9] Guanhua Chen, Lu Hou, Yun Chen, Wenliang Dai, Lifeng Shang, Xin Jiang, Qun Liu, Jia Pan, and Wenping
+Wang. mCLIP: Multilingual CLIP via cross-lingual transfer. In Anna Rogers, Jordan Boyd-Graber, and Naoaki
+Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers), pages 13028-13043, Toronto, Canada, July 2023. Association for Computational
+
+Linguistics. doi: 10.18653/v1/2023.acl-long.728. URL https: //aclanthology.org/2023.acl-long.728/
+
+Fredrik Carlsson, Philipp Eisen, Faton Rekathati, and Magnus Sahlgren. Cross-lingual and multilingual CLIP.
+In Nicoletta Calzolari, Frédéric Béchet, Philippe Blache, Khalid Choukri, Christopher Cieri, Thierry Declerck,
+Sara Goggi, Hitoshi Isahara, Bente Maegaard, Joseph Mariani, Hélene Mazo, Jan Odijk, and Stelios Piperidis,
+
+[10
+
+—_
+
+11
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+editors, Proceedings of the Thirteenth Language Resources and Evaluation Conference, pages 6848-6854, Mar-
+
+seille, France, June 2022. European Language Resources Association. URL https://aclanthology.org/
+2022.1rec-1.739/
+
+[11] Karen Sparck Jones. A statistical interpretation of term specificity and its application in retrieval. Journal of
+documentation, 28(1):11-21, 1972.
+
+[12] Stephen Robertson, Hugo Zaragoza, et al. The probabilistic relevance framework: Bm25 and beyond. Founda-
+tions and Trends® in Information Retrieval, 3(4):333-389, 20009.
+
+[13] Chao Jia, Yinfei Yang, Ye Xia, Yi-Ting Chen, Zarana Parekh, Hieu Pham, Quoc Le, Yun-Hsuan Sung, Zhen Li,
+and Tom Duerig. Scaling up visual and vision-language representation learning with noisy text supervision. In
+International conference on machine learning, pages 4904-4916. PMLR, 2021.
+
+[14] Manuel Faysse, Hugues Sibille, Tony Wu, Bilel Omrani, Gautier Viaud, CELINE HUDELOT, and Pierre
+Colombo. Colpali: Efficient document retrieval with vision language models. In The Thirteenth International
+
+Conference on Learning Representations, 2025. URL https: //openreview.net/forum?id=ogjBpZ8uSi
+
+[15] Xin Zhang, Yanzhao Zhang, Wen Xie, Mingxin Li, Ziqi Dai, Dingkun Long, Pengjun Xie, Meishan Zhang,
+Wenjie Li, and Min Zhang. Gme: Improving universal multimodal retrieval by multimodal lms, 2025. URL
+https: //arxiv.org/abs/2412.16855
+
+[16] Jialu Wang, Yang Liu, and Xin Wang. Assessing multilingual fairness in pre-trained multimodal representations.
+In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Findings of the Association for Computa-
+tional Linguistics: ACL 2022, pages 2681-2695, Dublin, Ireland, May 2022. Association for Computational Lin-
+guistics. doi: 10.18653/v1/2022.findings-acl.211. URL
+
+[17] Radek Osmulski, Gabriel de Souza P Moreira, Ronay Ak, Mengyao Xu, Benedikt Schifferer, and Even Oldridge.
+
+Miracl-vision: A large, multilingual, visual document retrieval benchmark. arXiv preprint arXiv:2505.11651,
+2025.
+
+[18] Kalervo Jarvelin and Jaana Kekéldinen. Cumulated gain-based evaluation of ir techniques. ACM Trans. Inf.
+Syst., 20(4):422-446, October 2002. ISSN 1046-8188. doi: 10.1145/582415.582418. URL https://doi-org.
+chula.idm.oclc.org/10.1145/582415.582418
+
+[19] Tosin Adewumi, Lama Alkhaled, Namrata Gurung, Goya van Boven, and Irene Pagliai. Fairness and bias in
+multimodal Al: A survey, 2024. URL https: //arxiv.org/abs/2406.19097
+
+[20] Michael Giinther, Saba Sturua, Mohammad Kalim Akram, Isabelle Mohr, Andrei Ungureanu, Bo Wang,
+
+Sedigheh Eslami, Scott Martens, Maximilian Werk, Nan Wang, and Han Xiao. jina-embeddings-v4: Univer-
+
+sal embeddings for multimodal multilingual retrieval, 2025. URL https: //arxiv.org/abs/2506.18902
+
+Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu. Bge m3-embedding: Multi-
+
+lingual, multi-functionality, multi-granularity text embeddings through self-knowledge distillation, 2024. URL
+
+ttps://arxiv.org/abs/2402.03216
+
+Deepan (deepanprabhu) Prabhu. duckduckgo-images-api. GitHub repository, 2025. URL https://github.
+
+com/deepanprabhu/duckduckgo-images-api?tab=readme-ov-file Accessed: 3 August 2025.
+
+Ashish Thapliyal, Jordi Pont-Tuset, Xi Chen, and Radu Soricut. Crossmodal-3600: A Massively Multilingual
+
+Multimodal Evaluation Dataset. In EMNLP, 2022.
+
+Leland McInnes, John Healy, Nathaniel Saul, and Lukas Gro3berger. Umap: Uniform manifold approximation
+
+and projection. Journal of Open Source Software, 3(29):861, 2018. doi: 10.21105/joss.00861. URL https:
+
+//doi.org/10.21105/joss.00861
+
+Ketan Rajshekhar Shahapure and Charles Nicholas. Cluster quality analysis using silhouette score. In 2020 IEEE
+
+7th international conference on data science and advanced analytics (DSAA), pages 747-748. IEEE, 2020.
+
+[26] Common Crawl. Distribution of languages in common crawl monthly archives. https://commoncrawl.
+github.io/cc-crawl-statistics/plots/languages, 2025.
+
+[27] An Yang, Junshu Pan, Junyang Lin, Rui Men, Yichang Zhang, Jingren Zhou, and Chang Zhou. Chinese clip:
+Contrastive vision-language pretraining in chinese. arXiv preprint arXiv:2211.01335, 2022.
+
+[21
+
+—_—
+
+[22
+
+—_—
+
+[23
+
+—_—
+
+[24
+
+—_
+
+[25
+
+—_—
+
+A Culturally Relevant Concept Identification
+
+To identify image concepts unique to each country, we first employed the Geminf as a tool for generating culturally
+relevant suggestions prior to data collection. The prompt used in this process is shown in Figure [11]to identify all
+labels associated with an image. Figure[I0]
+
+12
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+B Multi-Concept Detection in Cultural Images
+
+To establish the self-preference cultural bias, the culturally relevant and non-relevant candidate images must not share
+concepts with the text label. We utilized Geminf with the following prompt in Figure[11]to identify all labels associ-
+ated with an image.
+
+C Language Resources
+
+To estimate language resource availability, we utilized the Distribution of Languages from the Common Crawl dataset
+(CC-MAIN-2025-18) as an approximation. Table [3]and [4] presents the resulting language composition for RQ1
+and RQ2, consequently.
+
+D Example of Result from Image to Text Retrieval
+
+To further elaborate the result of research question 1, we provide the example of retrieval from image to text from
+CLIP and M-CLIP in Figure[12] We also provide result of LBKL and DLBKL score at other rank in Table [3]
+
+E Language and Rank Frequency Diagram
+
+To illustrate bias in image-to-text retrieval, we present a visualization of language groups categorized by resource level
+as shown in Appendix [C] showing both their overall retrieval frequency as shown in Figure [13] and their frequency
+distribution across ranks as shown in Figure[I4]
+
+F Annotator Guideline
+
+The guideline we provide to the annotators is to remove duplicates across multiple views. If an image depicts the
+same scene or object with no meaningful change, keep only one copy. Keep images if there is a significant variation.
+Allowed differences include time of day (e.g., day vs. night), viewpoint or angle (if the perspective changes enough
+that visual elements in the image are noticeably different). Minor or trivial variations are not allowed as they would
+be too similar. This 397 includes slight shifts, crops, or zooms of the same scene.
+
+G UMAP Analysis for Self-Preference Cultural Bias
+
+To visualize cultural bias, the UMAP projections of text and image embeddings of all models as shown in Figure[15]
+and[T6] The text embeddings cluster strongly by language, a proximity that supersedes semantic content. Conversely,
+the image embeddings do not exhibit strong country-based clustering, suggesting lower cultural bias. While other
+models show a similar, albeit less severe, tendency for text embeddings to be more biased than image embeddings,
+this effect is diminished in modern models. The GME-Qwen2 and Jina-E-v4 models only cluster very low-resource
+languages (Swahili, Yoruba), and the XLM-R models demonstrate superior alignment, forming a single central cluster.
+This discrepancy challenges retrieval systems: a query’s text embedding is biased by its language, leading the system
+to favor images from the same cultural context over potentially more visually relevant content from others.
+
+H Full Official Model Name
+
+In this paper, we use aliases for the model names for conciseness; the full names are provided in Table[6]
+
+list 100 concepts that unique and vary in these country including China, India, Japan, saudi arabia, France, German, Brazil,
+Kenya, Thailand, USA
+
+like this
+
+{"food":{"China": "Mala Xiang Guo", ..., "Thailand”:"Padthai”, "USA":"hamburger"}, "costume”:{"China”:"Hanfu",
+"Thailand": "Sabai", "USA":"cowboy"3}}
+
+Figure 10: The prompt given to Gemini to generate unique country-specific image concepts.
+
+13
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Please classify the following image by assigning them to one or more of the following cultural
+categories:
+
+{category}.
+
+*xComprehensive Output Format (JSON) :*xx
+output as JSON for example:
+
+8
+"<INDEX>": ["<CATEGORY>", "<CATEGORY>", ...1,
+3
+
+in the categories please order by priority (high to low).
+
+Figure 11: The prompt given to Gemini for multi-label image classification, where the {category} placeholder is
+dynamically populated with the full list of categories.
+
+I Correlation Analysis for Self-Preference Cultural Bias
+
+We investigate how unimodal bias, which our UMAP analysis shows is more severe in the text modality as shown in
+Appendix [G] impacts cross-modal retrieval. To quantify this, we use the Silhouette score and find that high scores
+in low-resource languages correlate with self-preference cultural bias score (SP) cultural bias as shown in Table
+We confirm this relationship by calculating the Pearson correlation between SP and the Silhouette scores. For exam-
+ple, CLIP-L/14’s Text Silhouette score correlates strongly with SP (0.827), while its Image Silhouette correlation is
+only moderate (0.550), as shown in Figure [17] Across all tested models, the average correlations reveal that SP is
+predominantly driven by the text encoder as shown in Tablel[7]
+
+J Dataset Statistics
+
+The distribution of cultural concepts in the XCM dataset is shown in Table[10] with each concept being represented
+by approximately 85 images on average.
+
+K Computational Resource
+
+The experiment is performed with a single A100 GPU for approximately 3 gpu hours for each model or 54 hours in
+total with library version of colpali-engine 0.3.13.dev1+g9bee9b2b7, transformers 4.53.3 for most experiment except,
+GME models are inferenced under transformers 4.51.3
+
+L. Authoring and Implementation Tools
+
+In preparing this manuscript, we utilized several generative large language models. For language editing and stylistic
+refinement, we employed Google’s Gemini 2.5-flash, along with models from xAI's Grok family (e.g., Grok-3 Ex-
+pert and Fast variants). For assistance with code implementation, scripting, and debugging, we used a model from
+Anthropic’s Claude series (e.g., Claude 4.0 Sonnet).
+
+M Detailed Results
+
+The full details of RQ2 experiment including all win rate of all models are illustrated in the Table[T1]
+
+N 3XCM Dataset Benckmark Samples
+
+This research provides an association evaluation benchmark and image metadata. Examples of the benchmark and
+image metadata are shown in Figure[I8]and Figure[19] respectively.
+
+14
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Language Type Language ID Distribution (%)
+English en 43.9499
+
+High Russian ru 5.7614
+German de 5.5691
+
+Japanese ja 4.9152
+
+Chinese-Simpl. ~~ zh 4.8778
+
+Spanish es 4.5422
+
+French fr 4.3271
+
+Italian it 2.4060
+
+. Portuguese t 2.3369
+Medium Polish ol 1.8744
+Dutch nl 1.8083
+
+Indonesian id 1.1759
+
+Turkish tr 1.1274
+
+Czech cs 1.0479
+
+Vietnamese vi 1.0213
+
+Korean ko 0.7865
+
+Farsi fa 0.7087
+
+Swedish SV 0.6736
+
+Arabic ar 0.6722
+
+Romanian ro 0.6374
+
+Ukrainian uk 0.6079
+
+Greek el 0.5651
+
+Hungarian hu 0.5082
+
+Danish da 0.4792
+
+Thai th 0.4269
+
+Low Finnish fi 0.3649
+Norwegian no 0.3135
+
+Hebrew he 0.2654
+
+Croatian hr 0.2339
+
+Hindi hi 0.2004
+
+Bengali bn 0.1064
+
+Telugu te 0.0213
+
+Swahili SW 0.0102
+
+Filipino fil 0.0084
+
+Maori mi 0.0014
+
+Cusco Quechua quz 0.0005
+
+Table 3: Composition of Language Resources in the CommonCrawl Dataset (CC-MAIN-2025-18) for the language
+experimented in RQ1
+
+15
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Name Full Name Language Resources
+(%)
+USA United States of America
+UK United Kingdom Enelish 43.950
+AUS Australia g
+GER Germany German 5.569
+CHN China Chinese 4.878
+JPN Japan Japanese 4915
+ESP Spain .
+ARG Argentina Spanish 4.542
+FRA France French 4.327
+PRT Portugal
+BRA Brazil Portuguese 2.337
+SAU Saudi Arabia Arabic 0.672
+THA Thailand Thai 0.427
+IND India Hindi 0.200
+KEN Kenya Swahili 0.010
+NGA Nigeria Yoruba 0.001
+
+Table 4: Composition of Language Resources in the CommonCrawl Dataset (CC-MAIN-2025-18) for the language
+experimented in RQ2
+
+Model @5 @25 @50 @99
+LBKL| DLBKL| LBKL|, DLBKL| LBKL| DLBKL|, LBKL| DLBKL|
+
+Vision-Language Contrastive Models
+CLIP-L/14 6.904 6.911 4.171 4.182 3.245 3.249 2.658 2.652
+Chinese-CLIP-L/14 6.220 6.229 3.793 3.798 3.172 3.168 2.582 2.570
+
+Cross-lingual Alignment Models
+XLM-R-L/14 0.939 0.960 0.240 0.246 0.221 0.223 0.214 0.213
+XLM-R-B/16plus 0.692 0.713 0.043 0.049 0.030 0.033 0.019 0.019
+
+MLLM-Based Retrieval Embedders
+ColQwen2.5-3B-M 2.138 2.164 0.192 0.209 0.114 0.122 0.088 0.089
+ColQwen2.5-7B-M 2.373 2.397 0.212 0.232 0.127 0.138 0.083 0.089
+ColQwen2.5-v0.2 5.958 5.974 1.375 1.424 0.633 0.676 0.377 0.410
+GME-Qwen2-2B 6.014 6.037 0.739 0.804 0.254 0.306 0.140 0.175
+GME-Qwen2-7B 3.843 3.875 0.221 0.264 0.094 0.124 0.058 0.077
+Jina-E-v4 2.859 2.886 0.157 0.186 0.072 0.093 0.045 0.059
+
+Table 5: Image-to-text retrieval bias on Crossmodal-3600, measured by LBKL and DLBKL at various retrieval depths
+&).
+
+16
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Caption (English):
+“A woman explaining a chart to two other women.”,
+
+“A woman standing and pointing to handwritten text on a
+poster sheet taped to a wooden cabinet door and talking to
+two other women sitting nearby.”
+
+Retrieval results from CLIP (clip-vit-large-patch14) LBKL@S5: 0.2231, DLBKL@S5: 0.3927
+Rank Similarity Correct Language Caption
+score
+
+1 0.3279 Yes English An inside view of a conference room with a group of
+(High) le gathered together for a meeting.
+
+2 0.2926 Yes English A woman explaining a chart to two other women.
+(High)
+
+3 0.2913 Yes English A group of business people gathered in a conference
+(High) hall for a meeting.
+
+4 0.2882 Yes English A young woman giving a presentation.
+
+(High)
+5 0.2693 No Cusco Quechua Munay warmicha fututa urquspa llamk’ashan
+
+Low
+Retrieval result from M-CLIP' LBKL@S5: 0.0204, DLBKL@5: 0.1106
+Rank Similarity Correct Language Caption
+score
+1 0.4314 Yes Norwegian En kvinne som viser et papir festet til treveggen og
+(Low) andre kvinner som sitter ved et skrivebord i et
+konferanserom
+
+"2 04202 Yes Koran Ho] Jus} Wo] A & Fo|E Bola oj
+(Low) s}z7)u] 7t2 i $9 4
+
+3 0.4189 Yes Danish En yngre kvinde peger pi et af flere stykker papir pa
+(Low) en vag og to andre kvinder sider ved et langt bord
+foran hende
+4 0.4121 Yes German Eine stehende Frau zeigt zwei sitzenden Frauen in
+
+(High) einem Meetingraum mit einem Stift auf auf Schrinke
+geklebten und beschrifteten A3 Papiere
+
+5 0.412 Yes ~~ Victnamese  Canh mt budi hop c6 3 ngudi, | ngudi do hong dang
+(Medium) chi vao tai liéu dan trén tudng, 2 ngudi do tring dang
+ngoi nghe
+
+XLM-Roberta-Large-Vit-B-16Plus
+
+Figure 12: An Example of Result from Image to Text Retrieval
+
+17
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Chinese-CLIP-L/14 CLIP-L/14 _ColQwen2.5-3B-M ColQwen2.5-7B-M  ColQwen2.5-v0.2
+
+I
+© Medium-High Resource Lang. 120
+© Low Resource Lang. 500
+100
+8
+5
+&
+i -
+300 &
+200 on
+200
+100 100 20
+i I
+o ol 1 PM
+© 2 aw ow ow 100
+
+140
+
+120
+
+2
+
+Query Count
+Query Count
+Query Caunt
+Query Count
+
+0 20 a0 60 80 100 0 20 8 100 0 20 a0 60 8
+
+[4 20 40 60 8 100
+
+kdl
+Q 200 Q J 350 p
+
+Laid 250
+120
+
+150 200
+; H lg € 200 lg
+E pie 3 5 B
+
+75 7s 100
+
+-
+
+20 2 2 20
+
+Figure 13: A language frequency histogram of each language group for all model
+
+Chinese-CLIP-L/14 CLIP-L/14 ColQwen2.5-3B-M  ColQwen2.5-7B-M  ColQwen2.5-v0.2
+
+2500
+2500
+2000 3000
+" I 2000
+2000
+TTT lj lila 2% 2500
+1500 (Il
+1500
+1500 1500 2000
+3
+1000 1500
+1000 1000 oo
+1000
+© Medium-High Resource Lang 20 S00
+s00
+© Low Resource Lang.
+Pg 111 0 lH] 0 0 0
+EET EE ETE] EEE] Taina ene oa Inna ane a EEE ETE]
+Rank Postion Rank Postion Rank positon Rank positon Rank Postion
+3500 3000 J p
+2000
+or 2000
+150
+2500
+2500 1500
+2000 1500
+2000
+2000 | | | | | Eid 1250
+H 1500 I
+3 1000
+1000
+1500 2300 it
+1000 7 750
+1000 he 1000
+500 500
+500
+500
+500 20 250
+0 IY il 0 0
+EEE EEE] EEE ETE] inaanas ana oa inaanasanea inna anea oa
+Rank Position Rank Position Rank Position Rank Position Rank Position
+
+Figure 14: A frequency of language group at each rank for all model
+
+18
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+UMAP Projection of Translated Concepts and Images for Model: CLIP-L/14
+UMAP Projection of Native Concept Embeddings by Language UMAP Projection of Image Embeddings by Country
+
+Lig Language 17.5 ¢
+“ ® English °
+15 © German 15.0 °
+© Chinese °
+© Japanese .
+10 © French 12.3 °
+© Spanish °
+~ wp Portuguese ~ 10.0 B
+% 5 Arabic % |
+= © Thai = 75] = .
+= © Hindi = : .
+Swahili
+0 Yoruba 50
+—g
+2.5
+-5
+& 00,
+-25 00 25 50 75 10.0 125 -5 0 5 10
+UMAP_1 UMAP_1
+
+UMAP Projection of Translated Concepts and Images for Model: Chinese-CLIP-L/14
+UMAP Projection of Native Concept Embeddings by Language UMAP Projection of Image Embeddings by Country
+
+EF] Language 20.01
+15 © English °
+© German 17.5] °
+© Chinese °
+© Japanese 15.01 °
+10 © French °
+© Spanish 12.5 °
+~ Portuguese ~ B
+[= Arabic 0
+£5 © Thai $10.0 o
+= © Hindi = °
+@ Swahili 7.5]
+Yoruba
+0 5.01 gq,
+2.5]
+_51 .
+0.0¢
+-15 -10 5 0 5 10 15 0 5 10 15
+UMAP_1 UMAP_1
+
+UMAP Projection of Translated Concepts and Images for Model: Jina-E-v4
+UMAP Projection of Native Concept Embeddings by Language
+
+UMAP Projection of Image Embeddings by Country
+
+“Nae . Language 17.5
+ow © English °
+15 a © German °
+”~
+Ma © Chinese 15.0 °
+"ou . NH N ® Japanese °
+. ICR PO © French 12.5 .
+10 ? © Spanish °
+~, .. . Portuguese ~10.0 .
+a Pe | Arabic a
+s . ~4 ’ <
+= © Thai Ss °
+> 5 . ves © Hindi S575 = o
+.s by i
+vy Swahili
+ve, ° Yoruba 5.0
+Pl er
+. .
+0 25
+. 0.0 :
+0 5 10 15 0 5 10 15
+UMAP_1 UMAP_1
+
+UMAP Projection of Translated Concepts and Images for Model: XLM-R-VL-B/14
+
+UMAP Projection of Native Concept Embeddings by Language
+
+UMAP Projection of Image Embeddings by Country
+
+20 Language 17.5
+J © English o
+15 © German 15.0 °
+r © Chinese °
+H © Japanese 12.5 °
+10 » : . © French °
+h ® Spanish 10.0{ . LJ
+o 5 . - Portuguese o
+Arabic
+ES o © Thai $ 75 Ld
+> 0 © Hindi = °
+- . . : : Swahili 5.0
+B Yoruba
+-5 : 25
+-10 0.0
+-10 -5 0 5 10 15 20 25 -50 -25 00 25 50 75 100
+UMAP_1 UMAP_1
+
+Figure 15: The UMAP visualizations of the caption embeddings (left) and image embeddings (right) from the CLIP-
+
+L/14 model applied to our dataset.
+
+19
+
+Country
+USA
+
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+Country
+USA
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+Country
+USA
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+Country
+USA
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+UMAP_2
+
+15
+
+10
+
+-10
+
+UMAP Projection of Translated Concepts and Images for Model: XLM-R-VL-L/16plus
+UMAP Projection of Native Concept Embeddings by Language
+
+-10
+
+0
+
+10
+UMAP_1
+
+20
+
+30
+
+Language
+English
+German
+Chinese
+Japanese
+French
+Spanish
+Portuguese
+Arabic
+Thai
+© Hindi
+Swahili
+Yoruba
+
+12.5
+
+10.0
+
+N
+X 25
+=
+ju}
+
+0.0
+-2.5
+
+-5.0
+
+-7.5
+
+UMAP Projection of Image Embeddings by Country
+
+-10
+
+-5
+
+UMAP_1
+
+10
+
+UMAP Projection of Translated Concepts and Images for Model: GME-Qwen2-2B
+
+UMAP Projection of Native Concept Embeddings by Language
+
+UMAP_2
+
+8 Fy
+* - &
+« 3, 4 |.
+6
+4
+|
+2
+0
+- i N
+[4
+-2 ‘ Fo
+pe
+-4 -2 0 2 4 10
+UMAP_1
+
+UMAP Projection of Translated Concepts and Images for Model: GME-Qwen2-7B
+
+Language
+
+© English
+
+© German
+
+® Chinese
+
+® Japanese
+
+© French
+
+© Spanish
+Portuguese
+Arabic
+
+© Thai
+
+© Hindi
+Swahili
+Yoruba
+
+UMAP Projection of Native Concept Embeddings by Language
+
+UMAP_2
+
+12
+
+10
+
+[e)}
+
+‘oe
+Pal .
+
+4
+
+UMAP_1
+
+Language
+English
+German
+Chinese
+Japanese
+French
+Spanish
+Portuguese
+Arabic
+Thai
+
+© Hindi
+
+Swahili
+Yoruba
+
+® oo 0 0 00
+
+UMAP Projection of Image Embeddings by Country
+
+15
+
+10
+
+UMAP_2
+
+10
+UMAP_1
+
+UMAP Projection of Image Emb
+
+15
+
+15
+
+10
+
+UMAP_2
+(6,]
+
+eddings by Country
+
+UMAP_1
+
+5 10
+
+Country
+USA
+
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+Country
+USA
+
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+Country
+USA
+
+UK
+Australia
+Germany
+China
+Japan
+France
+Spain
+Argentina
+Portugal
+Brazil
+Saudi Arabia
+Thailand
+India
+Kenya
+Nigeria
+
+Figure 16: The UMAP visualizations of the caption embeddings (left) and image embeddings (right) from the Chinese-
+
+CLIP-L/14 model applied to our dataset.
+
+20
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Alias Used in Paper Full Model Name Parameter
+CLIP-L/14 clip-vit-large-patch14! 427.6M
+Chinese-CLIP-L/14 Chinese-clip-vit-large-patch14? 406.2M
+ColQwen2.5-v0.2 ColQwen2.5-v@.23 3814.8M
+ColQwen2.5-3B-M ColQwen2.5-3b-multilingual-v1.@3 3994.6M
+ColQwen2.5-7B-M ColQwen2.5-7b-multilingual-v1.@3 8071.1M
+GME-Qwen2-2B gme-Qwen2-VL-2B-Instruct? 2209.0M
+GME-Qwen2-7B gme-Qwen2-VL-7B-Instruct? 7070.6M
+Jina-E-v4 jina-embeddings-v4® 3934.7M
+XLM-R-L/14 XLM-Roberta-Large-Vit-L-145 998.3M
+XLM-R-L/16plus XLM-Roberta-Large-Vit-B-16P1us® 768.9M
+
+The models are based on the following works: 1) Radford et al. [2] for CLIP-L/14; 2) Yang et al. [27] for Chinese-CLIP-L/14; 3)
+Faysse et al. for ColQwen2 models; 4) Zhang et al. for GME-Qwen2 models; 5) Giinther et al. for Jina-E-v4; and 6)
+Carlsson et al. for XLM-R-VL models.
+
+Table 6: Aliases Used in Paper and Corresponding Full Model Names and Parameters
+
+Self-Preference Cultural Bias vs Silhouette Scores Analysis for Model: CLIP-L/4
+
+sa Self-Preference Cultural Bias vs Text Silhouette by Country sa Self-Preference Cultural Bias vs Image Silhouette by Country
+o o [22
+= 15] | Correlation: 0.827 —— Self Preference Ratio g = 15 Correlation: 0.550 = —s— Self Preference Ratio S
+2 —=— Text Silhouette 023 2 —— Image Silhouette 0.04%
+310 2310 3
+9 01% g 3
+I+] 30
+os £5 5 0.02%
+QL 0 0L Rd o
+$ TEs g
+Eo Foo 0.00E
+[3 [3
+HD FFP SRS ERR DLO HD FFP SRS ERD
+VE SSE LEE FTF EE SSS Na FASE EL CLE FFF ESSE
+FOB RS FONE @ OB RS FC NE ©
+& & & & oF Ps F & & & & SN PS ES
+* >
+Countries (ordered by resource availability) Countries (ordered by resource availability)
+
+Self-Preference Cultural Bias vs Text Silhouette Self-Preference Cultural Bias vs Image Silhouette
+
+15) om Trend Line (r=0.827) indi 15) oe Trend Line (r=0.550) indie
+
+° Saudi Arabia
+
+10 Saudi Arabia LJ
+ee Thailand
+
+==" Thailand °
+
+5 ] - —
+
+China
+
+Self-Preference Cultural Bias
+Self-Preference Cultural Bias
+
+Japan po CoE ee oMigeria o Kenya" “Nigeria Fish
+Argentina ice oS HAY Ii ra N - ° %)
+Ja Len Ka grsavoenine Basics pl 8 strata
+-0.05 0.00 0.05 0.10 0.15 0.20 0.25 0.00 0.01 0.02 0.03 0.04 0.05
+Text Silhouette Score Image Silhouette Score
+
+Figure 17: Comparison of Self-Preference Cultural Bias with Text and Image Silhouette
+
+Model TSC ISC
+CLIP-L/14 0.83 0.55
+Chinese-CLIP-L/14 -0.26 0.58
+XLM-R-VL-B/16 0.98 -0.27
+XLM-R-VL-L/14 094 0.05
+Jina-E-v4 0.86 0.16
+GME-Qwen2-2B 0.80 0.09
+GME-Qwen2-7B 0.64 0.07
+Average 0.68 0.18
+
+Table 7: This table presents a Pearson correlation analysis between model performance and bias. We measure the
+correlation between association and the quality of data clusters (via Silhouette Score) in both the text embedding
+space (TSC) and the image embedding space (ISC).
+
+21
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Model Metrics Country
+USA UK AUS GER CHN JPN FRA ESP ARG PRT BRA SAU THA IND KEN NGA
+
+SP | 0.01 0.02 0.02 0.76 2.63 1.94 0.24 0.19 0.34 0.39 0.51 10.71 8.09 15.88 2.04 2.27
+CLIP-L/14 TS | 0.05 0.05 0.05 0.02 0.16 -0.05-0.01 -0.02 -0.02 -0.01 -0.01 0.25 0.23 0.23 0.03 0.13
+IS) 0.02 0.02 0.03 0.01 0.03 0.04 0.01 0.01 0.00 0.00 0.01 0.05 0.03 0.03 0.02 0.03
+
+SP | 0.03 0.06 0.05 1.11 0.03 0.13 0.33 0.40 0.43 0.56 0.52 4.88 2.55 6.98 1.99 2.23
+Chinese-CLIP-L/14 TS | -0.05 -0.05 -0.05 0.00 0.13 -0.07 -0.03 -0.03 -0.03 -0.01 -0.01 -0.40 0.93 -0.37 0.00 0.03
+IS | 0.02 0.02 0.03 0.01 0.03 0.03 0.01 0.01 0.00 0.00 0.00 0.04 0.05 0.04 0.02 0.01
+
+SP | 0.02 0.03 0.02 0.05 0.04 0.04 0.04 0.03 0.05 0.04 0.04 0.05 0.02 0.12 0.49 0.93
+Jina-E-v4 TS| -0.01 -0.01 -0.01 -0.02 0.01 0.00 -0.01 -0.02 -0.02 -0.02 -0.02 0.02 0.01 0.00 0.00 0.13
+IS) -0.01 0.00 -0.01 -0.01 0.00 0.01 0.00 0.00 -0.01 -0.01 -0.01 0.02 0.00 0.01 0.01 0.00
+
+SP | 0.05 0.04 0.07 0.05 0.04 0.07 0.08 0.08 0.09 0.08 0.07 0.05 0.04 0.04 0.11 0.61
+XLM-R-L/14 TS, -0.18-0.18 -0.18 -0.11 -0.07 -0.10 -0.16 -0.16 -0.16 -0.12 -0.12 -0.07 -0.06 -0.17 -0.14 0.44
+IS) 0.01 0.02 0.03 0.01 0.03 0.03 0.01 0.01 0.01 0.01 0.01 0.06 0.04 0.03 0.02 0.03
+
+SP | 0.05 0.04 0.06 0.04 0.04 0.05 0.05 0.06 0.07 0.06 0.06 0.04 0.02 0.05 0.10 0.66
+XLM-R-B/16plus TS]  -0.24 -0.24 -0.24 -0.21 -0.19 -0.19 -0.24 -0.23 -0.23 -0.23 -0.23 -0.19 -0.19 -0.23 -0.23 0.49
+IS | 0.01 0.01 0.00 0.00 0.01 0.01 0.00 0.00 -0.01 0.00 -0.01 0.03 0.02 0.03 0.02 0.00
+
+SP | 0.02 0.03 0.02 0.10 0.04 0.04 0.05 0.05 0.08 0.08 0.09 0.14 0.10 0.24 1.24 2.02
+GME-Qwen2-2B TS | 0.02 0.02 0.02 0.04 0.02 0.00 0.04 0.01 0.01 0.03 0.03 0.01 0.03 0.00 0.03 0.15
+IS | 0.00 0.00 0.01 0.00 0.02 0.01 0.00 0.00 0.00 0.00 0.00 0.03 0.02 0.02 0.01 0.01
+
+SP | 0.03 0.02 0.01 0.14 0.04 0.05 0.07 0.07 0.07 0.09 0.13 0.14 0.08 0.12 0.62 1.88
+GME-Qwen2-7B TS | 0.04 0.04 0.04 0.05 0.02 0.02 0.07 0.02 0.02 0.04 0.04 0.09 0.11 0.03 0.04 0.14
+IS | 0.00 0.00 0.01 0.00 0.01 0.01 0.00 0.00 0.00 0.00 0.00 0.03 0.02 0.01 0.01 0.01
+
+Table 8: Cross-Country and Cross-Model Comparison of Language and Cultural Bias Metrics. This table presents the
+results for the Self-Preference Cultural Bias score (SP), Text Silhouette (TS), and Image Silhouette (IS) scores across
+various multimodal retrievers for a selection of countries.
+
+Country Number of Samples
+Argentina 771
+Australia 721
+Brazil 724
+China 727
+France 760
+Germany 744
+India 774
+Japan 944
+Kenya 600
+Nigeria 773
+Portugal 824
+Saudi Arabia 619
+Spain 841
+Thailand 649
+UK 644
+USA 609
+Average 733
+
+Table 9: Dataset Statistics of XCM dataset per Country
+
+22
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Concepts (C-M)
+
+Concepts (F-M)
+
+Concepts (A-G)
+24
+
+airlines cinema 54 formal uniform 117
+airport 65 coin 182 fountain style 91
+alcohol drink 26 combination food ~~ 72 funeral 141
+ancient city 112 congress 127 game 76
+ancient craft 111 costume 119 gas station 63
+ancient painting 139 craft 98 gathering place 92
+animal 100 dance 145 ghost 19
+architecture 107 deep fried food 30 graduated uniform 78
+art 89 department store 21 hat 95
+artwork 26 dessert 66 headwear 106
+bag 20 devil 43 historical event 89
+bakery 47 diningroom 49 historical figure 81
+banknotes 69 doll 131 historical image 120
+bathroom 30 drink 31 hot pot concept 66
+bedroom 77 dry heat food 21 hotel 70
+boat 99 embroidery style 133 house 86
+bracelet 62 fashion 57 instrument 58
+building 196 festival 145 lottery tickets 48
+bus 92 fire station 162 mailbox 81
+bus station 56 folk tale 38 major mountain range ~~ 52
+capital 147 folklore character ~~ 90 major religious site 97
+celebrity 66 food 52 major river 57
+child 69 football player 104 map 32
+market 74
+Concepts (M-P) Concepts (R-S) Concepts (T-Z)
+marriage ceremony 95 religious building 123 tattoo style 59
+martial art 96 restaurant 38 taxi 102
+mask 104 ritual 108 tea culture 85
+military parade 189 rural dwelling 127 textile pattern 56
+moist heat food 34 sacred object 101 tourist attraction 130
+museum 99 school 120 toy 66
+music band 95 series 40 train 116
+mythical creature 56 shirt 64 train station 128
+mythological figure ~~ 68 shopping mall 91 tree 94
+native inhabitants 163 singer 56 tv program 43
+natural landmark 152 snack 56 unique art form 119
+necklace 63 social custom 147 unique cuisine trait 43
+night view 110 soldier 167 unique food ingredient 22
+older 38 sport 79 unique natural phenomenon 102
+painting 128 stageplay 108 unique transportation 75
+pants 30 statue 106 university 136
+people 136 street entertainment 111 wall painting 65
+poaching food 25 street sign 81 warrior 79
+police station 158 street vendor cart 32 weapon 75
+popular street food 98 street view 86 wedding 108
+pottery style 150 symbolic bird 84 writing character 15
+priest 68 symbolic plant 72 Z00 79
+prime minister 86
+
+Table 10: Distribution of Concepts and Image Counts
+
+23
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Model Metrics Country
+USA UK AUS GER CHN JPN FRA ESP ARG PRT BRA SAU THA IND KEN NGA
+Mem (%) 195.73 94.57 94.73 52.42 25.17 31.07 75.53 78.00 69.65 65.78 61.33 7.75 10.48 5.56 27.83 24.19
+CLIP-L/14 ~~ Mu(%) J) 1.31 2.02 2.22 39.65 66.16 60.34 18.29 15.10 23.61 25.85 31.35 83.04 84.75 88.24 56.67 54.85
+won (%) 4 2.96 3.42 3.05 7.93 8.67 8.59 6.18 6.90 6.74 837 7.32 9.21 4.78 6.20 15.50 20.96
+Chinese-CLIP Mem (%) 194.25 89.44 90.57 40.05 93.40 84.20 65.79 61.95 60.83 56.55 57.04 14.38 21.88 10.47 27.00 25.10
+1/14 Meu(%) ] 3.28 5.75 4.44 44.62 2.48 10.92 21.97 24.73 26.07 31.80 29.56 70.11 55.78 73.00 53.83 56.02
+Muon (%) | 2.46 4.81 4.99 15.32 4.13 4.88 12.24 13.32 13.10 11.65 13.40 15.51 22.34 16.54 19.17 18.89
+Mien (%) 195.89 95.65 95.98 92.47 94.22 92.79 94.34 93.22 91.70 91.99 94.20 91.60 95.38 86.30 56.50 36.74
+Jina-E-v4 Meua(%)] 1.97 2.48 1.66 497 3.44 392 4.08 3.09 480 4.13 3.73 4.68 2.00 9.95 27.83 34.15
+Muon (%) J 2.13 1.86 2.36 2.55 2.34 3.29 1.58 3.69 3.50 3.88 2.07 3.72 2.62 3.75 15.67 29.11
+Mem (%) 1 89.66 91.15 89.46 90.32 92.30 89.40 87.63 85.37 86.12 87.86 87.98 90.95 93.07 89.41 80.33 40.49
+XLM-R-L/14 Mcu(%) ] 4.11 4.04 583 444 4.13 626 6.58 6.54 7.39 7.16 5.80 4.85 3.54 3.75 8.50 24.71
+Muon (%) J 624 4.81 4.72 524 358 4.35 579 8.09 6.49 498 6.22 420 3.39 6.85 11.17 34.80
+XLM-R-B Mem (%) 191.95 91.30 90.71 93.95 94.50 91.62 90.66 88.47 87.81 90.05 89.36 92.57 95.22 91.09 83.17 40.88
+/16Plus Ma(%)] 4.11 3.88 5.13 4.03 3.58 4.56 4.34 547 597 570 5.52 3.88 2.00 4.91 8.33 26.78
+Muon(%) J 3.94 4.81 4.16 2.02 1.93 3.82 5.00 6.06 623 4.25 5.11 3.55 2.77 4.01 8.50 32.34
+GME-Qwen2 Mem (%) 196.06 95.34 96.95 87.77 94.09 93.43 92.76 90.49 88.59 90.05 88.95 84.49 89.06 76.87 37.17 25.87
+B-Instruct Meua(%) ] 2.30 2.48 1.66 847 3.58 3.92 4.74 4.64 7.26 7.04 7.87 11.63 8.63 18.48 46.00 52.26
+Muon(%) J 1.64 2.17 1.39 3.76 2.34 2.65 2.50 4.88 4.15 291 3.18 3.88 2.31 4.65 16.83 21.86
+Mien (%) 195.40 95.34 96.53 84.68 95.05 92.47 90.39 90.73 90.27 88.35 85.50 85.46 90.91 85.92 55.17 29.62
+
+GME-Qwen?2
+-7B-Instruct cul
+
+non
+
+%
+
++
+
+246 233 097 11.69 3.44 4.77 6.45 595 6.10 7.77 11.46 11.63 7.09 10.34 34.00 55.76
+
+%) J 2.13 233 250 3.63 1.51 2.76 3.16 3.33 3.63 3.88 3.04 291 2.00 3.75 10.83 14.62
+
+Table 11: Cross-Country and Cross-Model Comparison of Win Percentages. This table presents the results for the
+Semantically Relevant, Culturally Relevant, and Non-Relevant Win Percentages across various multimodal retrievers
+for a selection of countries.
+
+24
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Query 1734
+Native Text [Eng]: hat | Culture: UK | Semantic: hat
+Semantically Relevant Culturally Relevant Non-Relevant
+A &
+Clr
+ID: china-47-9-eng ID: uk-64-4-nav ID: nigeria-115-5-nav
+Culture: China Culture: UK Culture: Nigeria
+Semantics: hat Semantics: building Semantics: mask
+Query 7118
+
+Native Text [Hindi]: ¥75 | Culture: India | Semantic: food
+
+Semantically Relevant Culturally Relevant Non-Relevant
+
+ID: spain-77-3-eng ID: india-115-6-eng ID: australia-64-4-eng
+Culture: Spain Culture: India Culture: Australia
+Semantics: food Semantics: mask Semantics: building
+Query 8153
+
+Native Text [English]: Bakery | Culture: USA | Semantic: bakery
+
+Semantically Relevant Culturally Relevant Non-Relevant
+
+ID: portugal-118-2-eng ID: usa-98-7-nav ID: japan-73-3-eng
+Culture: Portugal Culture: USA Culture: Japan
+Semantics: bakery Semantics: coin Semantics: toy
+
+Figure 18: Examples of 3XCM dataset benchmark
+
+25
+
+
+Evaluating Perspectival Biases in Cross-Modal Retrieval
+
+Image ID: argentina-0-1-eng Image ID: portugal-0-3-eng
+rst C8 Semantic: train
+
+= ic B Culture: Portugal
+
+Native text [Portugal]: Comboio
+Multi-Label:
+
+Semantic: train
+
+Culture: Argentina
+Native text [Spain]: Tren
+| Multi-Label:
+
+o taxi craft
+
+« street view « people
+« building « shirt
+
+« gathering place « costume
+
+« people textile pattern
+
+Semantic: train
+~~ Wl Culture: Thailand
+Native text [Thai]: salw
+
+A
+
+Image ID: china-0-3-eng Image ID: thailand-0-4-eng
+$% Semantic: train e :
+
+Culture: China
+
+Native text [Chinese]: ‘NZ
+
+Multi-Label: \ Multi-Label:
+o taxi « pottery style
+« architecture o craft
+« building o art
+« ancient craft
+o artwork
+
+Figure 19: Metadata for image of 3XCM dataset benchmark
+
+26

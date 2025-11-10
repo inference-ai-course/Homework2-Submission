@@ -1,0 +1,1246 @@
+arXiv:2510.27049v1 [cs.CL] 30 Oct 2025
+
+Recursive numeral systems are highly regular and easy to process
+
+Ponrawee Prasertsom!
+Devdatt Dubhashi?
+
+! University of Edinburgh
+
+Andrea Silvi2
+Moa Johansson?
+
+Jennifer Culbertson!
+Kenny Smith!
+
+Chalmers University of Technology and Gothenburg University
+
+{ponrawee.prasertsom, jennifer.culbertson, kenny.smith}@ed.ac.uk
+{silvi, moa. johansson, dubhashi}@chalmers.se
+
+Abstract
+
+Previous work has argued that recursive nu-
+meral systems optimise the trade-off between
+lexicon size and average morphosyntatic com-
+plexity (Deni¢ and Szymanik, 2024). However,
+showing that only natural-language-like sys-
+tems optimise this tradeoff has proven elusive,
+and the existing solution has relied on ad-hoc
+constraints to rule out unnatural systems (Yang
+and Regier, 2025). Here, we argue that this
+issue arises because the proposed trade-off has
+neglected regularity, a crucial aspect of com-
+plexity central to human grammars in general.
+Drawing on the Minimum Description Length
+(MDL) approach, we propose that recursive
+numeral systems are better viewed as efficient
+with regard to their regularity and processing
+complexity. We show that our MDL-based mea-
+sures of regularity and processing complexity
+better capture the key differences between at-
+tested, natural systems and unattested but pos-
+sible ones, including “optimal” recursive nu-
+meral systems from previous work, and that
+the ad-hoc constraints from previous literature
+naturally follow from regularity. Our approach
+highlights the need to incorporate regularity
+across sets of forms in studies that attempt to
+measure and explain optimality in language.
+
+1 Introduction
+
+One key question in the study of language is why
+languages are the way they are; what cognitive
+and communicative constraints shape linguistic sys-
+tems? Recent research suggests that linguistic sys-
+tems are shaped by efficient communication, such
+that natural systems optimise the trade-off between
+simplicity and informativeness in various domains
+(Gibson et al., 2019), from kinship terms (Kemp
+and Regier, 2012), colour terms (Regier et al., 2015;
+Zaslavsky et al., 2019), grammatical categories
+(Mollica et al., 2021), indefinite pronouns (Denié
+et al., 2022), boolean connectives (Uegaki, 2022)
+to spatial demonstratives (Chen et al., 2023). For
+
+example, colour-naming systems tend to either par-
+tition the space of colour referents into few large,
+connected categories (e.g., dark vs. light colours),
+or into many small specific categories (e.g., red,
+green, blue, yellow, brown, ...); the former systems
+are simple but do not allow precise communica-
+tion about colour, the terms in the latter systems
+are highly informative but the systems are complex
+(Regier et al., 2015).
+
+Xu et al. (2020) investigated this trade-off in
+the domain of numeral systems. They found that
+while numeral systems with limited precision (e.g.,
+a few vs. many) followed the same trade-off, re-
+cursive numeral systems like the English decimal
+system (one, two, ... ninety, ninety-one, ...) are
+maximally informative in that any integer can be
+precisely expressed. Since informativeness is fixed,
+Deni¢ and Szymanik (2024) (henceforth, D&S)
+argued that the relevant trade-off shaping natural
+recursive numeral systems is instead between lexi-
+con size
+
+and the average length of the numerals. However,
+as reviewed in Section 2, the optimal numeral sys-
+tems under this trade-off included not only human-
+like systems, but also unnatural, highly irregular
+ones.
+
+Yang and Regier (2025) (Y&R) attempted to
+resolve this with ad-hoc constraints that artificially
+restrict the space of possible systems to be human-
+like.
+
+In this paper, we argue instead that the key char-
+acteristic of human-like recursive numeral systems
+is how regular they are (regularity), and how easy
+it is to process them (processing complexity). We
+leverage a precise formal definition of regularity
+from formal language and complexity theory to
+demarcate natural language systems from other the-
+oretically possible ones. Our contributions are:
+
+* We introduce regularity and processing com-
+plexity as the key characteristics of recursive
+numeral systems (Section 3),
+
+
+* We demonstrate that human-like systems are
+significantly more regular and easier to pro-
+cess than other theoretically possible systems
+(Section 4),
+
+* We show that our measures capture the differ-
+ence between natural systems and unattested
+ones regardless of assumptions about the prior
+over numbers (Section 5).
+
+The code and data for our analyses are available
+at https: //anonymous.4open.science/r/regu
+larity-processing-complexity-recursive
+
+-numerals-322B.
+
+2 Prior work on efficiency of recursive
+numeral systems
+
+D&S proposed that recursive numeral systems opti-
+mise the trade-off between lexicon size and average
+morphosyntactic complexity. Lexicon size is the
+number of meanings encoded by single morphemes
+(e.g. in Mandarin this includes the numerals from
+1 yi — to 10 + shi). Average morphosyntactic
+complexity is the weighted average of the count
+of number and arithmetic combinator morphemes
+(+4, —, x) across all numerals. For example, the nu-
+meral (i.e. the form) of number 43 is formed in
+Mandarin as PU =, si shi san, “four [times] ten
+[plus] three”, 4 x 10 + 3. This numeral has mor-
+phosyntactic complexity of 5, counting the digit
+and null morphemes * and +.
+
+To show that natural recursive systems optimise
+this trade-off, D&S compared the numeral systems
+of natural languages to theoretically possible sys-
+tems over the number range 1 — 99. They gen-
+erated these possible recursive numeral systems
+using Hurford’s grammar (Hurford, 1975, 2007):
+
+Num — D | Phrase | Phrase £ Num
+Phrase — M | Num x M
+
+1
+
+where D and M are sets of digits and multipliers.
+Hurford’s grammar allows one to represent a
+recursive numeral system succinctly by only a
+(D, M) pair. D&S used a genetic algorithm (cf.
+Appendix A, Algorithm 1) to obtain the Pareto
+frontier, the theoretical bound beyond which no
+possible language can improve on lexicon size with-
+out sacrificing average morphosyntactic complexity
+(or vice-versa), and showed that human recursive
+numeral systems lie on or close to the frontier.
+
+However, unlike human numeral systems, the
+numerals in their optimal artificial systems did not
+consistently employ the same multiplier across
+numerals (cf. Table 1). Systems like this are
+widespread along D&S’s frontier, and were taken
+to be as “efficient” as natural ones, but they are evi-
+dently not human-like. This suggests that optimisa-
+tion for lexicon size and average morphosyntactic
+complexity alone may not accurately capture what
+makes natural recursive numeral systems different
+from other possible ones.
+
+Number Numeral (Mandarin) Numeral (unnatural)
+18 10+ 8 25-17
+19 1049 25-6
+20 2% 10 5x4
+21 2%x104+1 3x7
+22 2x 1042 25-3
+23 2%x10+4 3 25 —2
+24 2x104+4 6% 4
+25 2%x104+5 25
+
+Table 1: Numerals in Mandarin (second column) and
+in one of the optimal artificial systems of D&S (third
+column) for the number range 18 — 25. Notice that
+Mandarin is consistently base-10, whereas the unnatural
+system has alternating bases (i.e., 4, 7 and 25).
+
+Y&R attempted to solve these issues by introduc-
+ing ad-hoc constraints over the space of possible
+numeral systems, resolving the unorderliness issue
+of D&S by restricting the numeral system space to
+be more human-like.
+
+They added an extra rule for suppletives, and
+four additional constraints, which specify which
+multipliers to use for which number ranges, the
+maximum number that can be added or subtracted
+from Phrase within a given number range, as well
+as exception rules.
+
+They further require that the digits in D run se-
+quentially from 1 to a number between 1—20. They
+also only allowed for the smallest multiplier to be
+used to construct numbers smaller than or equal to
+the next largest multplier in M (Other examples
+can be found in Yang and Regier, 2025).
+
+Crucially, Y&R still maintain that lexicon size
+and morphosyntactic complexity are the relevant
+measures.
+
+In this sense, D&S’s optimal languages are still
+considered as efficient as Y&R ones, even though
+they cannot be generated under the grammar con-
+straints used by Y&R.
+
+
+3 (Ir)regularity and processing
+complexity
+
+We find the resolution proposed by Y&R unsatisfy-
+ing, since the source of these additional constraints
+itself stands in need of explanation; ideally, these
+characteristics could be accounted for as byprod-
+uct of other better-motivated pressures on natural
+recursive numeral systems. Importantly, neither of
+the existing measures captures a crucial aspect of
+human systems, namely regularity. An “unorderly”
+system, such as one with alternating multipliers,
+is intuitively not human-like precisely because the
+numerals are irregular, and Y&R constraints yield
+more human-like systems precisely because they
+are explicit constraints enforcing regularity. We
+propose that recursive numeral systems are better
+thought of as optimising the trade-off between ir-
+regularity and processing complexity, and provide
+measures of each below.
+
+3.1 Irregularity
+
+One way to measure regularity is in terms of com-
+pressibility. Regular systems are highly compress-
+ible, such that one could write a small set of gen-
+eral rules for the construction of numerals. For
+instance, recursive numerals in Karo Batak (Wool-
+lams, 1996) are extremely regular. For numerals
+from 1 to 99, it only requires the rules Num — D
+(for 1-9), and Num — D x 10 4+ D (for 10-99).
+
+English numerals are slightly less regular, i.e.
+featuring suppletive numerals (11, 12) that re-
+quire separate rules. We can thus measure the
+(in)regularity of a system by finding the length of
+the most general/shortest grammar for numerals.
+However, as inferring the shortest recursive gram-
+mar is challenging (Charikar et al., 2005), we sim-
+plify the problem by restricting ourselves to the
+number range 1-99, following D&S and Y&R, and
+treating the system as a finite language.
+
+We inferred a minimal partial deterministic finite
+automaton (DFA) that generates all and only valid
+numerals to represent a numeral grammar using
+Mihov and Schulz’s (2019) algorithm.! Intuitively,
+a regular system has a lot of repeated parts, so the
+number of states and transitions of the DFA will be
+small (cf. Figure 1).
+
+Our measure of irregularity is thus the represen-
+tational complexity of the numeral system, i.e., the
+size of the partial DFA. Adapting the scheme of
+
+"We use the Python package automata-1ib (https: //py
+pi.org/project/automata-1ib/) for inference.
+
+Brighton (2003), the irregularity L(G) of a recur-
+sive numeral grammar G, in bits, is:
+
+| Z|(2 - loga| S| + loga|%]) + loga| S| + [S| (2)
+N——— Sm SN
+(A) ®B) ©
+
+where Z is the set of transitions, S is the set
+of states, and X. is the set of symbols (i.e., mor-
+phemes). (A) gives the number of bits required to
+encode the transition table: Each transition requires
+2 - log | S| bits to identify the states at the start and
+end of the transition, and logz|X| to identify the
+transition symbol (morpheme). (B) and (C) are the
+numbers of bits for identifying the single initial
+state and accepting states (one bit for each state,
+indicating whether it is an accepting state or not),
+respectively.
+
+3.2 Processing complexity
+
+The DFA can be thought of as a description
+language used to encode the data (a set of
+numerals). The more complex the description
+language (the larger the DFA), the easier it is
+to generate or parse a numeral. Drawing on the
+Minimum Description Length principle (Li et al.,
+2008), Brighton (2003) shows that this quantity
+could be calculated from the average information
+required to determine the unique parsing path
+through the DFA for a given form-meaning pairing.
+In our case, this pairing simply corresponds to
+a numeral (the form) as one morpheme refers to
+only one meaning (e.g., one in twenty one refers
+only to ‘l’). For instance, in the DFA shown
+in Figure 1, parsing 2 x 10 (20) requires going
+through 4 transitions connecting the states A (initial
+state), D, Dx and D x 10, and one would need
+loga(9) + loga(1) + 14 1loga(1) + loga(1) +1
+Dx D=x10
+
+bits to encode or generate this numeral as a
+path through the DFA, with each accepting state
+requiring an extra bit to encode the accepting
+status.
+
+Averaging over these bits for all numbers gives
+the processing complexity of generating or pars-
+ing a set of numerals using a given DFA. Again
+adapting Brighton’s (2003) scheme, the process-
+ing complexity L(N | G) of recursive numeral
+grammar G for a set of numbers N is given by:
+
+IN] |S:
+
+> {rm . > (loga| Zi] + F(si;)) } (3)
+
+i=1 j=1
+
+
+Figure 1: The minimal partial DFA representing Karo Batak (highly regular) numerals in the range 1 to 99. Circles
+are states. Double circles are accepting states. Arrows are transitions. A denotes the initial state. A given numeral
+is parsed or generated by traversing the automaton and emitting the symbols (morphemes) associated with the
+transitions. Accepting states mark valid potential termination points of the parsing or generation. Note that, here, we
+name each state in accordance with the rules to generate (partial) numerals when the state is reached. For example,
+the number 10 in Karo Batak, expressed by 1 * 10, corresponds to the path from A through the transition for 1 to the
+state D, then the transition for * to the state Dx, then the transition for 10, ending at the state D = 10.
+
+where P(n;) is the prior/weight for n; € N, S; is
+the list of states through which the parsing proceeds
+for the numeral for n;, Z;; is the set of outward
+transitions from the jth state in the parsing of the
+numeral for n;, and F’ is an indicator function eval-
+uating to 1 if s;; € S; is an accepting state. D&S
+and Y&R assume that the prior is P(n;) oc n; 2,
+taken to reflect the communicative need of numbers
+(Dehaene and Mehler, 1992; Piantadosi, 2016), i.e.
+there is high communicative need / frequent use of
+small numbers, and the need to express higher num-
+bers declines rapidly. We follow this assumption in
+Section 4 but challenge it in Section 5.
+
+4 Applying the measures
+
+We now apply our complexity measures to natural
+recursive numeral systems and compare them to
+other theoretically possible ones.
+
+4.1 Natural vs. baseline numeral systems
+
+We first ask if natural recursive numerals are par-
+ticularly regular and of low processing complex-
+ity, relative to the entire space of possible systems.
+We compute our measures on two datasets: (1)
+the recursive numeral systems from 128 natural
+languages annotated at the morpheme level from
+D&S,? and (2) a sample of 10,000 baseline arti-
+ficial systems generated with Hurford’s grammar.
+To obtain the baseline sample, we adapt the imple-
+mentation of the genetic algorithm in D&S. When
+constructing artificial numeral systems, in cases
+where a grammar allows a number to be expressed
+as several possible numerals, D&S always chose
+
+https ://osf.io/cmuqg4
+
+the shortest numeral for each number (e.g. given
+D = {1,2}, M = {5,10, 12}, the possible numer-
+als for 12 include the shortest 12, along with 1 x 12,
+10 +2,1% 10+ 2 and 2 % 5 + 2). This is partly
+the source of unorderliness: favouring the shortest
+possible numeral will result in a system that does
+not reuse structures in smaller numerals in bigger
+ones (e.g., using 12 instead of 10 + 2 when the
+numeral for 11 is 10 4 1). To alleviate this, we al-
+low numerals of any length and any combination of
+digits, multipliers and combinators (4, x, —). For
+computational tractability, however, we limit the
+max search depth to 5, meaning that a numeral
+has at most 5 number morphemes and 4 arithmetic
+combinators, and use only digits and multipliers
+that occur in at least one natural language. We draw
+languages in 100 batches of 100 language types.
+We determine the type for each batch as follows.
+We randomly select 3 to 12 digits and 1 to 3 mul-
+tipliers. We always allow + and * as combinators,
+with a 20% chance of also having the subtraction
+combinator —, which is less common among the
+world’s languages (Comrie, 2022). We resample if
+the resulting set of digits, multipliers and combina-
+tors cannot express all numbers between 1 and 99.
+Otherwise, we use the selected digits, multipliers
+and combinators to generate 100 sets of numerals,
+each covering the numbers 1-99, where those sam-
+ples can differ in how a given number is expressed
+(cf. the multiple possible numerals for 12 above).
+
+Figure 2 plots irregularity against processing
+complexity for natural systems and these baseline
+systems. As expected, natural systems exhibit sig-
+nificantly more regularity and less processing com-
+
+
+=
+
+=
+
+x
+
+ko)
+
+[eX
+
+£ Language
+[]
+
+S * Natural
+g » Random
+a
+
+=
+
+=
+
+0 2500
+
+5000
+L(G) (irregularity)
+
+7500
+
+Figure 2: Irregularity (x-axis) and processing complex-
+ity (y-axis) of natural languages (blue) and 10,000 ran-
+domly generated baseline artificial languages (orange).
+
+plexity than the baselines. In fact, none of the
+sampled systems are simultaneously more regular
+and less complex than natural systems.
+
+Next, we ask whether our measures success-
+fully capture the key properties of natural systems
+that distinguish them from other possible systems,
+rather than simply recapitulating the previous mea-
+sures. We compute our measures on two more
+datasets: (1) optimal artificial systems evolved
+through the genetic algorithm from D&S, and (2)
+optimal artificial systems evolved through the ge-
+netic algorithm with the constraints from Y&R.
+
+>7
+
+2 %
+
+Qo foo e o
+
+6 . 3 Language
+
+S Jy a4 he e D&S optimal
+. A
+
+9 “ 4 9° A Y&R optimal
+= 5 8a ©
+
+zc E) = Natural
+
+— oO ©
+
+9 ®
+
+= 4 A es ®
+
+pu |
+
+500 1000
+
+1500
+L(G) (irregularity)
+
+2000
+
+Figure 3: Irregularity (x-axis) and processing complex-
+ity (y-axis) of natural languages (blue, square) and op-
+timal languages in D&S (red, circle) and Y&R (green,
+triangle)
+
+Figure 3 shows that the different systems exhibit
+varying degrees of regularity and processing com-
+plexity, with natural systems typically being more
+efficient than the optimal systems according to the
+metrics and grammars used by D&R and Y&R. In-
+terestingly, among Y&R systems, which already
+have some degrees of regularity built in, there are
+some that are clearly less efficient than natural lan-
+guages (the middle cluster), and crucially a few
+
+that appear to be more efficient than natural lan-
+guages (bottom left corner). Upon inspection, the
+less efficient systems use a large set of digits and
+large mutlipliers, e.g., digits up to 20 and M = {21,
+42,56, 71, 85}, which results in higher irregular-
+ity (cf. |X| in (2)), and processing complexity due
+to more transitions when constructing numerals in
+higher ranges. The four highly efficient Y&R nu-
+meral systems are those with digits and multiplier
+in the range 1 to 5. In other words, these have
+an extremely small lexicon size with digits in the
+smallest ranges. This allows them to reuse smaller
+numerals to build up larger ones, thereby increas-
+ing regularity at little cost of processing complexity
+(e.g., 5 expressed as 2x2 +1; 6as (2+ 1) x2; 7 as
+(2+1)%2+1;8as2%x2%2;9as2x2x2+1; 10 as
+(2% 2+ 1) % 2). Larger numerals in these systems
+end up with high processing complexity (e.g., 46 is
+expressed as (((2x24+1)*24+1) «2+ 1) x 2), but
+contribute little to the average processing complex-
+ity because the power law prior places little weight
+on larger numbers.
+
+4.2 Controlling for digits, multipliers,
+combinators, and numeral lengths
+
+Most of the D&S and Y&R optimal systems in
+Figure 3 do not necessarily feature the same com-
+binations of digits and multipliers as natural lan-
+guages. One might wonder, then, whether the ap-
+parent regularity and processing simplicity of nat-
+ural recursive numeral systems could still result
+from the optimisation for the trade-off between
+lexicon size and average morphosyntactic com-
+plexity, in conjunction with the specific (D, M)s
+that natural systems employ. Indeed, the Y&R in-
+efficient systems are the ones with unnatural (D,
+Ms, e.g., M = {21,42,56, 71,85}. One response
+is to say that the choice of human-like (D, M)
+pairs themselves would still demand an explana-
+tion, which regularity and processing simplicity
+could provide. Here, however, we seek an even
+stronger piece of evidence. We aim to show that nat-
+ural recursive numeral systems are (near-)optimally
+regular and of low processing complexity even
+among their local neighbourhood. Specifically,
+each natural numeral system’s local neighbourhood
+is the set of possible systems that share its digits
+D, multipliers M, arithmetic combinators C' and
+the lengths of numerals Lp,,. For example, ev-
+ery system in Drehu’s local neighbourhood will
+have numerals that make use of D = {1,2,3,4},
+
+
+M = {5,10,15,20}, C = {*,+} and match
+Drehu’s numerals in length. To illustrate, Drehu 24
+is expressed as 1x 20-4, so its alternative numerals
+are {4+%5+4,54+15+4,15+5+4,104+ 10+ 4}.
+Note that, because of this, every system in a local
+neighbourhood will also share the same lexicon
+size and average morphosyntactic complexity, ef-
+fectively controlling for these measures.
+
+Since exhaustively constructing the local neigh-
+bourhoods is computationally prohibitive, we im-
+plement a greedy algorithm to approximate only
+the most (and least) efficient numeral systems. For
+each natural system, we consider adding alternative
+numerals starting with the largest numbers and go-
+ing to lower range of numbers; from the set of such
+perturbations, we weed out all systems apart from
+the ones on the Pareto frontier, and repeat the pro-
+cess until we obtain full systems covering the num-
+ber range 1-99. The full procedure is explained
+and given as pseudocode alongside our parameter
+choices in Algorithm 2, Appendix B. The expecta-
+tion is that natural systems should consistently be
+as efficient or more efficient than the local frontier
+from this algorithm.
+
+We obtain the frontiers for 37 unique local neigh-
+bourhoods inferred from 127 out of the 128 nu-
+meral systems of natural languages.? We find that,
+while the spaces are (unsurprisingly) small, all 121
+out of 127 systems are either as efficient or more
+efficient than their local frontiers. While for some
+of these, the spaces are so small that there are only
+a couple of possible systems (cf. the space for Karo
+Batak-like systems in the leftmost panel of Figure
+4, which has only two possible systems under our
+constraints: best and worst), there are larger spaces
+with clearly more room for variation, and we found
+that natural systems are consistently on the local
+frontiers (Panels 2-4 in Figure 4 illustrate typical
+results; consult the full plots on our (anonymised)
+GitHub repository). Overall, this suggests that opti-
+misation for lexicon size, average morphosyntactic
+complexity, along with (D, M,C, L ny,) combi-
+nations, do not fully explain the degree of regularity
+and processing complexity that natural systems ex-
+hibit.
+
+5 The role of the prior
+
+Previous work has argued that recursive numeral
+systems are subjected to a power law prior distribu-
+
+3We exclude Kayah Li’s neighbourhood due to limited
+computational resources. cf. Section B, Appendix A.
+
+tion P(n) oc n~2, which reflects communicative
+need over numbers (Dehaene and Mehler, 1992;
+Xu et al., 2020; Deni¢ and Szymanik, 2024; Yang
+and Regier, 2025). This presents a very strong bias
+towards the smallest numbers, as when calculat-
+ing either average morphosyntactic or processing
+complexity most numerals will have minimal in-
+fluence. More specifically, when considering the
+numeral range 1 — 99, more than 75% of the proba-
+bility mass is placed on numbers 1 and 2 alone, and
+more than 90% is placed on numbers 1 — 6. This
+is why, for example, the optimal system in Section
+4.1 with incredibly complex large numerals (e.g.
+a system where the number 46 expressed as the
+numeral (((2%2+1)*241)* 2+ 1) x 2) is con-
+sidered easier process than natural systems: these
+numerals contribute negligibly to the final result
+when considering the power law prior.
+
+However, the purpose of recursive numeral sys-
+tems is to be able to precisely express the higher-
+range numbers that are heavily penalised by the
+power law prior. If the larger numbers’ influence
+was so negligible, one would expect recursive nu-
+meral systems to be less widespread, as exact-
+restricted systems like Kayardild, which has a sin-
+gle word for any number greater than 4 (muthaa),
+would seem as effective and much easier to learn.
+
+Therefore, there might be reason to believe that
+these sorts of systems are not influenced by a need
+distribution which emphasises small numbers so
+heavily. Instead, a uniform prior over numbers
+may accommodate this theory the best. To in-
+vestigate the role of the prior, we obtain systems
+that are optimal in terms of lexicon size and av-
+erage morphosyntactic complexity, in the same
+vein as D&S and Y&R, except under a uniform
+prior. We then compare these new optimal sys-
+tems to human systems in terms of irregularity and
+(uniformly weighted) processing complexity. As
+Figure 5 shows,* while natural systems still ex-
+hibit high regularity, the optimal artificial systems
+lie much further right, with Y&R systems being
+slightly more regular than D&S, but still far from
+human systems. Notably, the four Y&R systems in
+Section 4.1 are no longer considered more efficient
+than the human ones under the uniform prior.
+
+Surprisingly, many D&S optimal systems end up
+being more efficient than human systems in terms
+of processing complexity under this prior. This is
+
+*We exclude two outlier Y&R/D&S systems with ex-
+tremely high complexities from Figure 5 and 6.
+
+
+Ss abu-bkr-...-tuk-like nsz-like dre-like hve-like fre-like On frontier?
+E 48] e No
+
+8 4.64 vas . malt id x Yes
+
+154 LY ha 3
+
+S 444% Language
+= 4.2 . x o Worst
+©) Wa eo eo Best
+
+= 0 1000200030004000 0 1000200030004000 ©O 1000200030004000 0 1000200030004000 0 1000200030004000 o Natural
+
+L(G) (irregularity)
+
+Figure 4: Irregularity (x-axis) and processing complexity (y-axis) of the most (purple) and least (pink) efficient
+natural-(D, M, C, Ln, )-matched artificial systems, as well as their corresponding natural systems (blue). Natural
+systems are consistently on the approximately local frontier (cross). Leftmost panel shows a case where the space is
+very small with one best—occupied by natural systems like Karo Batak—and one worst system. Subsequent panels
+(Sierra Nahuatl-, Drehu-, Huave- and French-like systems) show cases where there is room for variation, though
+L(N | G) varies to different degrees depending on exact (D, M,C, Lym). French-like systems exhibit little
+variation in L(N | G), whereas Nahuatl-like systems exhibit more.
+
+2
+
+3
+
+g Language
+
+8 eo D&S optimal
+8 A Y&R optimal
+< = Natural
+
+©]
+
+Zz
+
+I
+
+2000
+L(G) (irregularity)
+
+0 1000
+
+Figure 5: Irregularity (x-axis) and unweighted process-
+ing complexity (y-axis) of natural systems (blue, square)
+and optimal systems in D&S (red, circle) and Y&R
+(green, triangle).
+
+likely because, unlike human and Y&R systems,
+D&S do not constrain the lexicon size and always
+choose the shortest numerals possible. Thus, when
+the lexicon size is large, the processing complexity
+is low (Figure 6).
+
+For example, a D&S system with all number
+morphemes from 1 to 99 will express every number
+with a single morpheme, and will have a single
+accepting state and 99 transitions to it, resulting in
+L(N | G) =10g2(99) + 1 ~ 7.63 bits per number.
+
+On the other hand, to parse a numeral
+like 96 in a highly regular system like
+Karo Batak (Figure 1), we would need
+log2(9) + loga(1) + 1 +loga(1) + loga(1) + 1+
+
+A D * Dx10
++1loga(1) +1log2(9) +1 ~ 9.34 >
+
+——  N——
+
+Dx*10+ D+10+D
+While the possible transitions are fewer, Karo
+Batak is harder to process than a 99-word system
+due to the extra bits required by the larger number
+of accepting states.
+
+7.63 bits.
+
+=
+
+x
+
+9)
+
+E Language
+
+8 eo D&S optimal
+8 A Y&R optimal
+= =m Natural
+
+©)
+
+z
+
+rf
+
+0 25 50 75 100
+Lexicon size
+Figure 6: Lexicon size (x-axis) and unweighted pro-
+cessing complexity (y-axis) of natural systems (blue,
+square) and optimal systems in D&S (red, circle) and
+Y&R (green, triangle).
+
+Regardless of the shape of the correct prior over
+numbers, our results show how natural systems are
+much more efficient in both measures (Figure 3)
+or at least in regularity (Figure 5) than the opti-
+mal artificial systems obtained by both D&S and
+Y &R when optimizing for lexicon size and average
+morphosyntactic complexity.
+
+6 Discussion
+
+We have argued that prior literature on the effi-
+ciency of recursive numeral systems (Deni¢ and
+Szymanik, 2024; Yang and Regier, 2025) has not
+satisfactorily accounted for the key characteristics
+of human-like systems, namely their regularity and
+low processing complexity. In this paper, we have
+shown that human recursive numeral systems are
+more regular and easier to process than other theo-
+retically possible systems, even when controlling
+for the set of number, morphemes and numeral
+lengths. We are skeptical that the relevant prior
+is the power law communicative need distribution
+
+
+(Dehaene and Mehler, 1992; Piantadosi, 2016) as
+assumed in prior work (Xu et al., 2020; Deni¢ and
+Szymanik, 2024; Yang and Regier, 2025). We show
+that even if the relevant prior was uniform, our mea-
+sures would still clearly separate human-like and
+other possible recursive numeral systems.
+
+One issue that we have not considered here is the
+role of cognitive cost of encoding certain meanings
+or relations. For example, systems using highly un-
+natural numerals like (((2%241)%2+1)%2+1)*2
+(Section 4.1) are currently considered efficient. We
+have shown that this might be because of the power
+law prior assumption (Section 5), but the absence
+of this kind of numeral could also be due to the
+high cost of computation involved in the multiply
+nested multiplications, which are harder to learn
+in numeral systems than operations like additions
+(Holt and Barner, 2025; Silvi et al., 2025), while
+our measure of processing complexity assumes that
+all transition symbols are equally costly. Similarly,
+expressing numerals with multiple nested paren-
+theses would also introduce ambiguity in how they
+are interpreted (e.g., 2 x 10 + 5 could be either
+(2% 10) + 50r 2x (10 + 5)).
+
+Another issue concerns the granularity of the
+annotated data from D&S. We notice that the anno-
+tation was not sensitive to the order of morphemes
+in each numeral, and they would always annotate
+the numerals according to Hurford’s left-headed
+grammar. For example, English -feens were anno-
+tated as 10 + D instead of the real order D + 10
+(e.g., four-teen should be 4 4 10). The same is true
+for multiplications; the product of D and M is an-
+notated as D x M. For example, iri Ise ‘50’ in Igbo
+is 10x 5 (Emenanjo, 1987) but was annotated 5x 10.
+This presents no problem for their measures, which
+are not sensitive to morpheme order. However, our
+measures are, and this annotation results in over-
+estimated regularity, since, for instance, the orders
+of M and D in natural languages often change de-
+pending on number ranges, reducing regularity. We
+have begun the process of reannotating their data,
+in order to re-run the analyses here taking this order
+variation into account. Early results suggest that
+the order-sensitive reannotation does not change
+our qualitative results, at least with regard to the
+efficiency of recursive numeral systems relative to
+other theoretically possible, including D&S- and
+Y &R-optimal systems. This is likely because nat-
+ural systems maintain a high degree of regularity
+in order over large number ranges (e.g., only use
+
+M + D over the teens range, as in English).
+
+Unlike most work in the efficient communica-
+tion literature, which only considers the mapping
+between form and meaning (cf. Kemp et al., 2018),
+work on recursive numeral systems like ours, D&S
+and Y&R focuses on the forms themselves. Our
+work specifically examines the relationship among
+forms, i.e., the regularity of the system, and shows
+that it is a vital property of efficient, human-like
+linguistic systems. This suggests, for example, that
+simplicity might be underestimated in work that
+treats compositional signals as equally complex as
+unanalysable ones (e.g., in grammatical categories
+like person systems; Zaslavsky et al., 2021). More-
+over, our re-examination of D&S and Y&R also
+suggests that it is not sufficient simply to find a set
+of measures under which natural numeral systems
+could be shown to be optimal. To actually pinpoint
+why certain systems are human-like, one would
+want to identify the properties, like regularity and
+processing complexity, which explain the natural
+preferences of human-like systems over other possi-
+ble ones, and which have plausible cognitive bases.
+
+One clear extension of our work here is an in-
+vestigation into whether natural recursive numeral
+systems are on the Pareto frontier of the irregular-
+ity/processing complexity trade-off. This is partic-
+ularly challenging, because the space of all possi-
+ble recursive numeral systems is extremely large,
+even when we only consider Hurford-grammar-
+conforming systems and limit the maximum search
+depth. Unlike D&S and Y&R, we would also like
+to avoid constraining the space by simply favour-
+ing shortest numerals or adding ad-hoc constraints.
+One potential solution is to adopt Y&R’s enhanced
+grammars as representations while dropping their
+ad-hoc implementational constraints, allowing us
+to consider a much larger solution space while still
+keeping compact recursive numeral representations.
+Another complementary path would be to provide
+a mechanistic explanation of how these systems
+have been shaped over time via
+
+general learning mechanisms such as reinforce-
+ment learning, similar to Carlsson et al. (2021) and
+Silvi et al. (2025), and also via behavioural experi-
+ments.
+
+Finally, a more general study that fully incorpo-
+rates form-meaning mappings would yield a uni-
+fying model for numeral systems, spanning from
+recursive numeral systems, which have one-to-
+one form-meaning mappings, to exact-restricted
+
+
+and approximate ones, which have one-to-many
+mappings. In fact, a general approach to measur-
+ing structure-sensitive form-meaning systematicity
+would enable communicative efficiency studies on
+domains which are expressed compositionally in
+natural languages, which have hitherto been under-
+explored. We hope to continue the work in these
+directions in the future.
+
+7 Limitations
+
+First, we have limited computational resources, so
+we were not able to use a higher search depth to
+explore even larger spaces of possible numeral sys-
+tems. However, as Figure 2 shows, the space we
+explore is already larger than that considered in
+previous work (D&S and Y&R) combined.
+
+The second limitation concerns the format of the
+data. As we pointed out in the discussion, the D&S
+annotation always employs the same order (i.e.,
+consistent with Hurford’s left-headed grammar),
+which may inflate estimated regularity under our
+measure. While preliminary results suggest that
+this does not change the key findings, in future
+work we will analyse the newly annotated data in
+more detail.
+
+The next limitation also concerns the data. D&S
+used the language sample from the World's Atlas of
+Language Structures (WALS) (Comrie et al., 2013).
+While, as they pointed out, WALS was constructed
+with a focus on language diversity, we found that
+the sample comprises many languages from large
+language families such as Indo-European and Aus-
+tronesian. This could be taken as “representative”
+in so far as the sample is roughly proportional to the
+number of languages across families, but a more ap-
+propriate sample might be one with more balance
+across large and small families, and is controlled
+for geographical effects (Dryer, 1989; Ladd et al.,
+2015).
+
+Finally, while our work is focused on compar-
+ing the efficiency of natural and other theoretically
+possible recursive numeral systems, including the
+previously “optimal” systems obtained in previous
+work, one might still wonder how efficient natural
+numeral systems actually are relative to the theoret-
+ical optima. Both of the previous work have shown
+that natural recursive numeral systems lie close to
+their Pareto frontier, and, as noted in the discussion,
+we hope to do the same in future work.
+
+References
+
+Henry Brighton. 2003. Simplicity as a Driving Force in
+Linguistic Evolution. Phd thesis, The University of
+Edinburgh.
+
+Emil Carlsson, Devdatt Dubhashi, and Fredrik D Johans-
+son. 2021. Learning approximate and exact numeral
+systems via reinforcement learning. In Proceedings
+of the Annual Meeting of the Cognitive Science Soci-
+ety, volume 43.
+
+M. Charikar, E. Lehman, D. Liu, R. Panigrahy, M. Prab-
+hakaran, A. Sahai, and A. Shelat. 2005. The Smallest
+Grammar Problem. IEEE Transactions on Informa-
+tion Theory, 51(7):2554-2576.
+
+Sihan Chen, Richard Futrell, and Kyle Mahowald. 2023.
+An information-theoretic approach to the typology of
+spatial demonstratives. Cognition, 240:105505.
+
+Bernard Comrie. 2022. The arithmetic of natural
+language: Toward a typology of numeral systems.
+Macrolinguistics, 10(1):1-35.
+
+Bernard Comrie, Matthew S. Dryer, David Gil, and
+Martin Haspelmath. 2013. Introduction (v2020.4).
+In Matthew S. Dryer and Martin Haspelmath, edi-
+tors, The World Atlas of Language Structures Online.
+Zenodo.
+
+Stanislas Dehaene and Jacques Mehler. 1992. Cross-
+linguistic regularities in the frequency of number
+words. Cognition, 43(1):1-29.
+
+Milica Deni¢ and Jakub Szymanik. 2024. Recursive
+numeral systems optimize the trade-off between lex-
+icon size and average morphosyntactic complexity.
+Cognitive Science, 48(3):e13424.
+
+Milica Denié, Shane Steinert-Threlkeld, and Jakub Szy-
+manik. 2022. Indefinite Pronouns Optimize the Sim-
+plicity/Informativeness Trade-Off. Cognitive Sci-
+ence, 46(5):e13142.
+
+Matthew S Dryer. 1989. Large linguistic areas and lan-
+guage sampling. Studies in Language. International
+Journal sponsored by the Foundation “Foundations
+of Language”, 13(2):257-292.
+
+Emmanuel Nolue Emenanjo. 1987. Elements of mod-
+ern Igbo grammar: A descriptive approach. Oxford
+University Press.
+
+Edward Gibson, Richard Futrell, Steven P Piantadosi,
+Isabelle Dautriche, Kyle Mahowald, Leon Bergen,
+and Roger Levy. 2019. How efficiency shapes human
+language. Trends in cognitive sciences, 23(5):389—
+407.
+
+Sebastian Holt and David Barner. 2025. Learning a
+novel number system: The role of compositional
+rules and counting procedures. Cognitive Science,
+49(6):e70071.
+
+James Hurford. 1975. The linguistic theory of numerals,
+volume 16. Cambridge University Press.
+
+
+James Hurford. 2007. A performed practice explains
+a linguistic universal: Counting gives the packing
+strategy. Lingua, 117(5):773-783. Linguistic per-
+spectives on numerical expressions.
+
+Charles Kemp and Terry Regier. 2012. Kinship cate-
+gories across languages reflect general communica-
+tive principles. Science, 336(6084):1049-1054.
+
+Charles Kemp, Yang Xu, and Terry Regier. 2018. Se-
+mantic typology and efficient communication. An-
+nual Review of Linguistics, 4(1):109-128.
+
+D. Robert Ladd, Sean G. Roberts, and Dan Dediu. 2015.
+Correlational Studies in Typological and Historical
+Linguistics. Annual Review of Linguistics, 1(1):221—
+241.
+
+Ming Li, Paul Vitanyi, et al. 2008. An introduction
+to Kolmogorov complexity and its applications, vol-
+ume 3. Springer.
+
+Stoyan Mihov and Klaus U. Schulz. 2019. Finite-State
+Techniques: Automata, Transducers and Bimachines,
+1 edition. Cambridge University Press.
+
+Francis Mollica, Geoff Bacon, Noga Zaslavsky, Yang
+Xu, Terry Regier, and Charles Kemp. 2021. The
+forms and meanings of grammatical markers support
+efficient communication. Proceedings of the Na-
+tional Academy of Sciences, 118(49):¢2025993118.
+
+Steven T. Piantadosi. 2016. A rational analysis of the
+approximate number system. Psychonomic Bulletin
+& Review, 23(3):877-886.
+
+Terry Regier, Charles Kemp, and Paul Kay. 2015. Word
+meanings across languages support efficient com-
+munication. The handbook of language emergence,
+pages 237-263.
+
+Andrea Silvi, Jonathan Thomas, Emil Carlsson, Devdatt
+Dubhashi, and Moa Johansson. 2025. Learning ef-
+ficient recursive numeral systems via reinforcement
+learning. In Proceedings of the Annual Meeting of
+the Cognitive Science Society, volume 47.
+
+Wataru Uegaki. 2022. The informativeness/complexity
+trade-off in the domain of boolean connectives. Lin-
+guistic Inquiry, pages 1-23.
+
+Geoff Woollams. 1996. A Grammar of Karo Batak,
+Sumatra. Number 130 in Pacific Linguistics. Dept.
+of Linguistics, Research School of Pacific Studies,
+Australian National University.
+
+Yang Xu, Emmy Liu, and Terry Regier. 2020. Numeral
+systems across languages support efficient commu-
+nication: From approximate numerosity to recursion.
+Open Mind, 4:57-70.
+
+David Yang and Terry Regier. 2025. Re-examining
+the tradeoff between lexicon size and average mor-
+phosyntactic complexity in recursive numeral sys-
+tems. In Proceedings of the Annual Meeting of the
+Cognitive Science Society, volume 47.
+
+Noga Zaslavsky, Charles Kemp, Naftali Tishby, and
+Terry Regier. 2019. Color naming reflects both per-
+ceptual structure and communicative need. Topics in
+Cognitive Science, 11(1):207-219.
+
+Noga Zaslavsky, Mora Maldonado, and Jennifer Culbert-
+son. 2021. Let’s talk (efficiently) about us: Person
+systems achieve near-optimal compression. In Pro-
+ceedings of the 43rd Annual Meeting of the Cognitive
+Science Society.
+
+A Genetic Algorithm of Deni¢ and
+Szymanik (2024)
+
+In this Appendix we describe the Genetic Algo-
+rithm used by Deni¢ and Szymanik (2024) to gener-
+ate the Pareto frontier of optimal recursive numeral
+systems (Algorithm 1). Note that D&S to evaluate a
+(D, M) pair utilise Hurford’s grammar to generate
+numerals for each number from 1 — 99, keeping the
+shortest numeral for each of them. Yang and Regier
+(2025) utilise a similar algorithm but includes also
+suppletives S beside digits and multipliers, use the
+constrains over Hurford’s grammar discussed in
+Section 2. While D&S perform mutations only on
+the sets D and M, Y&R includes the suppletives
+S and exception rules.
+
+Algorithm 1: Genetic algorithm for Pareto
+frontier.
+Result: Pareto-optimal population of
+(D, M) pairs.
+1 Sample initial population of (D, M) pairs;
+2 Evaluate population (via lexicon size and
+average morphosyntactic complexity);
+
+3 fori € [1,...,max generation] do
+4 Select only Pareto-dominant (D, M)
+pairs;
+
+wm
+
+Perform 1 to 3 random mutations;
+Evaluate dominant systems and
+offspring;
+
+=)
+
+B Estimating natural languages’ local
+neighbourhood frontiers
+
+Algorithm 2 (Section 4.2) approximates the local
+neighbourhood of natural recursive numeral sys-
+tems. It works as follows. For a given local neigh-
+bourhood (D, M,C, Lum), the algorithm works
+as follows. First, we fix all the numerals that have
+no alternative form other than the real one (e.g.,
+Mandarin 10 + 2 only has one alternative of length
+3, namely 10 + 2). From this initial partial system,
+
+
+Algorithm 2: Local neighbourhood frontier
+estimation.
+Requires: digits D, multipliers M,
+combinators C, numeral lengths
+L nym; max sample size 3,
+expansion size +, depth d.
+Result: The set of local neighbourhood’s
+optimal systems O.
+7 fori € [1,...,99] do
+
+8 Generate numerals of number ¢ up to
+depth d;
+9 Keep only the numeral(s) of ¢ whose
+
+length matches L nym [i];
+
+10 Ng = {numerals with no alternative form};
+
+nu O={Nop};
+12 while |O[i]| <99Vie€ {1, ..., |O|} do
+13 Enumerate in S the combinations of the
+
+next y numbers’ alternative numerals;
+14 for optimal sub-system O in O do
+
+15 for set of alternatives S in S do
+16 Calculate L(G) and L(N | G)
+of OUS.
+
+17 O={0US:
+
+OU S is Pareto-dominant };
+18 | if |O] > [5 then
+
+19 | Sample 3 systems from O.
+
+we enumerate all the possible partial systems that
+have all the initial numerals, plus the combination
+of all numerals for the next ~y largest numbers.
+
+We identify the Pareto-optimal partial systems in
+terms of our measures and discarded the rest. If the
+number of Pareto-optimal partial systems exceeded
+5, we sample only (8 systems. For each of these
+[ systems, we enumerate again all the possible
+partial systems that included the combinations of
+numerals for the next v numbers. We repeat this
+process until we obtained the full systems that can
+express the numbers from 1 to 99.
+
+Note that when we are searching for the least
+efficient systems in the local neighbourhood, we
+keep in O only the sub-systems that are Pareto-
+optimal for the negative of our measures.
+
+We run the algorithm with 37 out of 38 recur-
+sive numeral system types inferred from the D&S
+sample of natural systems. We exclude the Kayah
+Li-like type because they require a search depth
+deeper than our max depth for this task (d = 6)
+to generate a space that includes Kayah Li itself.
+
+Out of the 37 types, we set 5 = 30 and v = 3 for
+30 of them. We set § = 10, = 2 for the other 7
+language types (Kilivila-, Abkhaz-, Gola-, Otomi-
+, Supyire-, Khana-, and Mangab-Mbula-like), for
+which sampling is too computationally expensive.

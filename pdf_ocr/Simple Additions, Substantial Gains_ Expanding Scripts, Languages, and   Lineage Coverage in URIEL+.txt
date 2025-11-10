@@ -1,0 +1,1393 @@
+arXiv:2510.27183v1 [cs.CL] 31 Oct 2025
+
+Simple Additions, Substantial Gains:
+Expanding Scripts, Languages, and Lineage Coverage in URIEL+
+
+Mason Shipton* York Hay Ng* Aditya Khan*
+Xiang Lu* A. Seza Dogru6z*
+*Ontario Tech University
+
+Phuong Hanh Hoang"
+En-Shiun Annie Lee*"
+* University of Toronto
+
+*University of Michigan *LT3, IDLab, Universiteit Gent
+masonshipton25@gmail.com, york.ng@mail.utoronto.ca,
+adityakhan@cs.toronto.edu
+
+Abstract
+The URIEL+ linguistic knowledge base supports multilingual research by encoding languages through geographic, genetic,
+and typological vectors. However, data sparsity remains prevalent, in the form of missing feature types, incomplete language
+entries, and limited genealogical coverage. This limits the usefulness of URIEL+ in cross-lingual transfer, particularly for
+supporting low-resource languages. To address this sparsity, this paper extends URIEL+ with three contributions: introduc-
+ing script vectors to represent writing system properties for 7,488 languages, integrating Glottolog to add 18, 710 additional
+languages, and expanding lineage imputation for 26, 449 languages by propagating typological and script features across
+genealogies. These additions reduce feature sparsity by 14% for script vectors, increase language coverage by up to 19,015
+languages (1,007%), and improve imputation quality metrics by up to 33%. Our benchmark on cross-lingual transfer tasks
+(oriented around low-resource languages) shows occasionally divergent performance compared to URIEL+, with perfor-
+mance gains up to 6% in certain setups. Our advances make URIEL+ more complete and inclusive for multilingual research.
+
+Keywords: URIEL, multilingual NLP, low-resource languages, script vectors, Glottolog, lineage imputation
+
+1. Introduction
+
+Linguistic knowledge bases enable us to understand
+the relationships between languages, in particular
+conducing the rise of cross-lingual transfer learning
+(Bjerva et al., 2020). One such knowledge base
+is URIEL (Littell et al., 2017), which represents lan-
+guages through three vector types: geographic (i.e.,
+based on 299 coordinate points), genetic (i.e., family
+membership), and typological (i.e., syntactic, phono-
+logical, and inventory features). Through the lang2vec
+tool, URIEL provides pre-computed language dis-
+tances. Downstream applications of these distances
+include cross-lingual transfer (Lin et al., 2019), depen-
+dency parsing (Ustiin et al., 2020), and performance
+prediction (Khiu et al., 2024, Anugraha et al., 2025).
+
+URIEL+ (Khan et al., 2025) partially addresses
+data sparsity and transparency issues in URIEL (Lit-
+tell et al., 2017) as identified by Toossi et al. (2024),
+by expanding data coverage to over 8,000 languages.
+Furthermore, URIEL+ prevents distance computation
+between language pairs that lack shared features.
+Although this is restrictive, URIEL+ allows users to
+circumvent this by way of advanced imputation meth-
+ods to fill in missing values. Lineage imputation, a
+method of partial imputation, optionally populates fea-
+tures for dialects of six well-known languages (Span-
+ish, French, English, German, Malay, and Arabic),
+given that phylogenetic relationships of languages
+are strong predictors of language similarity (Dunn
+etal, 2011).
+
+Nonetheless, three key limitations persist in
+URIEL+: (1) the absence of writing system represen-
+
+tations, (2) incomplete language coverage (i.e., many
+Glottolog-catalogued languages remain absent); and
+(3) the narrow scope of lineage imputation. Each lim-
+itation reflects a form of data sparsity (i.e., missing
+feature types, missing languages, and limited phyloge-
+netic propagation). This work addresses all limitations
+by extending URIEL+ with three additions: (1) script
+vectors, (2) Glottolog integration, and (3) expanded
+lineage imputation, creating a multilingual knowledge
+base with better language coverage. Figure 1 sum-
+marises our three additions, which collectively reduce
+sparsity and expand feature coverage in URIEL+.
+
+Contribution 1: Script Vectors While URIEL+ cap-
+tures a wide range of linguistic dimensions, it omits
+information about writing systems. Script properties
+are necessary for encoding structural and functional
+information relevant to Natural Language Process-
+ing (NLP) tasks. Differences in script types (e.g.,
+alphabetic or abjadic’) result in challenges in to-
+kenisation and morphological processing. Moreover,
+shared scripts often reflect historical or cultural con-
+tact between genetically distant languages (e.g., Ara-
+bic script for Persian and Urdu). An encoding of these
+relationships is missing in URIEL+, but it is important
+for cross-lingual transfer (Zhuang et al., 2025). There-
+fore, we introduce script vectors to encode structural
+and social properties of writing systems for 7,488 lan-
+guages. Through analyses in feature coverage and
+sparsity, we highlight how vectors expand URIEL+’s
+
+A writing system that represents individual sounds as
+symbols.
+
+
+(2) Glottolog Coverage
+18,710 child languages (density map)
+
+(1) Script Vectors
+7,488 languages (density map)
+
+Examples of script features
+left-to-right whitespaces diacritics
+
+(3) Lineage
+Imputation
+
+EE EEEEEEEEEEEEEAEESEEASEEESEESEEESEEEsEEsEEESEEEEES
+
+Feature
+values
+
+Vector Types
+
+MIDASpy | | Softimpute
+
+Se smEEEEsEsEEEEEEEEEEEESEEEEEEEEEESESEEEEEEEEEESEEsEEEEEEEEEsEsssEsEsssEsssssssssmsenas’
+
+(Child languages)
+
+Figure 1: Overview of our additions to mitigating data sparsity in URIEL+. (1) Density map of 7, 488 languages
+with integrated script vectors. (2) Density map of the 18, 710 Glottolog child languages added to URIEL+. (3)
+llustration of expanded lineage imputation, where missing values in child languages are filled from ancestors.
+
+coverage in a novel direction, particularly benefit-
+ting low-resource languages where script vectors are
+among the few reliably documented vector types.
+
+Contribution 2: Glottolog Integration A second
+form of sparsity arises from limited language cover-
+age in URIEL+. While URIEL+ includes over 8,000
+languages, Glottolog (Hammarstrom and Forkel,
+2022) catalogues 18,710 additional languages with
+well-documented genealogical information. By incor-
+porating these missing languages, URIEL+ contains
+a complete encoding of language families in Glottolog.
+Beyond increasing coverage, this integration enables
+a phylogeny-based method for imputing missing val-
+ues, discussed below.
+
+Contribution 3: Expanded Lineage Imputation
+Lineage imputation in URIEL+ fills missing values
+in child languages by copying feature values from
+their immediate parent. As it stands, it supports
+only 6 medium- to high-resource parent languages.
+This reflects the empirical observation that related
+languages tend to share typological features (Dunn
+et al., 2005; Jager and Wahle, 2021). We extend
+this approach to systematically propagate typological
+and script features from parent languages to all child
+languages across the knowledge base, forming an
+expanded lineage imputation method that benefits
+26,449 languages in total following Glottolog integra-
+
+tion. Furthermore, we demonstrate that this method
+yields consistent performance gains in imputation
+quality.
+
+Finally, we benchmark the impact of these contribu-
+tions in choosing languages for cross-lingual transfer
+across a variety of tasks, a common use case of
+linguistic knowledge bases. The performance gains
+from ablations of our contributions highlight their prac-
+ticality for cross-lingual transfer, while particularly sup-
+porting low-resource languages.
+
+2. Literature Review
+
+Current research shows strong support for our three
+contributions to URIEL+. The existing literature in
+NLP demonstrates the importance of script data for
+modelling language relationships, while linguistic stud-
+ies show that genetically related languages tend to
+share typological structures. Together, these findings
+support our proposed additions, which aim to reduce
+data sparsity and improve coverage in URIEL+.
+
+2.1. Script Data Usage in Literature
+
+The script of a language is a first-order determinant
+of language similarity, and it is crucial in many NLP
+tasks. We discuss examples below.
+
+For morphological inflection, Murikinati et al. (2020)
+show that transfer between related languages de-
+
+
+ScriptSource Feature Possible Values
+
+Binarised URIEL+ Feature(s)
+
+Type Alphabet; Abjad; Abugida; Featural;
+Logo-syllabary; Syllabary
+
+Case Yes; No
+
+Ligatures Required; Optional; None
+
+SC_ALPHABET, SC_ABJAD, SC_ABUGIDA,
+SC_FEATURAL, SC_LOGO_SYLLABARY,
+SC_SYLLABARY
+
+SC_CASE
+
+SC_LIGATURES, SC_REQUIRED_LIGATURES
+
+Table 1: Three examples of how binarisation of ScriptSource features was performed using one-hot encoding.
+
+grades when scripts differ. Transliterating the source
+into the target script (or both into a common script)
+improves accuracy, sometimes outweighing typologi-
+cal relatedness. For transfer learning, Amrhein and
+Sennrich (2020) and Tufa et al. (2024) report that
+romanising the script of a child language improves
+transfer performance when parent and child use differ-
+ent scripts. For multilingual pre-training, LANGSAMP
+(Liu et al., 2025) adds learnable script embeddings
+to the transformer output during masked language
+modelling (MLM), yielding better zero-shot transfer
+and more reliable source-language selection. Xhelili
+et al. (2024) further show that transliteration-based
+post-training alignment improves cross-lingual align-
+ment. Without such alignment, token representations
+from different scripts are nearly linearly separable.
+Finally, Zhuang et al. (2025) find that script differ-
+ences systematically hinder transfer in low-resource
+languages.
+
+Prior approaches rely on ad hoc, language-specific
+pre-processing (e.g. romanisation per Amrhein and
+Sennrich (2020)) which are unevenly available and bi-
+ased toward well-resourced languages. These issues
+with bias can be addressed by adding script vectors
+to URIEL+, which reduces reliance on pre-processing
+and improves modelling of linguistic similarity, espe-
+cially for low-resource languages.
+
+2.2. Gilottolog as a Language Resource
+
+Despite URIEL+’s extensive coverage of over 8,000
+languages, many notable languages remain miss-
+ing, contributing to data sparsity. Toossi et al. (2024)
+note that Bajjika, the 103rd-most-spoken language in
+the world, is absent from both URIEL and URIEL+.
+Similarly, Novotny et al. (2021) report that Western
+Armenian and Sakizaya are excluded from URIEL.
+While Sakizaya has been added to URIEL+ via the
+Grambank linguistic source (Skirgard et al., 2023),
+Western Armenian remains absent. These omissions
+represent a barrier to the representativeness of low-
+resource languages in URIEL+, and equity in multi-
+lingual research in general, thereby highlighting the
+need for a more comprehensive resource to ensure
+inclusive representation of low-resource languages.
+Glottolog provides a solution to this sparsity by of-
+fering a comprehensive, authoritative catalogue of
+the world’s languages, dialects, and language fami-
+
+lies (Hammarstrom and Forkel, 2022), encompassing
+approximately 18,000 more languages than URIEL+.
+It uses a standardised system of language codes
+(Glottocodes) and assigns language codes to each
+language family and language, including dialects.
+URIEL+ uses these codes to integrate data from
+linguistic sources such as BDPROTO (ancient lan-
+guages; (Marsico et al., 2018)), Grambank (Skirgard
+et al., 2023), and eWAVE (English dialects; Kortmann
+et al., 2020). Moreover, Glottolog provides evidence-
+based genealogical classifications, facilitating integra-
+tion across linguistic datasets. Recognised as the au-
+thoritative source on the world’s languages, Glottolog
+has been used in high-impact NLP and computational
+linguistics research (Liang et al., 2023; Bommasani
+et al., 2022), demonstrating its value for addressing
+gaps in URIEL+ and supporting more inclusive multi-
+lingual studies.
+
+2.3. Phylogenetic Feature Propagation
+
+Phylogenetic relationships of languages are strong
+predictors of structural similarity. Dunn et al. (2005)
+demonstrate that typological features carry a phy-
+logenetic signal in Oceanic and Papuan languages.
+Greenhill et al. (2010) compare evolutionary rates of
+typological and lexical features, showing that slower-
+changing features track lineage more closely. Jager
+and Wahle (2021) proposed methods to estimate
+typological feature distributions while controlling for
+shared ancestry, and Hubler (2022) examined struc-
+tural features, identifying which exhibit strong phylo-
+genetic signal.
+
+These existing studies motivate us to extend
+URIEL+’s lineage imputation to infer missing typo-
+logical and script features for all languages based
+on their parent languages. This approach reduces
+sparsity and enhances coverage across URIEL+.
+
+3. Method
+
+This section describes how we extend URIEL+ to re-
+duce data sparsity and broaden feature coverage via
+three steps: (1) introducing script vectors, (2) inte-
+grating languages from Gilottolog, and (3) expanding
+lineage imputation.
+
+
+3.1.
+
+We introduce script vectors as a new vector type
+in URIEL+ to represent structural and social proper-
+ties of writing systems. Features were sourced from
+ScriptSource (Holloway, 2013), a database of scripts,
+their typologies, and language usage. ScriptSource
+data is publicly viewable but it is not directly acces-
+sible. However, with assistance from the one of the
+ScriptSource administrators, we obtained dataframes
+describing: (a) writing system properties for all scripts,
+(b) languages in ScriptSource with their ISO 639-3
+codes, and (c) scripts available for each language.
+
+The writing system properties from dataframe (a)
+were binarised as shown in Table 1. For example,
+the ScriptSource feature Type, which includes values
+such as Alphabet, Abjad, Abugida®; was expanded
+such that each value became its own binary feature
+(e.g., SC_ALPHABET, SC_ABJAD, SC_ABUGIDA), with a
+value of 1 (if present) or O (if absent). This binarisa-
+tion process is the same as it was done in URIEL
+(Littell et al., 2017) and URIEL+ (Khan et al., 2025)
+for typological vectors. For languages that can be
+written in multiple scripts (e.g., Kazakh uses Cyrillic,
+Arabic, and Latin scripts), the union of feature values
+was applied. This was implemented as a logical OR
+operation, where a feature was marked as present
+(1) if it existed in any of the language’s associated
+scripts. As an example, Kazakh is marked as hav-
+ing both the SC_ABJAD feature (from Arabic) and the
+SC_ALPHABET feature (from Cyrillic and Latin).
+
+These script vectors were integrated alongside
+URIEL+’s genetic, geographic, and typological vec-
+tors. Language-to-language distances based on
+script features were computed using normalised an-
+gular distance:
+
+Adding Script Vectors
+
+Dyang(A, B) = 1 arccos (ihe)
+n lAIIBII
+where lower values indicate higher similarity (e.g.,
+French and Spanish using the Latin script). This
+addition fills a representational gap, providing a high-
+coverage source of data for low-resource languages
+in particular.
+
+3.2. Full Integration of Glottolog
+
+We integrate all 18,710 remaining Glottolog lan-
+guages into URIEL+, expanding genealogical and
+geographic coverage. More specifically, we retrieved
+a list of all languages from Giottolog in their Glot-
+tocodes. Languages from Glottolog that were already
+in URIEL+ (over 8,000 of them) were excluded. Glot-
+tolog was turned into a linguistic source in URIEL+
+(Khan et al., 2025), similar to the World Atlas of
+Language Structures (WALS; (dry, 2013)), Syntactic
+
+2A writing system where consonants carry inherent vow-
+els.
+
+Structures of the World's Languages (SSWL; (Koop-
+man, 2009)), and Grambank (Skirgard et al., 2023),
+where it can be integrated by choice to add the new
+languages. Unlike the other linguistic sources, Glot-
+tolog does not include new typological or script fea-
+tures, and it does not include typological data. Al-
+though these languages at first have no typological
+and script data, nearly all of them possess genetic
+classifications, allowing them to benefit directly from
+the lineage-based imputation to reduce sparsity.
+
+Geographic coordinates and family affiliations for
+the Glottolog languages were obtained using the
+lingtypology package (Moroz, 2017), as URIEL+
+did for their new languages. Although Glottolog con-
+tributes no new vector types, its inclusion provides
+the genealogical backbone required for large-scale
+feature propagation of URIEL+.
+
+3.3. Lineage Imputation Methodology
+
+To further reduce sparsity, we extend URIEL+’s lin-
+eage imputation to all languages, applying it to both ty-
+pological and script vectors. This approach assumes
+that parent languages and their children share highly
+similar structural and orthographic properties, a pat-
+tern empirically supported in URIEL+ (89.8% agree-
+ment in feature values between parent and children
+for typological data, 97.0% for script data). These
+high agreement rates motivate a systematic propaga-
+tion of known feature values to fill gaps across lan-
+guages. However, this propagation does not resolve
+all missing values. Instead, it serves as a structured
+preprocessing step that can complement subsequent
+imputation methods such as Softimpute (Mazumder
+et al., 2010), where otherwise the imputation of empty
+language vectors yields an uninformative result.
+
+Algorithm 1 outlines the expanded lineage imputa-
+tion algorithm. Parent-child mappings were derived
+from Glottolog (Hammarstrom and Forkel, 2022), con-
+taining 13,372 parent languages which support im-
+putation for 26,449 child languages after Glottolog
+integration. Relationships were modelled as a for-
+est of language trees. Imputation was performed via
+breadth-first search (BFS). Feature values from par-
+ent nodes were propagated to immediate children
+(continuing until all descendants were filled). This
+ensures hierarchical, consistent propagation, improv-
+ing URIEL+ coverage and reducing sparsity at every
+phylogenetic level.
+
+
+High-Resource Languages
+
+7 7 7 46
+44 44
+
+~
+
+ul oO
+w I
+S S
+
+w
+nN
+oS
+
+Number of Languages (HRLs)
+nN »
+
+Number of Languages (MRLs)
+
+—
+=
+1S)
+
+o
+
+syn pho inv mor scr syn pho
+Features
+
+Medium-Resource Languages
+
+Features
+
+Low-Resource Languages
+46 21,513
+43 43
+
+20,903
+
+20,140
+
+20000
+
+15000
+
+10000
+
+Number of Languages (LRLs)
+
+5000
+
+inv mor scr syn pho inv mor scr
+Features
+
+Figure 2: Number of languages with available syntactic (syn), phonological (pho), inventory (inv), morphological
+(mor), and script (scr) data in URIEL+ before and after expanded lineage imputation. All linguistic sources in
+URIEL+, as well as Glottolog languages, are integrated. Shown for high-resource (HRL), medium-resource
+(MRL), and low-resource (LRL) languages (Joshi et al., 2020) from left to right.
+
+Algorithm 1 Expanded Lineage Imputation via
+Breadth-First Search (BFS)
+1: Construct a mapping of Glottocodes from parent
+to child languages.
+2: Define root languages as all parent languages
+who have no parent.
+3: for all root language r do
+
+4: Initialise queue g « [r] and visited set s «
+{r}.
+5: while ¢ not empty do
+6: Dequeue language p.
+7: for all child language c of p do
+8: if c ¢ s then
+9: Let f,, f. be binary feature vectors
+for p,c.
+10: For all i, set f.[i] « fylil if f.[i] =
+NaN and f,[i] # NaN.
+11: Enqueue c to g and add c to s.
+12: end if
+13: end for
+14: end while
+15: end for
+
+4. Analysis of Knowledge Base
+Statistics
+
+This section examines how our additions affect the
+structure and completeness of URIEL+. We analyse:
+(1) feature coverage to measure the breadth of lin-
+guistic data across feature types and resource levels,
+(2) sparsity to assess the proportion and distribution
+of missing values before and after expanded lineage
+imputation, and (3) correlations between script dis-
+tances and other language distances to evaluate the
+distinctiveness of script-based information. This anal-
+ysis summarises how we make URIEL+ less sparse,
+
+thereby augmenting the availability of data for down-
+stream applications.
+
+4.1. Low-Resource Languages Have Higher
+
+Feature Coverage
+
+We measured feature coverage in URIEL+ before and
+after expanded lineage imputation, counting the num-
+ber of languages with at least one feature with data for
+syntactic, phonological, inventory, morphological, and
+script features. All five linguistic sources in URIEL+
+and Gilottolog languages were integrated. Languages
+were categorised as high-, medium-, or low-resource
+(HRL, MRL, LRL) following Joshi et al. (2020).
+Figure 2 shows that script vectors substantially im-
+prove baseline coverage, providing data for 7,488 lan-
+guages before expanded lineage imputation (which
+is nearly double that of syntactic vectors (3, 730 lan-
+guages)). This difference is driven by gains in LRLs
+coverage. Syntactic vectors cover 7 HRLs, 44 MRLs,
+and 3,679 LRLs. Meanwhile, script vectors cover 6
+HRLs (| 17%), 43 MRLs (| 2%), and 7,439 LRLs
+(T 102%). Although script vectors include marginally
+fewer HRLs and MRLs, they reach nearly twice as
+many LRLs, highlighting their capacity to alleviate
+sparsity where documentation is most limited.
+Expanded lineage imputation amplifies these gains
+for LRLs across all vector types. Morphological vec-
+tors show the smallest absolute increase, adding
+6,805 languages (T 270%) due to sparse documen-
+tation. Syntactic vectors gain 9,512 (1 259%) lan-
+guages. Phonological, inventory, and script vectors
+exhibit the largest gains, adding 19,030 (T 766%),
+19,015 (7 1,007%), and 12,701 (T 171%) languages,
+respectively, consistent with their genealogical stabil-
+ity. All three vector types now cover over 20, 000 lan-
+guages, demonstrating that inheritance-based propa-
+
+
+Feature Type Resource Level
+
+0.92
+050 0.86
+0.78
+0.56
+0.51
+0.14
+
+A
+8 §° & & i S$
+
+0.84
+
+vd
+©
+
+o
+o
+
+©
+~
+
+eo
+IN]
+
+Sparsity (Proportion of Missing Data)
+
+o
+o
+
+Figure 3: Sparsity of language vectors by type (syn-
+tax, phonological, inventory, morphological, script)
+and by resource level, before expanded lineage impu-
+tation.
+
+Feature Type Resource Level
+
+14.45
+
+o
+o
+
+N
+o
+
+iN
+o
+o
+
+4.49
+
+3.22 3.78
+1.49
+0.70 0.95
+— BN BD [| 8:00 [2
+L
+EN $ NS & &
+
+o
+o
+
+ed
+[5
+
+Percentage Decrease in Sparsity (%)
+~
+[%,)
+
+°o
+o
+
+Figure 4: Percentage decrease in sparsity in lan-
+guage vectors by type (syntax, phonological, inven-
+tory, morphological, script) and by resource level, af-
+ter expanded lineage imputation.
+
+gation substantially enhances URIEL+’s representa-
+tion of low-resource languages.
+
+4.2. Lineage Imputation Lowers Sparsity
+
+A major limiting factor to the reliability of URIEL+ lan-
+guage vectors is their sparsity (i.e., the proportion of
+missing values). Breaking down typological vectors
+(into syntax, morphological, phonological and inven-
+tory vectors), Figure 3 demonstrates the sparsity in
+language vectors by type, before and after expanded
+lineage imputation. While our findings confirm that
+the high sparsity in typological vectors is consistent
+in URIEL+ across types (78% — 92%), script vectors
+notably possess a sparsity of only 14%. Coupled with
+their strong feature coverage, their low sparsity high-
+lights the comprehensive nature of the data provided
+by script vectors. Furthermore, comparing the overall
+sparsity in typological and script vectors across the re-
+source levels of languages, we find that data sparsity
+is skewed, as sparsity in LRLs (84%) is substantially
+higher than in MRLs (56%) and HRLs (51%).
+
+Our expanded lineage imputation strategy provides
+a reliable method for filling missing entries with linguis-
+
+tically grounded values in languages. This manifests
+in a reduction in sparsity (see Figure 4), with spar-
+sity in script vectors decreasing by 14%. However,
+comparing reductions in sparsity by vector type and
+resource level, expanded lineage imputation yields
+greater sparsity reductions where vectors are less
+sparse. In particular, sparsity reductions are minimal
+in syntax vectors and for LRLs, where sparsity was
+highest originally. This highlights how its efficacy is
+tied to the original sparsity of vectors since expanded
+lineage imputation relies on knowing feature values
+in parent languages.
+
+4.3. Scripts Provide Unique Information
+
+To justify the inclusion of script data, script distances
+should provide a different signal than typological, ge-
+netic, and geographic distances. In particular, they
+should not be substantially correlated with any of the
+other distance measures within URIEL+. Otherwise,
+script data would be redundant for the purpose of
+distance calculations—a primary use case of URIEL+.
+
+To consider how similar script distances are to other
+distances in URIEL+, we study the correlation of a
+matrix containing all script distances with all other
+distance matrices in URIEL+. A distance matrix is
+a symmetric matrix, such that the ijth entry of the
+matrix is the distance between languages i and j in
+URIEL+. One can compute the Spearman correla-
+tion between the script matrix and any of the other
+distance matrices (Spearman, 1904). To test the sig-
+nificance of the coefficient, a two-sided Mantel test
+is conducted. It is a permutation test that builds a
+distribution of correlation statistics based on comput-
+ing the Spearman correlation coefficient on permuted
+distance matrices (Mantel, 1967).
+
+One of the assumptions of the Mantel test is that
+there is not any kind of structured dependence (e.g.,
+phylogenetic, in the case of languages) between the
+two matrices (Guillot and Rousset, 2013). This is
+clearly not the case for language distances. Lan-
+guages within the same language family are expected
+to have smaller distances than those with languages
+outside their family (see Dunn et al. (2011)). To mit-
+igate the violation of this assumption, we perform
+block permutation (999 many), where each permuta-
+tion block (Winkler et al., 2015) is the top-level lan-
+guage family for a language, as reported in Glottolog.
+This alters the permutation procedure to allow us to
+account for phylogenetic dependencies between lan-
+guage distances. In total, there are 592 language fam-
+ily blocks (361 of which are singletons) and approxi-
+mately 95% of languages fall into non-trivial language
+families (which mitigates discreteness caused by sin-
+gletons). These tests are run on union-aggregated
+language vectors. For imputation, we run the cor-
+relation analysis with and without expanded lineage
+imputation, before using Softimpute. We do not in-
+tegrate any additional languages from Gilottolog (i.e.,
+
+
+beyond the 8,171 already in URIEL+) because they
+do not have script data. The significance threshold we
+setis a = 0.05/7 = 0.007. We apply a Bonferroni cor-
+rection to account for conducting multiple hypothesis
+tests.
+
+Distance p (No Lineage) p (Lineage)
+gen 0.119 0.114
+inv 0.059 0.057
+mor -0.026 -0.035
+pho -0.041 —-0.046
+syn 0.060 0.051
+typ 0.041 0.023
+geo —-0.095 -0.095
+
+Table 2: Spearman correlation (p) between language
+and script distance measures. “Lineage” denotes us-
+ing expanded lineage imputation prior to Softimpute.
+Significant results are bolded.
+
+Table 2 demonstrates that the magnitude of the
+correlation between script distances and all other dis-
+tances in URIEL+ is at most 0.119, which is very
+minimal. This is irrespective of whether expanded lin-
+eage imputation was used or not. However, as seen
+in Table 2, statistical significance is more common
+without expanded lineage imputation. This suggests
+that lineage imputation essentially acts as a phyloge-
+netic regulariser that gives Softimpute fewer degrees
+of freedom to infer patterns that might induce weak
+correlation with script distances.
+
+Even if some correlations are significant, all correla-
+tions are minimal. Taking geographic (post expanded
+lineage imputation) as an example, p = —0.095 is
+marginal. This means that the coefficient of variation,
+R?> ~ 0.009, meaning that geography distances ex-
+plain less than 1% of the statistical variation in script
+distances. This supports our claim that script dis-
+tances provide information that is largely orthogonal
+to existing distance information within URIEL+, and
+hence, provide unique information.
+
+5. Evaluating our Additions
+
+We validated our URIEL+ additions through two com-
+plementary evaluations: (a) testing imputation quality
+using the Softimpute algorithm and (b) applying lan-
+guage distances in cross-lingual transfer tasks using
+LANGRANK.
+
+5.1. Imputation Quality Test
+
+Experimental Setup To assess the contribution of
+script vectors and expanded lineage imputation to
+reducing sparsity, we conducted an imputation qual-
+ity test following the methodology used in URIEL+
+(Khan et al., 2025) and Li et al. (2024). The pro-
+cedure removes 20% of known (i.e., non-missing)
+
+data, imputes these values, and compares predic-
+tions to the ground truth using F1 for binary features
+and root mean square error (i.e., RMSE) for contin-
+uous features. Imputation was performed on aggre-
+gated representations (union, meaning feature values
+were merged using a logical OR operation; or aver-
+age, meaning feature values were averaged), with
+languages pre-filled via our expanded lineage impu-
+tation procedure. Among URIEL+’s three advanced
+algorithms, we used Softimpute for all evaluations, as
+it previously achieved the strongest performance and
+was chosen for downstream and distance-alignment
+experiments (Khan et al., 2025).
+
+Results Table 3 shows that Softimpute achieves
+near-perfect performance on script vectors, with ac-
+curacy and F1 above 0.98 across all configurations.
+These results substantially exceed those for typolog-
+ical vectors, indicating that script features are both
+more complete and predictable within genealogical
+lineages.
+
+Two factors drive this effect. First, script data are
+inherently less sparse (i.e., before imputation, script
+vectors cover 7,488 languages (nearly twice the most
+complete typological distance type, which is syntac-
+tic), and after imputation, coverage exceeds 20,000
+languages). Secondly, writing system properties (e.qg.,
+the complexity of characters) are highly stable within
+language families (Changizi et al., 2021), providing
+strong structural cues for imputation models.
+
+Applying expanded lineage imputation improves all
+metrics for both vector types, with the largest gains for
+typological features (e.g. recall increases by 17.07%
+under union aggregation, while MAE increases by
+33.17% under average aggregation) due to their initial
+sparsity. This confirms that expanded lineage impu-
+tation improves imputation quality and is effective in
+reducing sparsity.
+
+These results confirm that our additions not only
+increase coverage but also improve the internal con-
+sistency and predictability of URIEL+, demonstrating
+the combined benefit of script vectors and expanded
+lineage imputation.
+
+5.2. Benchmarking Cross-Lingual Transfer
+
+Evaluation Setup We evaluate the impact of our
+additions on cross-lingual transfer using the LanaRank
+framework (Lin et al., 2019), which ranks potential
+transfer languages for multilingual NLP tasks using
+decision trees trained on language distances. Fol-
+lowing the framework of Ng et al. (2025), we apply
+LanaRaNk to select transfer languages across nine rep-
+resentative sub-tasks: machine translation (MT), en-
+tity linking (EL), part-of-speech tagging (POS 1 & 2),
+dependency parsing (DEP 1 & 2), natural language
+inference (XNLI (Conneau et al., 2018)), and topic
+classification (Taxi1500 (Ma et al., 2025), SIB200
+
+
+Union-Agg
+
+Average-Agg
+
+Stage Vector
+Accuracy Precision Recall F1 RMSE MAE
+_ Lineage typ 0.8873 0.8809 0.7270 0.7966 0.2834 0.1845
+9 scr 0.9944 0.9951 0.9839 0.9895 0.0751 0.0243
++ Lineage DP 0.9448 (1 6.48%) 0.9482 (1 7.64%) 0.8511 (1 17.07%) 0.8970 (1 12.60%) 0.2113 (T 25.44%) 0.1233 (1 33.17%)
+
+scr 0.9944 (1 0.0%) 0.9952 (1 0.01%)
+
+0.9841(7 0.02%)
+
+0.9896 (1 0.01%) 0.0729 (1 2.93%)  0.0241(1 0.82%)
+
+Table 3: Performance of Softlmpute on typological and script vectors before (—) and after (+) expanded lineage
+imputation. Metrics are reported for union-aggregated and average-aggregated evaluation schemes. Bolded
+
+values indicate the best score for each metric.
+
+Setup POS DEP XNLI Taxi1500 SIB200 POS 2 DEP 2 MT EL
+
+Baseline 18.51 73.00 67.58 23.26 8.38 33.79 36.27 35.86 72.09
+
+1 2555 (138%) 71.61 (1 1.9%) 68.00 (10.6%) 2551 (19.7%) 8.84 (155%) 34.05 (10.8%) 38.68(16.6%) 31.65 (1 11.7%) 75.36 (1 4.5%)
+2 19.03 (1 2.8%) 72.95 (1 0.1%) 70.03 (1 3.6%) 26.06 (1 12%) 7.58 (19.5%) 32.11 (15%) 36.09 (1 0.5%) 33.14 (17.6%) 69.87 (| 3.1%)
+142 27.03 (146%) 72.26 (L 1%) 67.22 (10.5%) 26.92 (1 157%) 8.40 (102%) 33.22 (1 1.7%) 36.48 (10.6%) 31.98 (1 10.8%) 66.88 (| 7.2%)
+3 17.02 (1 8%) 72.99 67.88 (10.4%) 22.71 (12.4%) 9.76 (1 165%) 32.53 (13.7%) 38.26 (15.5%) 35.91 (10.1%) 67.81 (| 5.9%)
+1+3 21.25 (1 14.8%) 73.37 (10.5%) 67.53 (10.1%) 25.33 (18.9%) 9.01 (17.5%) 34.02 (10.7%) 37.57 (13.6%) 33.36 (1 7%) 69.70 (| 3.3%)
+2+3 1312 (129.1%) 74.54 (1 2.1%) 71.45 (15.7%) 23.52 (1 1.1%) 9.87 (1 17.8%) 36.27 (17.3%) 39.13 (1 7.9%) 34.86 (1 2.8%) 61.52 (| 14.7%)
+1+2+3 18.60 (10.5%) 72.61 (10.5%) 70.88 (14.9%) 25.01 (17.5%) 9.79 (1 16.8%) 36.31 (17.5%) 38.04 (14.9%) 3021 (| 15.8%) 62.78 (| 12.9%)
+
+Table 4: NDCG@3 scores in LanaRaNk tasks under our ablation study. Percentage changes are relative to the
+baseline. Bolded values indicate experiment scores where p < 0.05 in comparison to the baseline. Baseline is
+Softlmpute. 1 = Script; 2 = Glottolog integration; 3 = Lineage Impute.
+
+(Adelani et al., 2024)).
+
+We conduct an ablation study to isolate the effect
+of each contribution and to quantify its practical im-
+pact on transfer predictions. Specifically, we train
+LanaRank on URIEL+ distances following Softimpute,
+under three configurations: (1) incorporating script
+distances, (2) integrating languages from Gilottolog,
+and (3) conducting expanded lineage imputation prior
+to Softimpute. Performance is evaluated using the
+Normalised Discounted Cumulative Gain at rank 3
+(NDCG@3), which measures alignment between pre-
+dicted transfer language rankings and task transfer-
+ability.
+
+Results Table 4 demonstrates LanaRank perfor-
+mance across ablations. Overall, performance gains
+can be found in all but two tasks studied (MT, EL).
+In particular, incorporating script distances signifi-
+cantly improves LanaRank transfer predictions in part-
+of-speech tagging and Taxi1500 topic classification.
+Simultaneously, expanded lineage imputation yields
+further improvements in SIB200 topic classification
+and DEP 2. Given the high language coverage in
+these tasks (799 in Taxi1500, 197 in SIB200 (Ng et al.,
+2025)), most of which are low-resource, these im-
+provements demonstrate how our extensions to low-
+resource language coverage support cross-lingual
+transfer.
+
+Generally, while performance gains underscore the
+utility of our contributions in choosing transfer lan-
+guages, improvements remain modest and fluctu-
+ate between tasks and setups. Simply incorporat-
+ing script distance yields an average performance
+improvement of 6%, the highest among all other se-
+tups. Moreover, the varying impact of our contribu-
+tions across different tasks reinforces the insights of
+
+Blaschke et al. (2025), where no single setup excels
+in improving transfer across all tasks.
+
+6. Conclusion
+
+Our paper introduces a systematic approach to re-
+ducing sparsity in the URIEL+ linguistic knowledge
+base. By introducing script vectors for 7,488 lan-
+guages, incorporating 18,710 languages from Glot-
+tolog, and extending lineage imputation to 26,449
+languages, we substantially improve data coverage,
+particularly for low-resource languages. Script vec-
+tors provide explicit representations of writing sys-
+tems, supporting more reliable cross-lingual mod-
+elling. The Glottolog additions expand the knowl-
+edge base’s genealogical breadth, while expanded
+lineage imputation propagates typological and script
+features through these genealogies, filling gaps for
+low-resource languages. These additions reduce
+feature sparsity, increase language coverage, and
+improve imputation quality metrics. Furthermore,
+we benchmark the additions applicability in cross-
+lingual transfer. By releasing our improvements, we
+provide the NLP community with a more complete
+and equitable foundation for multilingual research,
+particularly benefiting under-represented languages.
+We have provided a new release of URIEL+, with
+our additions found here: https://github.com/
+LeelLanguagelLab/URIELPlus.
+
+7. Limitations
+
+Our work relies on existing data sources such as
+ScriptSource and Glottolog. Therefore, it is subject to
+any biases or inaccuracies present in them. We could
+not perfectly replicate the baseline imputation qual-
+
+
+ity results from URIEL+, despite running the same
+code provided by (Khan et al., 2025) and achieving
+the same feature coverage prior to imputation (see
+syntactic, phonological, inventory, and morphological
+feature coverage before expanded lineage imputation
+in Figure 2). Consequently, the distances used in our
+downstream experiments differed slightly, leading to
+minor variations in downstream performance.
+
+Furthermore, the features themselves have inher-
+ent limitations. Script similarity does not always
+equate to the deep linguistic similarity required for
+complex downstream tasks. For example, script
+vectors correctly capture that Persian and Arabic
+share script features. However, Persian is an Indo-
+European language while Arabic is Semitic. For a
+task like machine translation, over-reliance on the
+script signal could incorrectly suggest a stronger lin-
+guistic relationship than exists, potentially adding a
+misleading signal.
+
+Similarly, our expanded lineage imputation oper-
+ates on the heuristic that dialects share features
+with their parent languages. While broadly effective,
+this assumption can be flawed. A dialect may have
+evolved a unique feature or, through language con-
+tact, lost a feature that its parent retained. In such
+cases, the imputation would be incorrect, adding a
+faulty data point that could negatively impact down-
+stream tasks.
+
+Finally, adding 18,710 languages from Glottolog
+to URIEL+, each with genetic, geographic, typo-
+logical (syntactic, phonological, inventory, and mor-
+phological), and scriptural vectors, substantially in-
+creases the time required to integrate all linguistic
+data sources in URIEL+ (e.g., from a few minutes to
+often around an hour).
+
+8. Ethics Statement
+
+This work builds upon publicly available linguistic
+resources, including URIEL+, Glottolog, and Script-
+Source. URIEL+ and Glottolog are both publicly view-
+able and accessible, whereas ScriptSource is publicly
+viewable but not openly accessible for bulk data ex-
+traction or redistribution. Access to ScriptSource data
+for this research was obtained with the explicit permis-
+sion and assistance of the resource’s administrator, to
+ensure compliant and responsible use. Furthermore,
+we received the permission of the URIEL+ authors to
+contribute and extend their work.
+
+All data used in this work describe linguistic struc-
+tures and writing systems, without involving person-
+ally identifiable or user-generated content. Our pri-
+mary objective is to address data sparsity in mul-
+tilingual linguistic knowledge bases by systemati-
+cally enriching low-resource features rather than col-
+lecting new human data. While this enrichment
+improves coverage, automatic feature propagation
+through expanded lineage imputation may inadver-
+
+tently reinforce existing typological biases from well-
+documented languages. To mitigate this, we ensured
+that the imputation procedure was transparent and re-
+producible and we release all derived resources and
+code under an open license to promote transparency
+and community oversight.
+
+Acknowledgements
+
+We thank Martin Raymond and ScriptSource for pro-
+viding us the script feature data, without which this
+work would not be possible. We would also like to
+thank Khasir Hean for his help providing linguistic
+perspectives during our expanded lineage imputation
+and Patrick Littell for his suggestion of ScriptSource
+for a source for our script vectors.
+
+9. Bibliographical References
+
+David Ifeoluwa Adelani, Hannah Liu, Xiaoyu Shen,
+Nikita Vassilyev, Jesujoba O. Alabi, Yanke Mao,
+Haonan Gao, and En-Shiun Annie Lee. 2024. SIB-
+200: A simple, inclusive, and big evaluation dataset
+for topic classification in 200+ languages and di-
+alects. In Proceedings of the 18th Conference of
+the European Chapter of the Association for Com-
+putational Linguistics (Volume 1: Long Papers),
+pages 226-245, St. Julian’s, Malta. Association for
+Computational Linguistics.
+
+Chantal Amrhein and Rico Sennrich. 2020. On Ro-
+manization for model transfer between scripts in
+neural machine translation. In Findings of the As-
+sociation for Computational Linguistics: EMNLP
+2020, pages 2461-2469, Online. Association for
+Computational Linguistics.
+
+David Anugraha, Genta Indra Winata, Chenyue Li,
+Patrick Amadeus Irawan, and En-Shiun Annie Lee.
+2025. ProxyLM: Predicting language model per-
+formance on multilingual tasks via proxy models.
+In Findings of the Association for Computational
+Linguistics: NAACL 2025, pages 1981-2011, Al-
+buquerque, New Mexico. Association for Computa-
+tional Linguistics.
+
+Johannes Bjerva, Elizabeth Salesky, Sabrina J.
+Mielke, Aditi Chaudhary, Giuseppe G. A. Celano,
+Edoardo Maria Ponti, Ekaterina Vylomova, Ryan
+Cotterell, and Isabelle Augenstein. 2020. SIGTYP
+2020 shared task: Prediction of typological fea-
+tures. In Proceedings of the Second Workshop
+on Computational Research in Linguistic Typology,
+pages 1-11, Online. Association for Computational
+Linguistics.
+
+
+Verena Blaschke, Masha Fedzechkina, and Maartje
+Ter Hoeve. 2025. Analyzing the effect of linguis-
+tic similarity on cross-lingual transfer: Tasks and
+experimental setups matter. In Findings of the As-
+sociation for Computational Linguistics: ACL 2025,
+pages 8653-8684, Vienna, Austria. Association for
+Computational Linguistics.
+
+Rishi Bommasani, Drew A. Hudson, Ehsan Adeli,
+Russ Altman, Simran Arora, Sydney von Arx,
+Michael S. Bernstein, Jeannette Bohg, Antoine
+Bosselut, Emma Brunskill, Erik Brynjolfsson,
+Shyamal Buch, Dallas Card, Rodrigo Castellon,
+Niladri Chatterji, Annie Chen, Kathleen Creel,
+Jared Quincy Davis, Dora Demszky, Chris Don-
+ahue, Moussa Doumbouya, Esin Durmus, Ste-
+fano Ermon, John Etchemendy, Kawin Ethayarajh,
+Li Fei-Fei, Chelsea Finn, Trevor Gale, Lauren Gille-
+spie, Karan Goel, Noah Goodman, Shelby Gross-
+man, Neel Guha, Tatsunori Hashimoto, Peter Hen-
+derson, John Hewitt, Daniel E. Ho, Jenny Hong,
+Kyle Hsu, Jing Huang, Thomas Icard, Saahil Jain,
+Dan Jurafsky, Pratyusha Kalluri, Siddharth Karam-
+cheti, Geoff Keeling, Fereshte Khani, Omar Khat-
+tab, Pang Wei Koh, Mark Krass, Ranjay Krishna,
+Rohith Kuditipudi, Ananya Kumar, Faisal Ladhak,
+Mina Lee, Tony Lee, Jure Leskovec, Isabelle Lev-
+ent, Xiang Lisa Li, Xuechen Li, Tengyu Ma, Ali
+Malik, Christopher D. Manning, Suvir Mirchan-
+dani, Eric Mitchell, Zanele Munyikwa, Suraj Nair,
+Avanika Narayan, Deepak Narayanan, Ben New-
+man, Allen Nie, Juan Carlos Niebles, Hamed Nil-
+foroshan, Julian Nyarko, Giray Ogut, Laurel Orr,
+Isabel Papadimitriou, Joon Sung Park, Chris Piech,
+Eva Portelance, Christopher Potts, Aditi Raghu-
+nathan, Rob Reich, Hongyu Ren, Frieda Rong,
+Yusuf Roohani, Camilo Ruiz, Jack Ryan, Christo-
+pher Ré, Dorsa Sadigh, Shiori Sagawa, Keshav
+Santhanam, Andy Shih, Krishnan Srinivasan, Alex
+Tamkin, Rohan Taori, Armin W. Thomas, Florian
+Tramér, Rose E. Wang, William Wang, Bohan Wu,
+Jiajun Wu, Yuhuai Wu, Sang Michael Xie, Michihiro
+Yasunaga, Jiaxuan You, Matei Zaharia, Michael
+Zhang, Tianyi Zhang, Xikun Zhang, Yuhui Zhang,
+Lucia Zheng, Kaitlyn Zhou, and Percy Liang. 2022.
+On the opportunities and risks of foundation mod-
+els.
+
+Mark A. Changizi, Qiang Zhang, and Hang Ye. 2021.
+Graphic complexity in writing systems. Royal Soci-
+ety Open Science, 8(7):210423.
+
+Alexis Conneau, Ruty Rinott, Guillaume Lample, Ad-
+ina Williams, Samuel Bowman, Holger Schwenk,
+and Veselin Stoyanov. 2018. XNLI: Evaluating
+cross-lingual sentence representations. In Pro-
+ceedings of the 2018 Conference on Empirical
+Methods in Natural Language Processing, pages
+2475-2485, Brussels, Belgium. Association for
+Computational Linguistics.
+
+Michael Dunn, Simon J. Greenhill, Stephen C. Levin-
+son, and Russell D. Gray. 2011. Evolved structure
+of language shows lineage-specific trends in word-
+order universals. Nature, 473(7345):79-82.
+
+Michael Dunn, Angela Terrill, Ger Reesink, Robert A.
+Foley, and Stephen C. Levinson. 2005. Structural
+phylogenetics and the reconstruction of ancient
+language history. Science, 309(5743):2072-2075.
+
+Simon J. Greenhill, Quentin D. Atkinson, and Rus-
+sell D. Gray. 2010. Are lexical and structural fea-
+tures equally diagnostic of phylogenetic relation-
+ships? Proceedings of the Royal Society B: Biolog-
+ical Sciences, 277(1693):3393-3402.
+
+Gilles Guillot and Francois Rousset. 2013. Disman-
+ting the mantel tests. Methods in Ecology and
+Evolution, 4(4):336-344.
+
+Nils Hubler. 2022. Phylogenetic signal and rate of evo-
+lutionary change in language structures. Frontiers
+in Psychology, 13:923056.
+
+Gerhard Jager and Johannes Wahle. 2021. Phyloge-
+netic typology. Frontiers in Psychology, 12:690587.
+
+Pratik Joshi, Sebastin Santy, Amar Budhiraja, Kalika
+Bali, and Monojit Choudhury. 2020. The state and
+fate of linguistic diversity and inclusion in the NLP
+world. In Proceedings of the 58th Annual Meeting
+of the Association for Computational Linguistics,
+pages 6282-6293, Online. Association for Compu-
+tational Linguistics.
+
+Eric Khiu, Hasti Toossi, David Anugraha, Jinyu Liu,
+Jiaxu Li, Juan Flores, Leandro Roman, A. Seza
+Dogruéz, and En-Shiun Lee. 2024. Predicting ma-
+chine translation performance on low-resource lan-
+guages: The role of domain similarity. In Findings
+of the Association for Computational Linguistics:
+EACL 2024, pages 1474-1486, St. Julian’s, Malta.
+Association for Computational Linguistics.
+
+Bernd Kortmann, Kerstin Lunkenheimer, and Katha-
+rina Ehret, editors. 2020. e WAVE. Zenodo.
+
+JiaHang Li, ShuXia Guo, RuLin Ma, Jia He, XiangHui
+Zhang, DongSheng Rui, YuSong Ding, Yu Li, LeYao
+Jian, Jing Cheng, and Heng Guo. 2024. Compari-
+son of the effects of imputation methods for miss-
+ing data in predictive modelling of cohort study
+datasets. BMC Medical Research Methodology,
+24(1):41.
+
+Percy Liang, Rishi Bommasani, Tony Lee, Dimitris
+Tsipras, Dilara Soylu, Michihiro Yasunaga, Yian
+Zhang, Deepak Narayanan, Yuhuai Wu, Ananya
+Kumar, Benjamin Newman, Binhang Yuan, Bobby
+Yan, Ce Zhang, Christian Cosgrove, Christopher D.
+Manning, Christopher Ré, Diana Acosta-Navas,
+Drew A. Hudson, Eric Zelikman, Esin Durmus,
+
+
+Faisal Ladhak, Frieda Rong, Hongyu Ren, Huaxiu
+Yao, Jue Wang, Keshav Santhanam, Laurel Orr,
+Lucia Zheng, Mert Yuksekgonul, Mirac Suzgun,
+Nathan Kim, Neel Guha, Niladri Chatterji, Omar
+Khattab, Peter Henderson, Qian Huang, Ryan
+Chi, Sang Michael Xie, Shibani Santurkar, Surya
+Ganguli, Tatsunori Hashimoto, Thomas Icard,
+Tianyi Zhang, Vishrav Chaudhary, William Wang,
+Xuechen Li, Yifan Mai, Yuhui Zhang, and Yuta Ko-
+reeda. 2023. Holistic evaluation of language mod-
+els.
+
+Yu-Hsiang Lin, Chian-Yu Chen, Jean Lee, Zirui Li,
+Yuyan Zhang, Mengzhou Xia, Shruti Rijhwani, Junx-
+ian He, Zhisong Zhang, Xuezhe Ma, Antonios
+Anastasopoulos, Patrick Littell, and Graham Neu-
+big. 2019. Choosing transfer languages for cross-
+lingual learning. In Proceedings of the 57th Annual
+Meeting of the Association for Computational Lin-
+guistics, pages 3125-3135, Florence, Italy. Associ-
+ation for Computational Linguistics.
+
+Yihong Liu, Haotian Ye, Chunlan Ma, Mingyang
+Wang, and Hinrich Schuetze. 2025. LangSAMP:
+Language-script aware multilingual pretraining. In
+Proceedings of the 63rd Annual Meeting of the As-
+sociation for Computational Linguistics (Volume 1:
+Long Papers), pages 1743-1770, Vienna, Austria.
+Association for Computational Linguistics.
+
+Chunlan Ma, Ayyoob Imani, Haotian Ye, Renhao Pei,
+Ehsaneddin Asgari, and Hinrich Schuetze. 2025.
+Taxi1500: A dataset for multilingual text classifica-
+tion in 1500 languages. In Proceedings of the 2025
+Conference of the Nations of the Americas Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies (Volume 2: Short
+Papers), pages 414-439, Albuquerque, New Mex-
+ico. Association for Computational Linguistics.
+
+Nathan Mantel. 1967. The detection of disease clus-
+tering and a generalized regression approach. Can-
+cer Research, 27(2):209-220.
+
+Rahul Mazumder, Trevor Hastie, and Robert Tibshi-
+rani. 2010. Spectral regularization algorithms for
+learning large incomplete matrices. The Journal of
+Machine Learning Research, 11:2287-2322.
+
+George Moroz. 2017. lingtypology: easy mapping for
+Linguistic Typology.
+
+Nikitha Murikinati, Antonios Anastasopoulos, and Gra-
+ham Neubig. 2020. Transliteration for cross-lingual
+morphological inflection. In Proceedings of the 17th
+SIGMORPHON Workshop on Computational Re-
+search in Phonetics, Phonology, and Morphology,
+pages 189-197, Online. Association for Computa-
+tional Linguistics.
+
+York Hay Ng, Aditya Khan, Xiang Lu, Matteo Salloum,
+Michael Zhou, Phuong H. Hoang, A. Seza Dogrudz,
+
+and En-Shiun Annie Lee. 2025. Modality matching
+matters: Calibrating language distances for cross-
+lingual transfer in uriel+.
+
+Vit Novotny, Eniafe Festus Ayetiran, Dalibor
+Bagovsky, David Luptak, Michal Stefanik, and Petr
+Sojka. 2021. One size does not fit all: Finding the
+optimal subword sizes for FastText models across
+languages. In Proceedings of the International
+Conference on Recent Advances in Natural Lan-
+guage Processing (RANLP 2021), pages 1068—
+1074, Held Online. INCOMA Ltd.
+
+Charles Spearman. 1904. The proof and measure-
+ment of association between two things. The Amer-
+ican Journal of Psychology, 15:72—101.
+
+Hasti Toossi, Guo Huai, Jinyu Liu, Eric Khiu, A. Seza
+Dogruéz, and En-Shiun Lee. 2024. A reproducibil-
+ity study on quantifying language similarity: The
+impact of missing values in the URIEL knowledge
+base. In Proceedings of the 2024 Conference of
+the North American Chapter of the Association for
+Computational Linguistics: Human Language Tech-
+nologies (Volume 4: Student Research Workshop),
+pages 233-241, Mexico City, Mexico. Association
+for Computational Linguistics.
+
+Wondimagegnhue Tufa, llia Markov, and Piek Vossen.
+2024. Unknown script: Impact of script on cross-
+lingual transfer. In Proceedings of the 2024 Con-
+ference of the North American Chapter of the As-
+sociation for Computational Linguistics: Human
+Language Technologies (Volume 4: Student Re-
+search Workshop), pages 124-129, Mexico City,
+Mexico. Association for Computational Linguistics.
+
+Ahmet Ustiin, Arianna Bisazza, Gosse Bouma, and
+Gertjan van Noord. 2020. UDapter: Language
+adaptation for truly Universal Dependency parsing.
+In Proceedings of the 2020 Conference on Em-
+pirical Methods in Natural Language Processing
+(EMNLP), pages 2302-2315, Online. Association
+for Computational Linguistics.
+
+Anderson M. Winkler, Matthew A. Webster, Diego Vi-
+daurre, Thomas E. Nichols, and Stephen M. Smith.
+2015. Multi-level block permutation. Neurolmage,
+123:253-268.
+
+Orgest Xhelili, Yihong Liu, and Hinrich Schuetze.
+2024. Breaking the script barrier in multilingual
+pre-trained language models with transliteration-
+based post-training alignment. In Findings of the
+Association for Computational Linguistics: EMNLP
+2024, pages 11283-11296, Miami, Florida, USA.
+Association for Computational Linguistics.
+
+Wenhao Zhuang, Yuan Sun, and Xiaobing Zhao.
+2025. Enhancing cross-lingual transfer through re-
+versible transliteration: A Huffman-based approach
+
+
+for low-resource languages. In Proceedings of the
+63rd Annual Meeting of the Association for Com-
+putational Linguistics (Volume 1: Long Papers),
+pages 16299-16313, Vienna, Austria. Association
+for Computational Linguistics.
+
+10. Language Resource References
+
+2013. WALS Online (v2020.3). Zenodo.
+
+Harald Hammarstrém and Robert Forkel. 2022. Glot-
+tocodes: Identifiers Linking Families, Languages
+and Dialects to Comprehensive Reference Infor-
+mation.
+
+Holloway, Steph. 2013. ScriptSource - Writing sys-
+tems, computers and people. SIL International.
+
+Khan, Aditya and Shipton, Mason and Anugraha,
+David and Duan, Kaiyao and Hoang, Phuong H.
+and Khiu, Eric and Dogrudz, A. Seza and Lee,
+En-Shiun Annie. 2025. URIEL+: Enhancing Lin-
+guistic Inclusion and Usability in a Typological and
+Multilingual Knowledge Base. Association for Com-
+putational Linguistics.
+
+Koopman, Hilda. 2009. Syntactic Structures of the
+World's Languages (SSWL).
+
+Littell, Patrick and Mortensen, David R. and Lin, Ke
+and Kairis, Katherine and Turner, Carlisle and
+Levin, Lori. 2017. URIEL and lang2vec: Repre-
+senting languages as typological, geographical,
+and phylogenetic vectors. Association for Com-
+putational Linguistics.
+
+Marsico, Egidio and Flavier, Sebastien and Verkerk,
+Annemarie and Moran, Steven. 2018. BDPROTO:
+A Database of Phonological Inventories from An-
+cient and Reconstructed Languages. European
+Language Resources Association (ELRA).
+
+Skirgard, Hedvig and Haynie, Hannah J and Blasi,
+Damian E and Hammarstrom, Harald and Collins,
+Jeremy and Latarche, Jay J and Lesage, Jakob and
+Weber, Tobias and Witzlack-Makarevich, Alena and
+Passmore, Sam and others. 2023. Grambank Re-
+veals the Importance of Genealogical Constraints
+on Linguistic Diversity and Highlights the Impact
+of Language Loss. American Association for the
+Advancement of Science.

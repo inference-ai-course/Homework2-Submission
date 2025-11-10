@@ -1,0 +1,5274 @@
+Why Do Multilingual Reasoning Gaps Emerge
+in Reasoning Language Models?
+
+Deokhyung Kang, Seonjeong Hwang!, Daehui Kim?, Hyounghun Kim'?3, Gary Geunbae Lee!”
+Graduate School of Artificial Intelligence, POSTECH
+2Al Future Lab, KT
+3Department of Computer Science and Engineering, POSTECH
+{deokhk, seonjeongh, h.kim, gbleel}@postech.ac.kr, daehui.kim@kt.com
+
+2510.27269v1 [cs.CL] 31 Oct 2025
+
+arXiv
+
+Abstract
+
+Reasoning language models (RLMs) achieve
+strong performance on complex reasoning
+tasks, yet they still suffer from a multilin-
+gual reasoning gap, performing better in high-
+resource languages than in low-resource ones.
+While recent efforts have reduced this gap, its
+underlying causes remain largely unexplored.
+In this paper, we address this by showing that
+the multilingual reasoning gap largely stems
+from failures in language understanding—the
+model’s inability to represent the multilingual
+input meaning into the dominant language (i.e.,
+English) within its reasoning trace. This mo-
+tivates us to examine whether understanding
+failures can be detected, as this ability could
+help mitigate the multilingual reasoning gap.
+To this end, we evaluate a range of detection
+methods and find that understanding failures
+can indeed be identified, with supervised ap-
+proaches performing best. Building on this,
+we propose Selective Translation, a simple yet
+effective strategy that translates the multilin-
+gual input into English only when an under-
+standing failure is detected. Experimental re-
+sults show that Selective Translation bridges
+the multilingual reasoning gap, achieving near
+full-translation performance while using trans-
+lation for only about 20% of inputs. Together,
+our work demonstrates that understanding fail-
+ures are the primary cause of the multilingual
+reasoning gap and can be detected and selec-
+tively mitigated, providing key insight into its
+origin and a promising path toward more equi-
+table multilingual reasoning.’
+
+1 Introduction
+
+Recent reasoning language models (RLMs), such
+as OpenAlI’s ol (Jaech et al., 2024) and DeepSeek-
+R1 (Guo et al., 2025), have achieved remarkable
+performance on complex reasoning tasks. By gen-
+erating long reasoning traces (intermediate steps)
+
+'Our code and data are publicly available at here.
+
+Question: Kikapu kina machungwa 25 na 1 miongoni mwao
+limeharibika, 20% hayajaiva, 2 ni chachu na mengine ni mazuri.
+Machungwa mangapi ni mazuri?
+
+(A basket contains 25 oranges among which 1 is bad, 20% are unripe, @ >
+2 are sour and the rest are good. How many oranges are good?)
+
+Reasoning Trace: The question is in Swahili, so | try to translate it.
+~"Kikapu kina machungwa 25 na 1 miongoni mwao limeharibika...
+
+(@B)viav-e it's about a group of people or animals?...20% are injured,
+2 are sick, and the rest are healthy...This is confusing. Maybe the
+problem is mistranslated or | misunderstand it....
+
+Eventually, if total is 25, 20% is 5, plus 2 sick = 7, s0 25 - 7 = 18
+healthy."
+
+Final Response: Machungwa kina 25. 20% ya 25 ni $0.20 times
+25 = 5% machungwa hayajaiva. 2 machungwa ni chachu. Kwa hiyo,
+machungwa ya mazuri ni: $25 - 5 - 2 = 18$. Jibu: $#boxed{18}$
+
+(There are 25 oranges. 20% of 25 is $0.20 #times 25 = 5% oranges
+that are unripe. 2 oranges are fermented. Therefore, the number of
+good oranges is: 25-5-2=18. Answer: $#boxed{18}$)
+
+Figure 1: Understanding failure in Qwen3-4B: the
+model shows confusion when interpreting the Swahili
+input (e.g., “This is confusing. ..”) and ignores the “1
+bad orange” condition, leading to an incorrect answer.
+
+before producing a final response, they substan-
+tially outperform conventional large language mod-
+els (Muennighoff et al., 2025; Yu et al., 2025).
+Despite these advances, RLMs still exhibit a mul-
+tilingual reasoning gap, performing much better
+on queries in high-resource languages (e.g., En-
+glish) than in low-resource languages (Wang et al.,
+2025b). While recent studies (Zhao et al., 2025; Ba-
+jpai and Chakraborty, 2025; Yoo et al., 2025) have
+explored various methods to narrow this gap, a sys-
+tematic understanding of why these gaps arise in
+RLMs remains unexplored — a key question for
+developing principled approaches toward equitable
+multilingual reasoning.
+
+In this work, we investigate this question by
+viewing RLMs’ multilingual reasoning as a three-
+stage process, motivated by observations in prior
+works (Yong et al., 2025; Qi et al., 2025; Tam et al.,
+2025). As shown in Figure 1, when given a math
+problem in Swahili, the model first projects the
+input meaning into the dominant language of its
+reasoning trace (English), a stage we refer to as (i)
+
+
+language understanding. It then (ii) reasons within
+that English-centric trace before (iii) generating
+the final response back in Swahili. Building on
+this framework, we quantify the contribution of
+failures in each stage to the multilingual reasoning
+gap through a residual-based analysis, using stage-
+specific interventions designed to prevent such fail-
+ures. To this end, we evaluate strong open-source
+RLMs, including the Qwen3 family (Yang et al.,
+2025a) and gpt-oss-20b (Agarwal et al., 2025),
+across 10 languages ranging from high- to low-
+resource settings. Our analysis reveals a consistent
+pattern: understanding failures are the dominant
+source of the multilingual reasoning gap in most
+cases, which holds across model sizes (1.7B-20B),
+reasoning tasks, and difficulty levels. This finding
+suggests that if such failures can be detected, we
+can either prevent them by abstaining from answer-
+ing or mitigate the gap by translating the input into
+a high-resource language before reasoning.
+
+Accordingly, we next investigate whether such
+understanding failures can be detected. We ob-
+serve that models often leave recognizable signals
+of misunderstanding within their reasoning traces
+(Figure 1). Inspired by this, we adapt detection
+methods originally developed for identifying un-
+desirable behaviors such as hallucination and jail-
+break, which similarly arise when the model fails to
+satisfy its intended objective. Using various detec-
+tion methods—ranging from LLM-based monitor-
+ing (Baker et al., 2025) and self-reflection (Xiong
+et al., 2024) to token-probability signals (Manakul
+et al., 2023) and supervised detectors (Azaria and
+Mitchell, 2023; Chan et al., 2025)—we find that
+understanding failures can indeed be detected, with
+supervised approaches performing best.
+
+Finally, we propose Selective Translation to
+demonstrate how understanding failure detection
+can be leveraged to reduce the multilingual reason-
+ing gap. Selective Translation is a simple approach
+that translates the input into English only when
+an understanding failure is detected. It efficiently
+narrows the multilingual reasoning gap: notably, it
+improves average accuracy from 81.1 to 88.0 on
+the Polymath-Low (Wang et al., 2025b) benchmark
+with Qwen3-4B, closely matching full translation
+(89.4) while translating only 20% of inputs. These
+gains, achieved while intervening on only a small
+fraction of inputs, demonstrate both the reliability
+of the detector and the promise of understanding
+failure detection for equitable multilingual reason-
+ing.
+
+We summarize our main contributions as fol-
+lows: (i) We provide the first systematic analysis of
+the multilingual reasoning gap in RLMs and show
+that understanding failures are the dominant source
+of this gap, providing a basis for developing prin-
+cipled approaches toward equitable multilingual
+reasoning. (ii) We systematically evaluate a range
+of methods for understanding failure detection and
+show that such failures can be automatically de-
+tected. (iii) We further demonstrate the significance
+of understanding failure detection through the pro-
+posed Selective Translation, which leverages these
+signals to efficiently narrow multilingual reasoning
+
+gaps.
+2 Related Work
+
+Reasoning language models (RLMs). Recent
+RLMs such as DeepSeek-R1 (Guo et al., 2025)
+and Qwen3 (Yang et al., 2025a) are trained to pro-
+duce long chains of thought and achieve strong per-
+formance on challenging reasoning tasks (Muen-
+nighoff et al., 2025; Jaech et al., 2024). Re-
+cently, their multilingual reasoning capabilities
+have gained increasing attention. Yong et al. (2025)
+show that scaling inference compute on an English-
+centric RLM yields clear multilingual gains, con-
+trary to earlier findings on smaller models (Son
+et al., 2025). Prior work (Qi et al., 2025; Tam
+et al., 2025) also finds that RLMs predominantly
+reason in English. Park et al. (2025) attribute this
+to cross-lingual collapse, where GRPO (Shao et al.,
+2024) training encourages models to revert to En-
+glish reasoning traces due to accuracy-centric re-
+ward signals. While the reasoning language can be
+controlled by techniques such as language-forcing
+prefix (Yong et al., 2025; Qi et al., 2025; Tam et al.,
+2025) or language-consistency rewards (Park et al.,
+2025), these often reduce accuracy or require target-
+language reasoning data (Hwang et al., 2025; Lee
+et al., 2025), which is costly to obtain for low-
+resource languages. Therefore, we focus on a set-
+ting where the model reasons in a high-resource
+language (English in our case).
+
+Despite these efforts, RLMs still exhibit a mul-
+tilingual reasoning gap (Yang et al., 2025a). Re-
+cent work has attempted to bridge this gap through
+approaches such as representation editing (Zhao
+et al., 2025), tailored prompting (Yoo et al., 2025),
+and prefix tuning (Bajpai and Chakraborty, 2025).
+However, the underlying causes of this gap remain
+largely unexplored. In this work, we tackle this
+
+
+question by systematically identifying the sources
+of the multilingual reasoning gap and investigat-
+ing methods to mitigate them. Additional related
+work on multilingual reasoning is provided in Ap-
+pendix G.
+
+Abstention in multilingual setting. Abstention
+enables language models to refuse to answer when
+uncertain or inappropriate, reducing errors and hal-
+lucinations (Tomani et al., 2024; Wen et al., 2025;
+Kirichenko et al., 2025). Approaches include token-
+level confidence estimation (Jiang et al., 2021), self-
+reflection (Kadavath et al., 2022), probing (Azaria
+and Mitchell, 2023), and multi-agent collabora-
+tion (Feng et al., 2024b), though most have focused
+on monolingual or English-centric settings. Re-
+cently, Feng et al. (2024a) presented the first study
+of multilingual abstention, proposing multilingual
+feedback to address cross-lingual knowledge dis-
+parities. However, their focus is on identifying
+whether the model possesses sufficient knowledge
+in that language. In contrast, our work targets de-
+tecting understanding failures, and leverages the
+results to trigger selective translation.
+
+3 Why Does the Multilingual Reasoning
+Gap Emerge?
+
+3.1 Multilingual Reasoning Process
+
+To analyze why the multilingual reasoning gap
+emerges, we first formalize how RLMs process
+multilingual inputs. Prior work shows that rea-
+soning traces are typically dominated by high-
+resource languages such as English, while the
+final responses tend to align with the input lan-
+guage (Yong et al., 2025; Qi et al., 2025; Tam et al.,
+2025). During the early stages of reasoning, models
+often begin by interpreting the input into the dom-
+inant language (Yong et al., 2025). We interpret
+this internal translation as the model’s language
+understanding process, which enables reasoning
+in the dominant-language space. For brevity, we
+refer to it as understanding.
+
+Building on this view, we conceptualize multilin-
+gual reasoning as a three-stage process: (i) under-
+standing the input, (ii) reasoning in the dominant-
+language space, and (iii) generating the final re-
+sponse in the input language. We hypothesize that
+failures can occur at each of these stages—through
+input misinterpretation, degraded reasoning on low-
+resource inputs, or errors in generating the final re-
+sponse in the input language—thereby contributing
+to the multilingual reasoning gap.
+
+3.2 Method
+
+We quantify the contribution of failures in each
+stage to the multilingual reasoning gap by design-
+ing stage-specific interventions that prevent such
+failures and conducting a residual-based analysis.
+
+Preliminary. Given an input x = (z1,...,2,),
+an RLM first generates a reasoning trace r =
+(r1,...,r%) conditioned on z, and then produces
+a final response y = (y1, - - . , Ym) conditioned on
+both z and r. The reasoning trace r is a long chain
+of thought that may include intermediate steps and
+(often) a candidate final answer (Guo et al., 2025;
+Chen et al., 2025); in practice, it typically begins
+with <think> and ends with </think>. We intro-
+duce two interventions:
+
+(1) Understanding Intervention. As described
+in Section 3.1, during the understanding stage, an
+RLM interprets the meaning of the input x; in a
+dominant language within its reasoning trace r. To
+assess the impact of failures in this stage on the
+multilingual reasoning gap, we introduce the under-
+standing intervention, which provides the model
+with an explicit interpretation of x; by using a fixed
+prefix 7(x4om) as the beginning of the reasoning
+trace. Here, 40m is the dominant-language equiv-
+alent of x;:
+
+m(xgom) = "Okay, let’s see. I understand
+the question as: ’{x4,m }’. Let’s solve the
+problem based on this understanding."
+
+The model then continues generating r condi-
+tioned on (7, (40m )) instead of only x;. Com-
+paring results with and without the intervention
+quantifies how much of the gap stems from under-
+standing failures.
+
+(2) Answer Extraction from Reasoning Trace.
+To measure the contribution of failures in response
+generation to the multilingual reasoning gap, we
+extract the final answer directly from the reasoning
+trace r instead of from the final response y, and
+compare task accuracy between the two. The same
+answer extraction logic is applied to both r and y,
+as detailed in Appendix D.2.
+
+Residual-based Analysis. We perform a
+residual-based analysis to attribute the gap to each
+stage. For language [, let Sy(!), Su (1), St(l), and
+Sur(l) denote accuracy under Base, w/ U, w/
+T, and w/ U+T, respectively. Base denotes the
+
+
+original model without intervention, w/ U applies
+Understanding Intervention, w/ T applies Answer
+Extraction from Reasoning Trace, and w/ U+T
+applies both. Let S§"** = maxjc, So(l) be the
+maximum accuracy across all languages. We
+define the headroom (i.e., the performance gap to
+the ceiling) for language [ as H (1) = S§™* — Sp(l).
+Intuitively, headroom represents the unrealized
+potential improvement given the model’s inherent
+reasoning capability, as reflected by its best-
+performing language. We attribute the gains from
+U and T using a Shapley decomposition (Shorrocks
+et al., 2013), a principled approach well-suited for
+our stage-wise attribution analysis:
+
+ou (l) = max {o ; [(Su So)
+¢r(l) = max {o. : (ST So)
+
+(Sur — St)] 3
+(Sur — Su) 3
+
+We consider the residual—i.e., the portion of head-
+room not explained by U or T—as the share at-
+tributed to the Reasoning stage.
+
+or(l) = H(l) — ¢u(l) — ¢r(l) (= 0).
+Normalizing by headroom yields stage-specific
+
+shares, aligned with the three stages of multilin-
+gual reasoning (Section 3.1):
+
+U-share(l) = gull
+
+(Understanding)
+R-share(l) = RA (Reasoning)
+
+G-share(l) = ed (Generation)
+
+with U-share(/) + R-share(l) + G-share(l) = 1. We
+compute residual-based shares per language and
+report aggregated results across languages using
+headroom-weighted averages:
+
+_ Que HO) - (1)
+Weighted-Share, = SH
+
+thus giving more importance to languages with
+larger performance gaps. To focus on statistically
+meaningful differences across languages, we only
+consider languages whose Base performance is sig-
+nificantly lower than that of the best-performing
+language (e.g., English) according to a Welch’s
+t-test (p<0.05) (Welch, 1947). We report the aggre-
+gated results per dataset.
+
+3.3 Experimental Settings
+
+Models. We primarily evaluate two recent RLMs
+from distinct model families: Qwen3-4B (Yang
+et al, 2025a) and gpt-oss-20b (Agarwal et al,
+2025). We select these models because they are
+publicly available, achieve state-of-the-art reason-
+ing performance at a comparable scale, and support
+multiple languages. To further examine the gener-
+alizability of our findings across model scales, we
+additionally evaluate Qwen3-1.7B, 8B, and 14B.
+
+Evaluation datasets. We evaluate models on
+two multilingual reasoning benchmarks: Poly-
+math (Wang et al., 2025b) and MMLU-ProX-
+Lite (Xuan et al., 2025). Polymath spans mathemat-
+ical reasoning across different difficulty levels, and
+we focus on the low, medium, and high levels, rang-
+ing from K-12 mathematics to challenging competi-
+tion problems from AIME (Art of Problem Solving,
+2025). For STEM reasoning, we use STEM-related
+categories from MMLU-ProX-Lite, a subset from
+MMLU-ProX designed for efficient evaluation. We
+evaluate models on a set of typologically diverse
+languages with varying resource availability, all of
+which are covered by both benchmarks. Following
+the taxonomy of Joshi et al. (2020), we group them
+into high-resource languages (English (en), Ger-
+man (de), Spanish (es), Arabic (ar), Japanese (ja),
+Korean (ko)), mid-resource languages (Thai (th),
+Bengali (bn)), and low-resource languages (Swahili
+(sw), Telugu (te)).? This yields 125 test samples
+per language and difficulty level on Polymath and
+257 samples per language on MMLU-ProX-Lite.
+See Appendix D.1 for detailed dataset descriptions,
+and evaluation prompts.
+
+Evaluation metrics and settings. We report task
+accuracy averaged over three runs with different
+random seeds, sampled with temperature = 0.6,
+top-p = 0.95, and top-k = 20 with a maxi-
+mum generation length of 32,768 tokens. Correct-
+ness is evaluated using MATH- VERIFY (Kydlicek,
+2025) for Polymath and string-based matching for
+MMLU-ProX-Lite. Further evaluation details are
+provided in Appendix D.2.
+
+3.4 Results
+
+Understanding intervention significantly im-
+proves the performance. Before conducting the
+
+In our experiments, the evaluated models consistently
+produced reasoning traces dominated by English, and their
+final responses were often generated in the input language.
+See Appendix A for detailed language distributions.
+
+
+Dataset Method en de es ar ja ko th bn SW te Avg
+Base 96.5 88.0 939 896 8.3 90.7 | 8.1 832 | 293 699 | 81.1
+Polymath-Low w/T 960 875 933 893 851 89.6 | 85.1 829 | 31.7 709 | 811
+w/ U 952 89.6 947 925 915 93.1 | 92.0 944 | 88.0 87.7 | 91.9
+w/U+T | 952 89.6 944 923 912 928 | 923 944 | 90.1 893 | 92.2
+Base 74.7 709 720 688 709 709 | 67.7 648 | 456 64.8 | 67.1
+_ i w/ T 752 709 71.7 69.1 70.7 709 | 67.7 656 | 459 65.1 | 67.3
+Polymath-Medium |) 1; 747 720 741 733 752 736 | 704 685 | 67.5 709 | 72.0
+w/U+T | 747 720 744 733 755 733 | 704 704 | 68.8 712 | 72.4
+Base 539 512 488 52.0 50.1 52.8 | 453 44.8 | 28.8 40.8 | 46.9
+Polymath-High w/T 541 50.9 49.6 525 504 53.6 | 456 456 | 293 408 | 47.3
+w/ U 549 512 520 51.7 525 533 | 509 49.1 | 504 50.1 | 51.6
+w/U+T | 549 51.7 523 51.7 525 53.1 | 51.5 49.6 | 50.7 50.1 | 51.8
+Base 77.0 778 765 733 750 746 | 739 746 | 536 71.1 | 72.7
+_ Li w/ T 769 774 765 733 748 744 | 73.8 746 | 534 71.1 | 72.6
+MMLU-ProX-Lite | {15 785 774 777 780 785 772 | 181 782 | 735 772 | 714
+w/U+T | 781 77.3 780 78.0 785 77.7 | 782 782 | 747 774 | 71.6
+Table 1: Accuracy comparison of methods across languages on Qwen3-4B. Base denotes the original model without
+intervention, w/ T applies Answer Extraction from Reasoning Trace, w/ U applies Understanding Intervention,
+
+and w/ U + T applies both. Pairwise comparisons against the Base use Welch's t-test: blue cells mark statistically
+significant improvements (p < 0.05), and green cells indicate notable improvements (p < 0.1). The Average row is
+bolded. Understanding intervention significantly improves performance, especially for low-resource languages.
+
+Dataset Qwen3-4B gpt-0ss-20b
+Base w/U Base w/U
+Low 0.824021 0.954003 | 0.911005 0.944003
+Medium | 0.894011 0.964004 | 0.974004 0.994002
+High 0.854014  0.95+0.02 | 0.9240.05 0.98+0.03
+Table 2: Average reasoning performance ratio
+
+(mean_gsp) across Polymath splits of different difficulty
+(Low, Medium, High).
+
+residual-based analysis, we first examine how each
+intervention affects task accuracy. Table 1 reports
+multilingual benchmark results on Qwen3-4B with
+and without the proposed interventions. The Un-
+derstanding Intervention (w/ U) yields consistent
+and significant improvements, especially in low-
+resource languages such as Swahili (sw) and Tel-
+ugu (te). For example, in Polymath-Low, it im-
+proves Swahili from 29.3 — 88.0. By contrast, the
+Answer Extraction from Reasoning Trace (w/ T)
+shows little change from the Base. These results
+suggest that the multilingual gap in large reasoning
+models mainly arises from failures in Understand-
+ing. To verify this more systematically, we perform
+the residual-based analysis (Section 3.2) to quantify
+the contribution of each stage.
+
+Understanding failures dominate the multilin-
+gual reasoning gap, regardless of reasoning
+difficulty. Figure 2 presents the results of the
+residual-based analysis on multilingual gap attribu-
+tion. Failures in the Understanding stage account
+for most of the gap, while Generation contributes
+
+only marginally. The language-wise residual-based
+analysis (Appendix B.3) further reveals that this
+trend is especially pronounced in low-resource lan-
+guages, where the model exhibits poor Base per-
+formance. In contrast, the share of Reasoning re-
+mains relatively smaller and shows no consistent
+trend across different reasoning difficulty levels
+(Polymath-Low, Medium, and High).
+
+To further validate this pattern, we assess
+whether reasoning difficulty continues to affect per-
+formance once understanding failures are resolved.
+Specifically, we compute the Average Reasoning
+Performance Ratio—the average ratio of each lan-
+guage’s accuracy to that of the best-performing
+language under the Base setting—before and after
+applying the Understanding Intervention (w/ U). As
+shown in Table 2, this ratio increases to nearly 1.0
+across all Polymath splits for both models, demon-
+strating that once understanding is resolved, the
+multilingual reasoning gap effectively collapses re-
+gardless of reasoning difficulty.
+
+Multilingual reasoning strongly correlates with
+translation ability. Having identified under-
+standing failures as the dominant source of multi-
+lingual reasoning gaps, we next investigate what
+affects this process. As defined in Section 3.1,
+the understanding stage involves projecting input
+semantics into the model’s dominant-language rea-
+soning space—typically English—when generating
+reasoning traces. This implies that understanding,
+and consequently multilingual reasoning ability,
+may depend on how well the model translates the
+
+
+Qwen3-1.7B Qwen3-4B
+
+mmm Understanding mmm Reasoning
+
+Qwen3-8B
+
+Qwen3-14B gpt-0ss-20b
+
+31.6% M31.6%
+
+85.7% [87.4%
+
+68.4%
+
+66.9%
+
+mmm Generating in Input Language
+
+Figure 2: Weighted residual-based shares of Understanding, Reasoning, and Generation in the input language to the
+overall multilingual reasoning gap. Across models and datasets, failures in Understanding generally dominate the
+
+gap.
+
+Correlation: Translation (xx->en) vs. Reasoning Performance
+
+100 Model (marker)
+
+A Qwen3-8B fb gpt-0ss-20b
+<& Qwen3-14B ©)
+
+O Qwen3-1.7B
+O Qwen3-4B
+
+80
+
+= (rossi)
+
+[=
+[=]
+
+Language (color)
+© ar
+
+bn
+
+de
+
+es
+
+Performance Ratio (%)
+SB
+o
+
+ko
+sw
+te
+th
+
+20
+
+cO@ee@ee@®@e@@0O0O0
+
+20 40
+
+60 80
+GEMBA-DA (xx -> en)
+
+100
+
+Figure 3: Scatter plot of Reasoning Performance Ratio
+on Polymath-Low vs. Translation quality on FLORES-
+200 (measured by GEMBA-DA in the xx — en direc-
+tion). A global linear trend line shows a strong positive
+Pearson correlation (rr = 0.951)
+
+input into English.
+
+To test this, we measure RLMs’ xx—en trans-
+lation quality on FLORES-200 (Costa-Jussa et al.,
+2022) using GEMBA-DA (Kocmi and Federmann,
+2023), an LLM-based direct-assessment metric
+with gpt-4.1 (OpenAl, 2025) as the judge. Scores
+range from 0 (“no meaning preserved”) to 100
+(“perfect meaning and grammar”). Figure 3 shows
+reasoning performance ratio on POLYMATH-LOW
+versus translation quality across ten languages
+and five models, revealing a strong correlation
+(r = 0.951). This strong alignment demonstrates
+that languages that are more faithfully translated
+into English by the model also yield stronger rea-
+soning performance, indicating that understanding
+is a key factor in multilingual reasoning.
+
+4 Detecting Understanding Failures
+
+From Section 3, we found that understanding fail-
+ure is the main source of multilingual reasoning
+gaps. This raises a key question: can we detect
+when the model fails to understand the input?
+In this section, we define the detection task (Sec-
+tion 4.1), present methods and setups (Section 4.2,
+4.3), and report experimental results (Section 4.4).
+
+4.1 Task Definition
+
+We formulate understanding failure detection as
+a binary classification task that operates under
+the Base setting—i.e., without any interventions.
+Given the reasoning model’s input and output sig-
+nals produced in the Base setting for a sample, we
+aim to determine whether the model has failed to
+understand the input (label = 1) or has correctly
+understood it (label = 0). Ground-truth labels
+are constructed based on the model predictions in
+Section 3. Specifically, for each language | and
+dataset D; with sample indices I, we define two
+sets: Ip,se denotes the indices of samples correctly
+answered by the model under the Base setting, and
+Iy denotes those correctly answered under the Un-
+derstanding Intervention (w/ U).
+
+We restrict our attention to the subset Ig, U Iy
+to exclude samples beyond the model’s inherent
+reasoning capability. Within this subset, we assign
+labels as follows:
+
+L,
+Yi = 0,
+
+This formulation isolates errors attributable to
+understanding by focusing on cases where the
+model fails under the Base setting but succeeds
+once understanding is resolved.
+
+ifi e Iy \ IBase
+if i € Igase
+
+(understanding failure)
+(understood)
+
+
+4.2 Methods
+
+As shown in Figure 1, models often leave clear
+cues in their reasoning traces (e.g., “This is con-
+fusing. ..”) when they fail to understand the input,
+suggesting that such failures produce detectable
+signals (see Appendix C for more examples). To
+examine this, we adapt detection methods origi-
+nally developed for identifying undesirable behav-
+iors such as hallucination and jailbreak—both of
+which similarly arise when the model fails to meet
+its intended objective—to the task of understand-
+ing failure detection. We consider three types of
+approaches.
+
+LLM-based approaches. These methods rely
+on prompting either external large language mod-
+els to assess understanding or the reasoning model
+itself to self-reflect on its own understanding. First,
+a zero-shot LLM-based detector, based on GPT-
+4.1-mini, is prompted to judge whether the model
+correctly understood the input given the reasoning
+trace, following prior work on behavior monitor-
+ing (Baker et al., 2025; Chan et al., 2025). Second,
+a self-reflection method (Kadavath et al., 2022;
+Xiong et al., 2024) prompts the reasoning model
+itself to explicitly reflect on whether it understood
+the input after producing its reasoning trace.
+
+Token-probability—-based approaches. These
+approaches analyze token-level probabilities to
+quantify the model’s uncertainty during the un-
+derstanding process. We hypothesize that this
+uncertainty may manifest as lower token-level
+confidence. Following prior work on hallucina-
+tion detection (Manakul et al., 2023), we com-
+pute two confidence-based signals—the average
+and minimum per-token confidence—and classify
+samples as understanding failures when the value
+falls below a calibrated threshold. We further use
+the Input negative log-likelihood (NLL) as a proxy
+for the model’s familiarity with the input; a higher
+NLL suggests that the model perceives the input
+as less familiar (e.g., in low-resource languages),
+which might be associated with understanding fail-
+ures.
+
+Supervised approaches. Supervised de-
+tectors are trained to predict understand-
+ing failures directly from either textual or
+hidden-state features. The first is a fine-tuned
+mmBERT (Marone et al., 2025) detector, trained
+on pairs of inputs and reasoning traces to classify
+whether the input was correctly understood, follow-
+
+ing prior behavioral monitoring approaches (Chan
+et al., 2025). The second is a lightweight prober.
+It is a two-layer multi-layer perceptron trained on
+the final-layer hidden state of the last reasoning
+token to infer understanding failures, inspired
+by previous probing methods for undesirable
+behaviors (Azaria and Mitchell, 2023; Zhang et al.,
+2025).
+
+Finally, we define a random baseline as a clas-
+sifier that always predicts “not understood” with
+a probability equal to its proportion in the corre-
+sponding language of the calibration data. For
+methods requiring threshold calibration (token-
+probability—based approaches) or supervised train-
+ing (supervised approaches), we derive calibration
+or training data from MGSM (Shi et al., 2023)
+(excluding samples already included in Polymath-
+Low) for Polymath-Low experiments, and from the
+validation split of MMLU-ProX-Lite for MMLU-
+ProX-Lite experiments. Additional implementa-
+tion details and data statistics are provided in Ap-
+pendix E.
+
+4.3 Setup
+
+We evaluate understanding detection approaches on
+Polymath-Low and MMLU-ProX-Lite, using the
+same set of languages as in Section 3.3. For each
+dataset, we provide the detection methods with de-
+tection signals produced by Qwen3-4B and gpt-oss-
+20b in the Base setting. Since these models already
+perform reasonably well in the evaluated languages,
+over 86% of the samples are labeled as understood
+(label = 0). To properly assess detection meth-
+ods under this class imbalance, we treat not under-
+stood as the positive class (label = 1) and report the
+following metrics. Balanced accuracy averages
+the true-positive and true-negative rates, making
+it informative even in imbalanced settings. F1 is
+the harmonic mean of precision and recall. PR-
+AUC measures the area under the precision—recall
+curve, providing a threshold-independent evalua-
+tion. All metrics are computed by aggregating sam-
+ples across all languages, and we report the average
+over three independent runs.
+
+4.4 Results and Analysis
+
+Supervised approaches achieve the best detec-
+tion performance. Table 3 reports the perfor-
+mance of various understanding failure detection
+methods. Overall, supervised approaches consis-
+tently achieve the highest detection performance.
+Some Token-probability—based approaches (Avg,
+
+
+Dataset Method Qwen3-4B gpt-oss-20b
+Balanced acc 7 F11 PR-AUC 1 Balanced acc 1 F11 PR-AUC 1
+Random baseline 66.2 + 2.6 41.0£3.6 - 534+44 120+ 7.1 -
+Avg confidence 77.8 £19 5071.1 543+19 70.1 + 1.1 247+16 18.635
+Min confidence 71.4 £39 424 +30 33.6x19 65.3 +£5.0 244 +35 17.1+47
+Polymath-Low Input NLL 64.9 + 0.1 39.8 +0.7 328+1.8 573+29 163+22 121413
+Self-reflection 61.6 =2.0 36.7 +49 - 50.7 £ 0.7 26 £27
+LLM-based detector 71.7+£1.0 55.7+14 - 51.9+0.5 7.8 + 1.6 -
+mmBERT detector 852+1.2 659+62 726+1.2 66.2 + 3.6 348 +15 31.7+3.0
+Prober 855+ 1.3 63.7 +32 75.7 + 1.5 75.4 + 2.4 345+7.7 303+£1.7
+Random baseline 554 +35 20.6 4.5 - 50.5 + 0.1 10.3 + 0.9 -
+Avg confidence 64.4 +53 34.6 +65 31.0+£26 522+15 153+15 88=£15
+Min confidence 67.6 1.0 33.0 1.8 245422 63.8 + 1.5 214+15 163+3.1
+MMLU-ProX-Lite Input NLL 55.025 17.8 £8.1 222419 53.9+0.5 153+07 96=£12
+Self-reflection 593+ 1.1 294 +26 - 53.9+04 144+13 -
+LLM-based detector 55.6 0.4 20.1 £1.0 - 51.1+0.3 48+ 12 -
+mmBERT detector 59.7 +£0.3 30.1 £13 358+ 1.7 61.9 + 6.0 254 +6.0 245+ 5.2
+Prober 77.3 + 1.0 44.5 + 3.0 42.6 + 1.8 60.1 £1.1 26.0 + 3.4 20.6 £34
+
+Table 3: Performance of understanding failure detection methods reported as mean = stdev. Best performance
+across methods is highlighted in bold and the second best is underlined. Supervised approaches achieve the best
+performance overall. Per-language results are provided in Appendix B.3.
+
+mmm LLM-based detector
+mm Avg confidence
+
+mmm mmBERT detector
+mmm Prober
+
+MMLU-ProX-Lite
+Dataset
+
+Polymath-Low
+
+Figure 4: F1 scores for understanding failure detection
+on unseen languages (fr, mr, wo) across two benchmarks
+on Qwen3-4B.
+
+Min confidence) perform moderately well but gen-
+erally fall behind. In contrast, Input NLL and self-
+reflection signals are less effective. The LLM-
+based detector also shows limited performance,
+indicating that understanding failure detection re-
+mains challenging even for recent LLMs without
+task-specific supervision. Overall, these results
+demonstrate that supervised approaches, which ex-
+plicitly learn to map textual and hidden-state sig-
+nals to understanding failures, are highly effective.
+
+Generalization to Unseen Languages. We next
+examine whether supervised approaches can gen-
+eralize beyond the languages they were trained on.
+To this end, we use French (fr), Marathi (mr), and
+Wolof (wo), which span a range from high-resource
+(fr) to low-resource (mr, wo). Figure 4 presents the
+
+results. We observe that both the mmBERT de-
+tector and the prober consistently outperform the
+average-confidence baseline and the LLM-based
+detector across unseen languages. This shows that
+the superiority of supervised classifiers extends be-
+yond the training languages, highlighting their ro-
+bustness in multilingual settings.
+
+5 Selective Translation
+
+Having established that understanding failures can
+be reliably detected, we next investigate how such
+detection can be used to address the multilingual
+reasoning gap. To this end, we propose Selective
+Translation, a simple yet effective strategy to miti-
+gate the multilingual reasoning gap by translating
+the input into English only when an understanding
+failure is detected.’ Table 4 presents the results of
+this approach using the prober as a detector. Se-
+lective Translation is particularly effective in low-
+resource languages, where understanding failures
+are frequent and thus trigger translation more of-
+ten. By intervening on cases that would otherwise
+fail, it substantially reduces the multilingual reason-
+ing gap—improving average accuracy from 81.1 to
+88.0 on Polymath-Low and from 72.7 to 74.3 on
+MMLU-ProX-Lite, closely approaching full trans-
+lation (89.4 and 76.5)—while requiring translation
+for only about 20% of inputs on average. These
+findings demonstrate that the detector not only ac-
+curately identifies cases where translation is truly
+
+*We use GPT-4.1 for translation. See Appendix F for
+further details.
+
+
+Method en de es ar ja ko th bn SW te Avg. (Translator usage)
+
+Base 965 $80 939 89.6 85.3 90.7 85.1 83.2 29.3 69.9 81.1 (0.0%)
+Polymath-Low . ) 963 $83 944 904 86.1 91.5 88.3 86.7 81.3 77.1
+
+Selective translation | | co 390) 37%) 48%) (31%) (5.9%) | 0.6%) (26.1%) | 864%) (37.9%) 88.0 (19.3%)
+
+Full translation 96.0 $83 933 909 87.5 92.5 89.6 90.4 85.3 80.5 89.4 (100.0%)
+
+Base 770 718 765 733 75.0 74.6 73.9 74.6 53.6 71.1 72.7 (0.0%)
+MMLU-ProX-Lite . ) 773 769 772 741 75.9 75.9 73.9 74.1 65.1 72.8
+
+Selective translation | 5 50 (1000) (8.0%) (17.9%) (192%) (144%) | (184%) (27.0%) | (55.8%) (31.6%) 74.3 20.8%)
+
+Full translation 790 778 7183 760 77.8 77.4 76.1 76.4 71.6 74.8 76.5 (100.0%)
+
+Table 4: Performance of translation strategies with Qwen3-4B. Avg. (Translator usage) reports average accuracy
+across languages, with the overall translator usage shown in parentheses. For Selective translation, per-language
+
+translator usage (%) is shown below each accuracy score.
+
+—8— Prober
+651 —m— mmBERT detector
+
+512 1024 2048 4096 8192 32768 (Full)
+
+Reasoning Trace Max Token Length
+Figure 5: F1 score of understanding detection on
+Polymath-Low with Qwen3-4B, measured with varying
+the maximum reasoning trace token length.
+
+needed, but also enables efficient bridging of the
+multilingual reasoning gap.
+
+Early Detection of Understanding Failures. Fi-
+nally, we investigate whether understanding fail-
+ures can be detected early, before the model com-
+pletes its full reasoning trace. Each detector is
+trained on reasoning traces truncated to different
+lengths, and Figure 5 shows how detection perfor-
+mance improves as more tokens become available.
+Notably, both the mmBERT detector and the prober
+achieve performance comparable to the full-trace
+setting with only 4,096 tokens, indicating that reli-
+able detection does not require observing the entire
+reasoning process. Appendix B.4 further shows
+that Selective Translation remains effective under
+this early-detection setting. Together, these results
+highlight the promise of early detection for improv-
+ing the efficiency of Selective Translation.
+
+6 Conclusion
+
+We presented the first systematic analysis of the
+multilingual reasoning gap in RLMs and showed
+that it primarily stems from understanding failures,
+where models struggle to represent input mean-
+ing into the dominant language of their reasoning
+
+traces. We further demonstrated that such failures
+can be detected from behavioral signals and ef-
+fectively mitigated through Selective Translation,
+which achieves near—full-translation performance
+while using translation selectively. Future work
+could explore integrating detection and mitigation
+directly into model training.
+
+Limitations
+
+Our experiments focus on mathematical and STEM
+reasoning tasks. While we consider problems with
+varying difficulty levels and task types within these
+domains, verifying whether our findings generalize
+to other domains such as commonsense reasoning
+would help assess the broader applicability of our
+findings.
+
+From the language perspective, our study in-
+cludes ten typologically and resource-wise diverse
+languages. While this set does not cover all lan-
+guage families, we believe our conclusions cap-
+ture general multilingual trends. Nevertheless, ver-
+ifying them on additional and lower-resource lan-
+guages could further strengthen our claims.
+
+Finally, our analysis centers on scenarios where
+the model predominantly reasons in English—the
+dominant internal language observed in most rea-
+soning language models, especially when process-
+ing inputs from low-resource languages. This set-
+ting is particularly suitable for decomposing multi-
+lingual reasoning into distinct stages, as the under-
+standing stage naturally emerges when the model
+internally translates the input into English before
+reasoning. In contrast, models that natively reason
+in other languages (e.g., Russian) may not exhibit
+a clear understanding stage; however, such cases
+mostly involve high-resource languages that con-
+tribute less to the overall multilingual reasoning
+gap. Therefore, we focus on the English reasoning
+setting. Nonetheless, investigating how multilin-
+gual reasoning operates in such non-English rea-
+
+
+soning models would be a valuable direction for
+future work.
+
+References
+
+Sandhini Agarwal, Lama Ahmad, Jason Ai, Sam Alt-
+man, Andy Applebaum, Edwin Arbus, Rahul K
+Arora, Yu Bai, Bowen Baker, Haiming Bao, and 1
+others. 2025. gpt-0ss-120b & gpt-o0ss-20b model
+card. arXiv preprint arXiv:2508.10925.
+
+Art of Problem Solving. 2025. Aime problems
+and solutions. https://artofproblemsolving.
+com/wiki/index.php/AIME_Problems_and_
+Solutions. Accessed: 2025-10-03.
+
+Amos Azaria and Tom Mitchell. 2023. The internal
+state of an llm knows when it’s lying. In Findings
+of the Association for Computational Linguistics:
+EMNLP 2023, pages 967-976.
+
+Prasoon Bajpai and Tanmoy Chakraborty. 2025. Multi-
+lingual test-time scaling via initial thought transfer.
+arXiv preprint arXiv:2505.15508.
+
+Bowen Baker, Joost Huizinga, Leo Gao, Zehao Dou,
+Melody Y Guan, Aleksander Madry, Wojciech
+Zaremba, Jakub Pachocki, and David Farhi. 2025.
+Monitoring reasoning models for misbehavior and
+the risks of promoting obfuscation. arXiv preprint
+arXiv:2503.11926.
+
+Yik Siu Chan, Zheng-Xin Yong, and Stephen H Bach.
+2025. Can we predict alignment before models finish
+thinking? towards monitoring misaligned reasoning
+models. arXiv preprint arXiv:2507.12428.
+
+Nuo Chen, Zinan Zheng, Ning Wu, Ming Gong, Dong-
+mei Zhang, and Jia Li. 2024. Breaking language
+barriers in multilingual mathematical reasoning: In-
+sights and observations. In Findings of the Associa-
+tion for Computational Linguistics: EMNLP 2024,
+pages 7001-7016, Miami, Florida, USA. Association
+for Computational Linguistics.
+
+Qiguang Chen, Libo Qin, Jinhao Liu, Dengyun Peng,
+Jiannan Guan, Peng Wang, Mengkang Hu, Yuhang
+Zhou, Te Gao, and Wanxiang Che. 2025. Towards
+reasoning era: A survey of long chain-of-thought
+for reasoning large language models. arXiv preprint
+arXiv:2503.09567.
+
+Marta R Costa-Jussa, James Cross, Onur Celebi, Maha
+Elbayad, Kenneth Heafield, Kevin Heffernan, Elahe
+Kalbassi, Janice Lam, Daniel Licht, Jean Maillard,
+and 1 others. 2022. No language left behind: Scaling
+human-centered machine translation. arXiv preprint
+arXiv:2207.04672.
+
+Shangbin Feng, Weijia Shi, Yike Wang, Wenxuan Ding,
+Orevaoghene Ahia, Shuyue Stella Li, Vidhisha Bal-
+achandran, Sunayana Sitaram, and Yulia Tsvetkov.
+2024a. Teaching llms to abstain across languages
+via multilingual feedback. In Proceedings of the
+
+10
+
+2024 Conference on Empirical Methods in Natural
+Language Processing, pages 4125-4150.
+
+Shangbin Feng, Weijia Shi, Yike Wang, Wenxuan Ding,
+Vidhisha Balachandran, and Yulia Tsvetkov. 2024b.
+Don’t hallucinate, abstain: Identifying lm knowl-
+edge gaps via multi-llm collaboration. In Proceed-
+ings of the 62nd Annual Meeting of the Association
+for Computational Linguistics (Volume 1: Long Pa-
+pers), pages 14664-14690.
+
+Leo Gao, Jonathan Tow, Baber Abbasi, Stella Bider-
+man, Sid Black, Anthony DiPofi, Charles Foster,
+Laurence Golding, Jeffrey Hsu, Alain Le Noac’h,
+Haonan Li, Kyle McDonell, Niklas Muennighoff,
+Chris Ociepa, Jason Phang, Laria Reynolds, Hailey
+Schoelkopf, Aviya Skowron, Lintang Sutawika, and
+5 others. 2024. The language model evaluation har-
+ness.
+
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao
+Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shi-
+rong Ma, Peiyi Wang, Xiao Bi, and 1 others. 2025.
+Deepseek-rl: Incentivizing reasoning capability in
+Ilms via reinforcement learning. arXiv preprint
+arXiv:2501.12948.
+
+Dan Hendrycks, Collin Burns, Steven Basart, Andy
+Zou, Mantas Mazeika, Dawn Song, and Jacob Stein-
+hardt. 2021. Measuring massive multitask language
+understanding. Proceedings of the International Con-
+ference on Learning Representations (ICLR).
+
+Zixian Huang, Wenhao Zhu, Gong Cheng, Lei Li, and
+Fei Yuan. 2024. Mindmerger: Efficiently boosting
+Ilm reasoning in non-english languages. Advances in
+Neural Information Processing Systems, 37:34161—
+34187.
+
+Aaron Hurst, Adam Lerer, Adam P Goucher, Adam
+Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow,
+Akila Welihinda, Alan Hayes, Alec Radford, and 1
+others. 2024. Gpt-4o system card. arXiv preprint
+arXiv:2410.21276.
+
+Jaedong Hwang, Kumar Tanmay, Seok-Jin Lee, Ayush
+Agrawal, Hamid Palangi, Kumar Ayush, Ila Fiete,
+and Paul Pu Liang. 2025. Learn globally, speak lo-
+cally: Bridging the gaps in multilingual reasoning.
+arXiv preprint arXiv:2507.05418.
+
+Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richard-
+son, Ahmed El-Kishky, Aiden Low, Alec Helyar,
+Aleksander Madry, Alex Beutel, Alex Carney, and 1
+others. 2024. Openai ol system card. arXiv preprint
+arXiv:2412.16720.
+
+Zhengbao Jiang, Jun Araki, Haibo Ding, and Graham
+Neubig. 2021. How can we know when language
+models know? on the calibration of language models
+for question answering. Transactions of the Associa-
+tion for Computational Linguistics, 9:962-977.
+
+Pratik Joshi, Sebastin Santy, Amar Budhiraja, Kalika
+Bali, and Monojit Choudhury. 2020. The state and
+fate of linguistic diversity and inclusion in the NLP
+
+
+world. In Proceedings of the 58th Annual Meeting of
+the Association for Computational Linguistics.
+
+Armand Joulin, Edouard Grave, Piotr Bojanowski,
+Matthijs Douze, Hérve Jégou, and Tomas Mikolov.
+2016a. Fasttext.zip: Compressing text classification
+models. arXiv preprint arXiv:1612.03651.
+
+Armand Joulin, Edouard Grave, Piotr Bojanowski, and
+Tomas Mikolov. 2016b. Bag of tricks for efficient
+text classification. arXiv preprint arXiv:1607.01759.
+
+Saurav Kadavath, Tom Conerly, Amanda Askell, Tom
+Henighan, Dawn Drain, Ethan Perez, Nicholas
+Schiefer, Zac Hatfield-Dodds, Nova DasSarma, Eli
+Tran-Johnson, and 1 others. 2022. Language mod-
+els (mostly) know what they know. arXiv preprint
+arXiv:2207.05221.
+
+Polina Kirichenko, Mark Ibrahim, Kamalika Chaudhuri,
+and Samuel J Bell. 2025. Abstentionbench: Rea-
+soning lms fail on unanswerable questions. arXiv
+preprint arXiv:2506.09038.
+
+Hyunwoo Ko, Guijin Son, and Dasol Choi. 2025. Un-
+derstand, solve and translate: Bridging the multilin-
+gual mathematical reasoning gap. arXiv preprint
+arXiv:2501.02448.
+
+Tom Kocmi and Christian Federmann. 2023. Large
+language models are state-of-the-art evaluators of
+translation quality. In Proceedings of the 24th Annual
+Conference of the European Association for Machine
+Translation, pages 193-203.
+
+Hynek Kydli¢ek. 2025. Math-verify: Math verifica-
+tion library. Software available at https: //github.
+com/huggingface/math-verify.
+
+Jungyup Lee, Jemin Kim, Sang Park, and SeungJae Lee.
+2025. Making qwen3 think in korean with reinforce-
+ment learning. Preprint, arXiv:2508.10355.
+
+Chaoqun Liu, Wenxuan Zhang, Yiran Zhao, Anh Tuan
+Luu, and Lidong Bing. 2025. Is translation all you
+need? a study on solving multilingual tasks with
+large language models. In Proceedings of the 2025
+Conference of the Nations of the Americas Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies (Volume 1: Long Pa-
+pers), pages 9594-9614, Albuquerque, New Mexico.
+Association for Computational Linguistics.
+
+Ilya Loshchilov and Frank Hutter. 2019. Decoupled
+weight decay regularization. In International Confer-
+ence on Learning Representations.
+
+Potsawee Manakul, Adian Liusie, and Mark Gales. 2023.
+SelfCheckGPT: Zero-resource black-box hallucina-
+tion detection for generative large language models.
+In Proceedings of the 2023 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+9004-9017, Singapore. Association for Computa-
+tional Linguistics.
+
+11
+
+Marc Marone, Orion Weller, William Fleshman, Eu-
+gene Yang, Dawn Lawrie, and Benjamin Van Durme.
+2025. mmbert: A modern multilingual encoder
+with annealed language learning. arXiv preprint
+arXiv:2509.06888.
+
+Niklas Muennighoff, Zitong Yang, Weijia Shi, Xi-
+ang Lisa Li, Li Fei-Fei, Hannaneh Hajishirzi, Luke
+Zettlemoyer, Percy Liang, Emmanuel Candes, and
+Tatsunori Hashimoto. 2025. sl: Simple test-time
+scaling. Preprint, arXiv:2501.19393.
+
+OpenAl 2025. Gpt-4.1. https://platform.openai.
+com/docs/models/gpt-4.1.
+
+Cheonbok Park, Jeonghoon Kim, Joosung Lee, Sangh-
+wan Bae, Jaegul Choo, and Kang Min Yoo. 2025.
+Cross-lingual collapse: How language-centric foun-
+dation models shape reasoning in large language mod-
+els. arXiv preprint arXiv:2506.05850.
+
+Long Phan, Alice Gatti, Ziwen Han, Nathaniel Li,
+Josephina Hu, Hugh Zhang, Chen Bo Calvin Zhang,
+Mohamed Shaaban, John Ling, Sean Shi, and 1 oth-
+ers. 2025. Humanity’s last exam. arXiv preprint
+arXiv:2501.14249.
+
+Jirui Qi, Shan Chen, Zidi Xiong, Raquel Ferndndez,
+Danielle S Bitterman, and Arianna Bisazza. 2025.
+When models reason in your language: Controlling
+thinking trace language comes at the cost of accuracy.
+arXiv preprint arXiv:2505.22888.
+
+Libo Qin, Qiguang Chen, Fuxuan Wei, Shijue Huang,
+and Wanxiang Che. 2023. Cross-lingual prompt-
+ing: Improving zero-shot chain-of-thought reasoning
+across languages. In Proceedings of the 2023 Con-
+ference on Empirical Methods in Natural Language
+Processing, pages 2695-2709, Singapore. Associa-
+tion for Computational Linguistics.
+
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu,
+Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan
+Zhang, YK Li, Yang Wu, and 1 others. 2024.
+Deepseekmath: Pushing the limits of mathematical
+reasoning in open language models. arXiv preprint
+arXiv:2402.03300.
+
+Shuaijie She, Wei Zou, Shujian Huang, Wenhao Zhu,
+Xiang Liu, Xiang Geng, and Jiajun Chen. 2024.
+MAPO: Advancing multilingual reasoning through
+multilingual-alignment-as-preference optimization.
+In Proceedings of the 62nd Annual Meeting of the
+Association for Computational Linguistics (Volume 1:
+Long Papers), pages 10015-10027, Bangkok, Thai-
+land. Association for Computational Linguistics.
+
+Freda Shi, Mirac Suzgun, Markus Freitag, Xuezhi Wang,
+Suraj Srivats, Soroush Vosoughi, Hyung Won Chung,
+Yi Tay, Sebastian Ruder, Denny Zhou, and 1 others.
+2023. Language models are multilingual chain-of-
+thought reasoners. In The Eleventh International
+Conference on Learning Representations.
+
+Anthony F Shorrocks and 1 others. 2013. Decomposi-
+tion procedures for distributional analysis: a unified
+
+
+framework based on the shapley value. Journal of
+Economic Inequality, 11(1):99-126.
+
+Guijin Son, Jiwoo Hong, Hyunwoo Ko, and James
+Thorne. 2025. Linguistic generalizability of test-time
+scaling in mathematical reasoning. In Proceedings
+of the 63rd Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers),
+pages 14333-14368, Vienna, Austria. Association
+for Computational Linguistics.
+
+Zhi Rui Tam, Cheng-Kuang Wu, Yu Ying Chiu, Chieh-
+Yen Lin, Yun-Nung Chen, and Hung-yi Lee. 2025.
+Language matters: How do multilingual input and
+reasoning paths affect large reasoning models? arXiv
+preprint arXiv:2505.17407.
+
+Christian Tomani, Kamalika Chaudhuri, Ivan Evti-
+mov, Daniel Cremers, and Mark Ibrahim. 2024.
+Uncertainty-based abstention in Ilms improves
+safety and reduces hallucinations. arXiv preprint
+arXiv:2404.10960.
+
+Mingyang Wang, Lukas Lange, Heike Adel, Yunpu
+Ma, Jannik Strotgen, and Hinrich Schiitze. 2025a.
+Language mixing in reasoning language models: Pat-
+terns, impact, and internal causes. arXiv preprint
+arXiv:2505.14815.
+
+Yiming Wang, Pei Zhang, Jialong Tang, Haoran Wei,
+Baosong Yang, Rui Wang, Chenshu Sun, Feitong
+Sun, Jiran Zhang, Junxuan Wu, Qigian Cang,
+Yichang Zhang, Fei Huang, Junyang Lin, Fei Huang,
+and Jingren Zhou. 2025b. Polymath: Evaluat-
+ing mathematical reasoning in multilingual contexts.
+arXiv preprint arXiv:2504.18428.
+
+Yubo Wang, Xueguang Ma, Ge Zhang, Yuansheng Ni,
+Abhranil Chandra, Shiguang Guo, Weiming Ren,
+Aaran Arulraj, Xuan He, Ziyan Jiang, and 1 others.
+2024. Mmlu-pro: A more robust and challenging
+multi-task language understanding benchmark. Ad-
+vances in Neural Information Processing Systems,
+
+37:95266-95290.
+
+Bernard L Welch. 1947. The generalization of ‘stu-
+dent’s’ problem when several different population var-
+lances are involved. Biometrika, 34(1-2):28-35.
+
+Bingbing Wen, Jihan Yao, Shangbin Feng, Chenjun Xu,
+Yulia Tsvetkov, Bill Howe, and Lucy Lu Wang. 2025.
+Know your limits: A survey of abstention in large
+language models. Transactions of the Association for
+Computational Linguistics, 13:529-556.
+
+Miao Xiong, Zhiyuan Hu, Xinyang Lu, YIFEI LL, Jie
+Fu, Junxian He, and Bryan Hooi. 2024. Can LLMs
+express their uncertainty? an empirical evaluation of
+confidence elicitation in LLMs. In The Twelfth Inter-
+national Conference on Learning Representations.
+
+Weihao Xuan, Rui Yang, Heli Qi, Qingcheng Zeng,
+Yunze Xiao, Aosong Feng, Dairui Liu, Yun Xing, Jun-
+jue Wang, Fan Gao, Jinghui Lu, Yuang Jiang, Huitao
+Li, Xin Li, Kunyu Yu, Ruihai Dong, Shangding
+Gu, Yuekang Li, Xiaofei Xie, and 13 others. 2025.
+
+12
+
+Mmlu-prox: A multilingual benchmark for ad-
+vanced large language model evaluation. Preprint,
+arXiv:2503.10497.
+
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang
+Gao, Chengen Huang, Chenxu Lv, and 1 others.
+2025a. Qwen3 technical report. arXiv preprint
+arXiv:2505.09388.
+
+Wen Yang, Junhong Wu, Chen Wang, Chengging Zong,
+and Jiajun Zhang. 2025b. Language imbalance
+driven rewarding for multilingual self-improving. In
+The Thirteenth International Conference on Learning
+Representations.
+
+Zheng-Xin Yong, M Farid Adilazuarda, Jonibek
+Mansurov, Ruochen Zhang, Niklas Muennighoff,
+Carsten Eickhoff, Genta Indra Winata, Julia Kreutzer,
+Stephen H Bach, and Alham Fikri Aji. 2025.
+Crosslingual reasoning through test-time scaling.
+arXiv preprint arXiv:2505.05408.
+
+Haneul Yoo, Jiho Jin, Kyunghyun Cho, and Alice Oh.
+2025. Code-switching in-context learning for cross-
+lingual transfer of large language models. arXiv
+preprint arXiv:2510.05678.
+
+Dongkeun Yoon, Joel Jang, Sungdong Kim, Seungone
+Kim, Sheikh Shafayat, and Minjoon Seo. 2024. Lang-
+Bridge: Multilingual reasoning without multilingual
+supervision. In Proceedings of the 62nd Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pages 7502-7522,
+Bangkok, Thailand. Association for Computational
+Linguistics.
+
+Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan,
+Xiaochen Zuo, Yu Yue, Weinan Dai, Tiantian Fan,
+Gaohong Liu, Lingjun Liu, and 1 others. 2025. Dapo:
+An open-source lm reinforcement learning system
+at scale. arXiv preprint arXiv:2503.14476.
+
+Angi Zhang, Yulin Chen, Jane Pan, Chen Zhao, Au-
+rojit Panda, Jinyang Li, and He He. 2025. Rea-
+soning models know when they’re right: Probing
+hidden states for self-verification. arXiv preprint
+arXiv:2504.05419.
+
+Yidan Zhang, Yu Wan, Boyi Deng, Baosong Yang, Hao-
+ran Wei, Fei Huang, Bowen Yu, Junyang Lin, and
+Jingren Zhou. 2024. P-mmeval: A parallel multilin-
+gual multitask benchmark for consistent evaluation
+of lms. arXiv preprint arXiv:2411.09116.
+
+Weixiang Zhao, Jiahe Guo, Yang Deng, Tongtong Wu,
+Wenxuan Zhang, Yulin Hu, Xingyu Sui, Yanyan
+Zhao, Wanxiang Che, Bing Qin, and 1 others. 2025.
+When less language is more: Language-reasoning
+disentanglement makes llms better multilingual rea-
+soners. arXiv preprint arXiv:2505.15257.
+
+Wenhao Zhu, Shujian Huang, Fei Yuan, Shuaijie She,
+Jiajun Chen, and Alexandra Birch. 2024. Question
+translation training for better multilingual reasoning.
+In Findings of the Association for Computational
+
+
+Linguistics: ACL 2024, pages 8411-8423, Bangkok,
+Thailand. Association for Computational Linguistics.
+
+13
+
+
+A Language Distributions
+
+A.1 Computing Language Distributions
+
+We estimate the language composition of reasoning
+traces and final responses by aggregating sentence-
+level language identification results from the fast-
+Text (Joulin et al., 2016b,a) language identifica-
+tion model. Given a text sample (either a reason-
+ing trace or a final response), we first use reg-
+ular expressions to remove LaTeX expressions,
+code blocks, and formula-like spans (e.g., $...$,
+\begin{equation}...\end{equation}, or back-
+tick code), ensuring that only natural-language seg-
+ments remain for reliable detection. The cleaned
+text is then segmented into sentences based on
+punctuation, and those shorter than 10 characters
+are discarded to maintain reliable predictions from
+the fastText model. Each valid sentence is subse-
+quently classified by the fastText language identifi-
+cation model (1id. 176. ftz). Finally, we compute
+the overall language distribution of a text ¢ for all
+detected languages [ as:
+
+# of sentences predicted as [
+
+total number of valid sentences in ¢
+resulting in a normalized distribution that captures
+the relative prevalence of each language.
+
+A.2 Results
+
+We evaluate five large reasoning models—Qwen3-
+1.7B, Qwen3-4B, Qwen3-8B, Qwen3-14B, and
+gpt-oss-20b—across four datasets: Polymath-Low,
+Polymath-Medium, Polymath-High, and MMLU-
+ProX-Lite. For each model, we visualize the lan-
+guage distribution of reasoning traces and final re-
+sponses, including the corresponding variants ob-
+tained under the Understanding Intervention. Fig-
+ures 7—11 present the results. Across all settings,
+reasoning traces are consistently dominated by
+English, whereas final responses tend to be pro-
+duced in the input language. While the propor-
+tion of the input language in final responses varies
+across languages and datasets, a substantial portion
+of responses are still generated in the input lan-
+guage. This tendency remains largely unchanged
+after applying the Understanding Intervention.
+While reasoning traces remain English-dominant
+across all settings, the proportion of final responses
+in the input language is higher in Polymath-Low
+and MMLU-ProX-Lite, but relatively lower in
+Polymath-Medium and Polymath-High. We hy-
+pothesize that this pattern arises from two factors:
+
+14
+
+increased reasoning difficulty and the higher den-
+sity of mathematical expressions in the more chal-
+lenging splits. The first factor concerns reason-
+ing difficulty. Wang et al. (2025a) shows that as
+task difficulty increases, reasoning language mod-
+els rely more on the Latin script in their internal
+reasoning representations. This increased reliance
+on Latin-based internal reasoning—presumably En-
+glish—may influence the language distribution of
+final responses. The second factor relates to the
+density of mathematical expressions. After remov-
+ing LaTeX and numerical expressions, the share of
+pure natural language content is 88.13% for Low,
+46.29% for Medium, and 60.69% for High, indicat-
+ing that the latter two splits are more expression-
+heavy. Although we mitigate such effects in our
+language distribution measurement using regular-
+expression filtering, equations and variable-like ex-
+pressions occasionally appear in plain text, leading
+to potential false detections as English due to al-
+phabetic variable names. Future work may explore
+why such language shifts occur in final responses.
+
+B Additional Evaluation Results
+
+B.1 Intervention results on other models
+
+Table 5, 6 extends the analysis in Table 1 to
+additional reasoning language models, including
+Qwen3-1.7B, Qwen3-8B, Qwen3-14B, and gpt-
+0ss-20b. Across all models, the Understanding
+Intervention (w/ U) consistently yields notable ac-
+curacy gains over the Base model, particularly in
+low-resource languages. In contrast, the Answer
+Extraction from Reasoning Trace (w/ T) method
+shows minimal impact, with performance remain-
+ing close to the Base setting.*
+
+B.2 Language-specific Gap Decomposition
+
+Figures 12, 13, 14, 15, and 16 present the language-
+specific gap decomposition results for Qwen3-1.7B,
+Qwen3-4B, Qwen3-8B, Qwen3-14B, and gpt-oss-
+20b, respectively. Each figure breaks down the
+multilingual reasoning gap into contributions from
+Understanding, Reasoning, and Generating in In-
+put Language for each language. Across all mod-
+els, Understanding failures consistently emerge
+
+*One exception is observed for gpt-0ss-20b on Polymath-
+Medium, where performance slightly decreases. Through
+manual inspection of several sampled cases, we found that
+answers marked incorrect in reasoning traces—but correct in
+final responses—were in fact semantically equivalent to the
+ground truth, suggesting that the observed drop results from
+phrasing noise in automatic verification rather than a genuine
+reasoning error.
+
+
+Qwen3-1.7B
+
+Dataset Method en de es ar ja ko th bn SW te Avg
+Base | 90.1 787 856 797 715 723 | 768 603 | 72 41.1 | 66.3
+Povmath.Low w/T | 901 781 856 78.1 709 70.1 | 763 608 | 83 42.7 | 66.1
+y w/U | 907 824 875 848 81.1 851 |853 835 | 67.7 78.1 | 82.6
+w/U+T | 90.1 827 875 840 813 848 | 848 856 | 79.5 83.7 | 84.4
+Base | 557 549 568 533 57.6 50.7 | 488 472 | 323 403 | 49.8
+Potvmath Median | WT | 563 544 573 536 568 S15 | 493 488 | 320 408 | 50.1
+y w/U | 587 536 557 552 57.1 544 |565 552 | 555 57.9 | 56.0
+w/U+T | 595 539 557 555 565 552 | 565 549 | 555 58.1 | 56.1
+Base | 333 328 325 29.6 333 309 | 288 224 | 144 213 | 27.9
+Polvmath-Hieh w/T | 341 320 328 288 336 315 |20.1 224 | 144 22.1 | 28.1
+y g wl U 33.1 333 363 341 320 33.1 | 320 317 | 288 31.7 | 32.6
+w/U+T | 33.1 33.1 355 344 317 325 |320 325 | 288 31.7 | 32.5
+Base | 67.6 632 656 564 61.0 57.1 |594 524 | 31.8 525 | 56.7
+wT | 672 628 652 572 60.6 575 | 603 533 | 322 533 | 57.0
+MMLU-ProX-Lite |, 649 652 646 638 639 649 | 632 632 | 524 623 | 62.8
+w/U+T | 650 65.1 646 638 641 645 | 634 638 | 602 642 | 63.9
+
+Qwen3-8B
+Dataset Method en de es ar ja ko th bn SW te Avg
+Base | 963 885 939 909 86.1 90.4 | 90.7 864 | 613 768 | 86.1
+PolvmathLow w/T | 963 885 941 909 859 90.7 | 907 875 | 62.1 765 | 86.3
+y w/U | 965 893 963 944 909 944 | 944 955 | 933 93.1 | 93.8
+w/U+T | 963 893 960 933 909 939 | 944 947 | 941 92.0 | 93.5
+Base | 72.5 744 739 704 725 715 | 707 683 | 544 653 | 69.4
+Polvmath Medium | WT | 736 TAL TAT 704 725 725 | 70.0 683 547 664 | 69.7
+y wiU | 747 725 728 725 747 739 | 72.8 744 | 717 749 | 73.5
+w/U+T | 739 723 723 731 741 741 | 725 741 | 720 744 | 733
+Base | 544 54.1 544 528 57.0 547 | 515 50.1 | 38.1 459 | 51.3
+Polvmath-Hieh wiT | 555 544 544 517 568 544 | 515 515 | 37.9 459 | 51.4
+y g w/U | 539 563 517 544 536 549 | 528 520 | 544 512 | 53.5
+w/U+T | 541 563 517 541 539 555 | 533 520 | 544 523 | 53.8
+Base | 829 79.5 808 79.5 79.1 783 | 794 770 | 585 760 | 77.1
+wT | 824 796 816 795 799 786 | 798 773 | 615 765 | 71.7
+MMLU-ProX-Lite |, 822 81.1 80.5 820 817 813 | 816 805 | 790 79.9 | 81.0
+w/U+T | 820 809 807 817 824 815 | 82.1 803 | 81.7 805 | 81.4
+
+Table 5: Accuracy comparison of methods across languages on additional models (Qwen3-1.7B, Qwen3-8B).
+Base denotes the original model without intervention, w/ T applies Answer Extraction from Reasoning Trace,
+w/ U applies Understanding Intervention, and w/ U + T applies both. Pairwise comparisons against the Base
+use Welch’s t-test: blue cells mark statistically significant improvements (p < 0.05), and green cells indicate
+notable improvements (p < 0.1). The Average row is bolded. Consistent with Qwen3-4B (Table 1), understanding
+intervention yields substantial gains, particularly for low-resource languages.
+
+as the primary source of the gap. However, their
+relative dominance varies with language resource
+level. The effect is particularly pronounced in
+low-resource languages such as Swahili (sw) and
+Telugu (te), whereas in high-resource languages,
+where models already achieve strong Base perfor-
+mance, the influence of Understanding becomes
+relatively smaller.
+
+B.3 Language-specific results on
+Understanding Failure Detection
+
+Table 7 and Table 8 report the F1 scores of each
+detection method across languages for Qwen3-4B
+and gpt-0ss-20b, respectively. Overall, supervised
+approaches such as the mmBERT detector and the
+Prober generally outperform other baselines, while
+the Avg-Confidence method surpasses them on a
+few individual languages. Table 9 presents results
+on unseen languages for Qwen3-4B, where similar
+
+15
+
+
+Qwen3-14B
+
+Dataset Method en de es ar ja ko th bn SW te Avg
+Base | 952 89.6 93.6 904 893 893 | 917 893 | 733 82.1 | 88.4
+PolvmathLow w/T | 955 872 933 899 893 872 |899 888 | 723 81.6 | 87.5
+y w/U | 957 923 955 939 915 933 | 952 947 | 920 94.1 | 93.8
+w/U+T | 957 928 957 923 904 923 | 941 933 | 91.5 944 | 93.3
+Base | 760 72.8 78.1 73.6 760 747 | 72.0 69.1 | 62.9 70.1 | 72.5
+Polvmath Medion | WT | 765 739 787 736 760 757 | 720 69.1 | 632 709 | 73.0
+y wiU | 773 776 719 739 1765 752 | 760 719 | 763 1768 | 76.5
+w/U+T | 773 77.1 7713 739 1765 1755 | 760 768 | 755 78.9 | 76.5
+Base | 603 60.0 59.5 584 587 565 |555 560 | 45.1 51.7 | 56.2
+Polvmath-Hieh wiT | 592 589 587 579 576 552 | 533 547 | 437 509 | 55.0
+y g w/U | 603 573 595 57.6 61.1 581 |573 58.1 | 584 552 | 583
+w/U+T | 600 565 595 568 59.7 584 | 57.1 568 | 57.6 54.1 | 57.7
+Base | 829 80.8 808 812 809 805 | 792 81.1 | 69.0 79.9 | 79.6
+| w/T | 87 813 805 815 81.1 803 |794 809 | 69.1 79.8 | 79.8
+MMLU-ProX-Lite |, 83.1 820 81.5 833 807 825 | 813 81.5 | 815 805 | 818
+w/U+T | 837 820 81.5 833 808 824 | 812 812 | 81.5 808 | 81.8
+
+gpt-oss-20b
+Dataset Method en de es ar ja ko th bn SW te Avg
+Base | 960 856 899 909 86.1 912 | 904 90.1 | 78.7 81.1 | 88.0
+PolvmathLow wiT | 957 867 920 91.7 864 90.7 | 90.7 90.7 | 80.0 81.1 | 88.6
+y w/U | 957 845 923 912 875 925 | 893 923 | 88.8 89.6 | 90.4
+w/U+T | 917 837 917 923 872 920 | 88.8 912 | 89.1 87.7 | 89.5
+Base | 677 65.1 685 63.7 653 672 | 669 669 | 589 653 | 65.6
+Potvmath Medion | WT | 619 608 S87 S81 629 637 | 613 613 523 616 | 60.3
+y wiU | 661 66.1 664 667 685 69.1 | 656 656 | 640 683 | 66.6
+w/U+T | 69.6 688 677 683 699 723 | 653 68.0 | 66.1 69.6 | 68.6
+Base | 58.1 573 547 528 515 539 | 53.1 54.1 | 475 563 | 53.9
+Polvmath-Hieh wiT | 544 520 536 509 525 525 |512 541 | 472 51.5 | 52.0
+y g w/U | 571 571 568 539 568 589 | 589 573 | 549 60.0 | 57.2
+w/U+T | 58.1 595 592 560 573 613 | 60.8 592 | 57.1 603 | 58.9
+Base | 774 778 713 741 714 739 | 746 756 | 669 77.0 | 75.2
+wT | 773 777 713 741 716 741 | 744 756 | 669 772 | 75.2
+MMLU-ProX-Lite |, 786 770 790 783 773 712 | 764 774 | 77.0 768 | 71.5
+w/U+T | 78.1 768 783 777 1767 769 | 755 769 | 772 757 | 77.0
+
+Table 6: Accuracy comparison of methods across languages on Qwen3-14B, and gpt-oss-20b.
+
+Base denotes
+
+the original model without intervention, w/ T applies Answer Extraction from Reasoning Trace, w/ U applies
+Understanding Intervention, and w/ U + T applies both. Pairwise comparisons against the Base use Welch's t-test:
+blue cells mark statistically significant improvements (p < 0.05), and green cells indicate notable improvements
+(p < 0.1). The Average row is bolded. Consistent with Qwen3-4B (Table 1), understanding intervention yields
+substantial gains, particularly for low-resource languages.
+
+trends are observed.’ These per-language break-
+downs indicate that supervised approaches are not
+biased toward specific languages but instead exhibit
+robust performance across diverse languages.
+
+B.4 Selective translation with Early Detection
+
+Table 10 presents the results of applying early de-
+tection to Selective Translation on Polymath-low
+on Qwen3-4B. Here, the detector is implemented
+
+SFor the Polymath dataset, we use the translated dataset
+generated by gpt-4.1 using the prompt described in Section F.
+
+16
+
+using the Prober model, which takes the last hid-
+den state (from the residual stream of the last
+layer of the model) of the reasoning trace as in-
+put and observes only a prefix of the trace—up
+to N tokens—before deciding whether translation
+is needed. The full reasoning trace extends up
+to 32,768 tokens. Remarkably, using only 2,048
+tokens of the reasoning trace yields performance
+nearly identical to the full-trace setting (87.6 vs.
+88.0 average accuracy). This trend persists across
+longer cutoffs, indicating that signals of misunder-
+
+
+Polymath-Low
+
+Method de es ar ja ko th bn SW te
+Random baseline 16.7 +289 0.0+0.0 5.6 £9.6 32+55 0.0£0.0 94 +£9.1 11.3+£105 | 680£24 155+5.6
+Avg confidence 3224+20.7 165+53 247+£80 329+112 104x117 | 41.157 432+£38 | 795+£2.6 645+25
+Min Confidence 250+13.8 204+71 287x116 251+£163 143x102 | 35173 367+£53 | 714+£60 527+24
+Input NLL 0.0 £0.0 0.0 + 0.0 0.0 £0.0 92+£3.7 0.0£0.0 0.0£0.0 0.0£0.0 69.5 +£ 0.6 0.0£0.0
+Self-reflection 2294+20.6 500+167 74+128 156+£145 00x00 147+12 284+145 | 453 +44 427+9.1
+LLM-based detector | 0.0 £0.0 333 +333 288+184 51+£89 11.1+£192 |256+11.6 252+38 | 77.5+£15 3414128
+mmBERT detector 10.3 +£17.8 528 +£21.0 360+ 17.4 49.8+ 12.0 37.7 +£8.2 511+74 45.9 + 0.8 82.7 + 1.1 67.4 + 8.9
+Prober 36.2 +19.6 57.8+21.8 40.8 + 4.9 40.1 + 13.7 206+ 18.0 | 51.0+£ 15.2 40.6 £2.7 81.7+£1.6 61.8+75
+MMLU-ProX-Lite
+
+Method de es ar ja ko th bn SW te
+Random baseline 7.1£7.8 23+£40 141+£92 135+84 57£99 139+102 13.1+£69 | 294+24 132+£55
+Avg confidence 152+ 7.0 30.1 + 8.1 34.6 + 8.0 194+1.6 30.2 +£20.6 | 39.7 + 14.3 23.04 15.2 485+59 384+ 7.3
+Min Confidence 256+£92 220£59 327+£55 284+£70 323+24 | 280+42 326+18 | 466+83 359+3.6
+Input NLL 0.0 £0.0 0.0 + 0.0 0.0 £0.0 0.0£ 0.0 25+43 0.0£0.0 00£00 |424+13.0 00+£00
+Self-reflection 120+ 125 182+£59 319+49 170+94 326+11.8] 328+75 293+£90 | 326+64 29.7+8.1
+LLM-based detector 42+72 74+ 12.8 2.8 +48 6.3+11.0 2.8+48 0.0 + 0.0 63+5.5 433 +15 120+ 5.3
+mmBERT detector 44+7.7 9.8 £92 162+7.6 115+126 102+103 | 162+150 11.0+£9.7 | 528+08 21.7+£3.0
+Prober 34.6 10.8 39.2 +154 46.8 + 1.1 41.3 + 10.6 45.1 + 4.6 359+£8.6 36.6 + 7.5 56.5 + 3.4 40.7 + 7.8
+
+Table 7: Per-language performance of understanding failure detection methods on Qwen3-4B. F1 values are reported
+as mean = stdev, and the best performance for each language is highlighted in bold.
+
+Polymath-Low
+Method de es ar ja ko th bn SW te
+
+Random baseline 0.0 £0.0 74 £128 0.0 £0.0 148+£257 4477 83+ 144 10.3 £9.0 169 +10 58+10.0
+Avg confidence 14.6 £9.8 20.1 £19 19.0 £ 8.8 144+14 16.2 + 4.5 194 + 6.2 23.5+£93 429 +5.1 47.8 £38
+Min Confidence 67+115 31.8+80 158+154 159+3.0 21.7+188 | 64+£57 300£126| 27.688 44.0+0.5
+Input NLL 45443 10.5 £25 16.7 £3.3 00£00 11.1£192| 0.0+£0.0 0.0£0.0 28.3 £3.0 0.0£0.0
+Self-reflection 0.0 + 0.0 0.0 £0.0 0.0 £0.0 0.0+ 0.0 0.0 + 0.0 0.0 + 0.0 15.7 £ 13.7 0.0 + 0.0 6.1 + 10.5
+
+LLM-based detector 0.0 + 0.0 95 + 16.5 29.1 + 9.6 0.0+ 0.0 0.0 + 0.0 0.0 + 0.0 6.7 + 11.5 12.7 + 9.0 0.0 + 0.0
+mmBERT detector 16.7 £289 54.5+ 31.0 7.8 + 13.6 29.3 + 28.6 163+ 18.5 | 26.5 + 28.8 43.5 + 6.3 346+ 13.3 388+ 13.1
+
+Prober 16.9 + 18.3 469+ 13.6 19.5+ 14.0 242 +48 26.7 + 17.7 249 +75 37.0 + 13.0 354+54 52.4 + 15.7
+MMLU-Prox-Lite
+
+Method de es ar ja ko th bn SW te
+Random baseline 39+6.8 3.5+30 69+7.6 1.9+32 77+ 1.7 85+78 34+£59 17.0 £2.8 47 +41
+Avg confidence 9.7+ 1.3 13.7+2.6 159+6.1 119+22 154 £3.0 146 £1.7 13.0 +24 33.5+4.0 10.8 + 2.9
+Min Confidence 132 +34 18.3 £3.8 19.8 + 8.6 17.0 £ 1.6 187+£35 | 203+£32 220+£49 | 36.8+£63 179 £3.7
+Input NLL 41+7.1 62+£55 172+103 00£00 106=£10.1 | 17.813 103 £4.8 | 302+£2.7 8.67.7
+Self-reflection 6.1 + 10.5 154+ 8.4 10.8 £9.6 18.4 + 16.0 140 £48 84+73 10.5 £9.7 11.0£7.9 28.7 + 11.5
+LLM-based detector 0.0 + 0.0 0.0 £0.0 8.5+09.1 0.0+ 0.0 0.0 + 0.0 39+6.8 5.6 £9.6 12.7 £2.1 0.0 + 0.0
+
+mmBERT detector 10.6 £9.7 28.4 +23 23.6 + 25.1 22.7+£6.0 243 +123 | 21.8 £103 234+103 36.1 £2.8 11.8 £ 10.2
+Prober 15.6 + 14.5 21.7+6.1 224+£28 23.8 +39 20.7 £ 6.3 293 +3.2 329+99 36.9 + 11.3 9.5+9.5
+
+Table 8: Per-language performance of understanding failure detection methods on gpt-oss-20b. F1 values are
+reported as mean = stdev, and the best performance for each language is highlighted in bold.
+
+Polymath-Low
+
+Method fr mr wo
+
+Avg confidence 179 + 15.6 0.0 £0.0 335+ 192
+LLM-based detector 0.0 £ 0.0 153 + 6.0 404 £3.6
+mmBERT detector 26.2 + 25.0 38.7 £ 16.3 86.1 +£5.3
+Prober 9.5 +165 25.0 £25.0 76.8 £ 13.2
+
+MMLU-ProX-Lite
+
+Method fr mr wo
+
+Avg confidence 31.3196 373+ 78 51.9 +50
+LLM-based detector 47 +82 49 +42 13.5 £50
+mmBERT detector 4.8 £82 15.6 + 6.7 63.6 + 8.8
+Prober 44.2 + 16.0 352+ 11.1 70.5 £58
+
+Table 9: Per-language performance of understanding failure detection methods on unseen languages (fr, mr, wo) on
+Qwen3-4B. F1 values are reported as mean = stdev, and the best performance for each language is highlighted in
+bold.
+
+17
+
+
+Method en de es ar ja ko th bn SW te Avg. (Translator usage)
+Base 965 880 939 896 853 907 | 85.1 832 29.3 69.9 81.1 (0.0%)
+Selective translation (512) wom ws en Ga) se Go) a3 rom ron 8am 86.5 (19.6%)
+PolymatheLow | selective ranstarion (1024) con oa ot Pdi Som) oa Com 200%) EA A 86.9 (15.5%)
+Selective translation (2048) am ain Rosh Go) eh om) aon ( en) 59m) Gh) 87.6 (25.6%)
+Selective translation (4096) orm 08m 1 (3%) Pos os) ii ( Bn in A 87.3 (21.5%)
+Selective translation (8192) oh oom ood wom Crm Sim Som) ( Si 59%) ori 87.6 (23.0%)
+Selective translation (full Le Peta Ga) ws) >is 59) yn 6160 sort) A 88.0 19.3%)
+Full translation 960 883 933 909 87.5 925 | 89.6 904 85.3 80.5 89.4 (100.0%)
+
+Table 10: Selective Translation with Early-detection on Polymath-Low with Qwen3-4B. For each cutoff length
+(512, 1024, ..., full), we allow the detector to read signals from only the first N tokens of its own reasoning
+trace before deciding whether to translate. Each cell shows accuracy (top) and per-language translator usage (%)
+below. Avg. (Translator usage) reports overall average accuracy across languages, with overall translator usage in
+
+parentheses.
+
+standing are already detectable within the early
+stages of reasoning.
+
+These results demonstrate that Selective Trans-
+lation remains highly effective even under early
+detection, suggesting that it does not need to wait
+until the model completes its entire reasoning trace.
+Instead, the decision can be accurately made us-
+ing only the initial hidden states from the begin-
+ning, making the method substantially more effi-
+cient while maintaining comparable accuracy to
+the full-trace version.
+
+C Examples of Understanding Failures in
+Reasoning Language Models
+
+In this section, we present examples showing how
+understanding failures manifest in the reasoning
+traces of reasoning language models. At the begin-
+ning of reasoning, the model attempts to reinterpret
+the given question into the dominant language of
+its reasoning trace (in this case, English). This pro-
+cess may occur implicitly or be explicitly verbal-
+ized (e.g., “It’s in Swahili. Let’s translate.”). Dur-
+ing this understanding stage, models sometimes
+exhibit uncertainty—repeating translation mul-
+tiple times, or explicitly expressing confusion
+(e.g., “This is confusing.”). We highlight in red
+the parts of the reasoning traces where such un-
+certainty is particularly evident, and present each
+example along with a brief observation. We col-
+lected several representative cases across different
+models and tasks to illustrate these behaviors. The
+examples are shown below.
+
+18
+
+[Korean / Polymath-Low] Qwen3-1.7B — Un-
+
+derstanding Failure
+
+Question: FZ =H Ql A Zhe Al El ml EA
+=SUth GR JTIA BEE LISA 7A EH E
+AE] vB 7hgk ob 7k 2?
+
+(Translated: A candle melts by 2 centimeters every hour
+that it burns. How many centimeters shorter will a
+candle be after burning from 1:00 PM to 5:00 PM?)
+
+Reasoning Trace (excerpt): <think>Okay,
+let’s see. The problem is about a matchstick
+(yangchu) that burns for a certain period, and
+each minute it gets shorter by 2 centimeters. We need
+to find out how much it shortens from 1 PM to 5 PM.
+Hmm. First, I need to figure out how many minutes are
+there between 1 PM and 5 PM. Let me think. From 1
+PM to 5 PM is 4 hours. Since there are 60 minutes in an
+hour, 4 hours would be 4 * 60 = 240 minutes. Wait, but
+is that right? Let me check again. 1 PM to 2 PM is 60
+minutes, 2 PM to 3 PM is another 60, 3 PM to 4 PM,
+and 4 PM to 5 PM. So yeah, that’s 4 hours, which is
+240 minutes. So the total time is 240 minutes. Now, the
+problem says that each minute, the yangchu shortens by
+2 centimeters. So if it’s burning for 240 minutes, then
+the total shortening would be 2 centimeters per minute
+multiplied by 240 minutes. Let me calculate that: 2 *
+240 = 480 centimeters. Wait, but that seems like a lot.
+Is that possible? Wait, but maybe I need to check if the
+question is asking for the total shortening or something
+else. The question says, "% Al €] un] €] 7} go} & 7}
+£7?" which translates to "how many centimeters will
+be shortened?" So it’s asking for the total shortening.
+So if each minute it shortens 2 cm, over 240 minutes,
+it’s 2*¥240=480 cm. But that seems like a very large
+number. Is there a possibility that I'm misunderstanding
+the question?...
+
+Observation: The model misinterprets the unit “per
+hour” as “per minute,” repeatedly expresses uncertainty,
+and questions its own understanding, indicating an under-
+standing failure.
+
+
+
+[Swahili / Polymath-Medium] Qwen3-4B —
+Understanding Failure
+
+Question: Uwakilishi wa desimali wa m /n, ambapo m
+na n ni nambari chanya ambazo hazina kipengele cha
+pamoja isipokuwa 1 na m < nm, una tarakimu 2, 5 na
+1 zinazofuatana katika mpangilio huo. Tafuta thamani
+ndogo kabisa ya n ambayo hili linawezekana.
+
+(Translated: The decimal representation of m/n,
+where m and n are relatively prime positive integers and
+m < n, contains the digits 2, 5, and 1 consecutively,
+and in that order. Find the smallest value of n for which
+this is possible.)
+
+Reasoning Trace (excerpt): <think> Okay, so I need
+to find the smallest possible value of n such that the
+decimal expansion of m/n has a repeating cycle of length
+2, 5, or 1. Wait, the problem says "tarakimu 2, 5 na
+1 zinazofuatana katika mpangilio huo." Hmm, maybe
+that means the decimal has a period of 2, 5, or 1? Or
+maybe the decimal expansion has periods of 2, 5, and
+1? But that doesn’t make much sense. Wait, maybe it’s
+saying that the decimal expansion has a period of 2, 5,
+or 1? But periods are usually the length of the repeating
+part. So if the decimal has a period of 1, 2, or 5, then
+n must be such that the decimal expansion of m/n has a
+period that is one of those numbers. But the question says
+"tarakimu 2, 5 na 1 zinazofuatana katika mpangilio huo."
+Maybe it’s saying that the decimal expansion has periods
+2, 5, and 1? But that seems conflicting. Wait, maybe
+the original problem is in Swahili, and the translation
+is a bit off. Let me try to parse it again. "Uwakilishi
+wa desimali wa m/n, ambapo m na n ni nambari chanya
+ambazo hazina kipengele cha pamoja isipokuwa 1 na m <
+n, una tarakimu 2, 5 na 1 zinazofuatana katika mpangilio
+huo. Tafuta thamani ndogo kabisa ya n ambayo hili
+linawezekana." So, the decimal expansion of m/n, where
+m and n are coprime integers with m < n, has periods 2,
+5, and 1 in the given context. Wait, maybe "tarakimu" is
+"periods" and "zinazofuatana katika mpangilio huo" is
+"occur in this expansion"...
+
+Observation: The model repeatedly attempts to rein-
+terpret the Swahili condition, and incorrectly treats “the
+digits 2, 5, and 1 consecutively” as a statement about
+repeating period length (e.g., “a period of 2, 5, or 17),
+indicating an understanding failure and sustained uncer-
+tainty about the problem statement.
+
+[Swahili / MMLU-ProX-Lite] gpt-oss-20b —
+
+Understanding Failure
+
+Question: Katika nafasi x = kitengo 1 kwenye skrini,
+kazi ya mawimbi ya kwanta kwa boriti ya elektroni ina
+thamani +1 kitengo, na katika kipindi cha Ax na karibu
+na xo = 1 kuna miale 100 kwa dakika. Je, ni nini nguvu
+ya miale katika xo = 2, 3, na 4 vitengo ambapo i ina
+thamani +4, +2, na -2 vitengo, mtawalia?
+
+(Translated: At the position xg 1 unit on a
+screen, the wave function for an electron beam has the
+value +1 unit, and in an interval Ax and around xo = 1
+there are observed 100 light flashes per minute. What is
+the intensity of flashes at xo = 2, 3, and 4 units where it
+has the values +4, +2, and -2 units, respectively?)
+
+Reasoning Trace (excerpt): We need to parse the ques-
+tion. It’s in Swahili. Let’s translate: "Yafuatayo ni
+maswali ya chaguo-nyingi (yenye majibu) kuhusu fizikia.
+
+19
+
+Fikiria hatua kwa hatua kisha malizia jibu lako kwa ’Jibu
+ni (X)’ ambapo X ni herufi ya chaguo sahihi. Swali:
+Katika nafasi xo = kitengo 1 kwenye skrini, kazi ya maw-
+imbi ya kwanta kwa boriti ya elektroni ina thamani +1
+kitengo, na katika kipindi cha Ax na karibu na zo = 1
+kuna miale 100 kwa dakika. Je, ni nini nguvu ya miale
+katika xo = 2, 3, na 4 vitengo ambapo i ina thamani +4,
++2, na -2 vitengo, mtawalia? This is confusing: "kazi ya
+mawimbi ya kwanta kwa boriti ya elektroni ina thamani
++1 kitengo" maybe refers to potential energy? "miale 100
+kwa dakika" maybe "force"? Actually "miale" maybe
+"current"? Wait "miale" maybe "ampere"? Might be
+"current" in physics? Let’s parse: "kazi ya mawimbi ya
+kwanta" maybe "work done by the wave" ??? "boriti ya
+elektroni” is "electron’s potential"? Hmm. We might
+need to interpret the physics concept...
+
+Observation: The model struggles to ground physical
+concepts expressed in Swahili, repeatedly expressing un-
+certainty about key terms (e.g., miale, kazi ya mawimbi
+ya kwanta) and speculating multiple conflicting mean-
+ings (“current,” “energy,” “intensity”). It even explicitly
+verbalizes its confusion (e.g., “This is confusing”), illus-
+
+trating a clear instance of understanding failure.
+
+D Further Details on Multilingual
+Reasoning Gap Analysis
+
+D.1 Dataset Details
+
+Polymath Polymath (Wang et al., 2025b) is a
+multilingual mathematical reasoning benchmark
+covering 18 languages and four difficulty lev-
+els—Ilow, medium, high, and top. The four levels
+are organized as follows:
+
+* Low: Covers K-12 mathematics such as
+math word problems. Includes 125 mul-
+tilingual samples from MGSM (Shi et al.,
+2023) and four additional languages from P-
+MMeval (Zhang et al., 2024).
+
+* Medium: Consists of exam-style problems
+from college mathematics, China’s Gaokao,
+and postgraduate entrance exams, along with
+entry-level competition questions from AMC
+and CNMO provincial contests, all collected
+from official sources.
+
+* High: Focuses on mid- to high-difficulty com-
+petition problems, primarily from AIME and
+CNMO.
+
+* Top: Comprises Top Olympiad problems
+from IMO, IMO Shortlist, and national con-
+tests such as USAMO, CMO, and Putnam,
+as well as 25 research-level problems from
+HLE (Phan et al., 2025).
+
+After collecting original problems from diverse
+public sources, each problem was translated into
+
+
+18 languages using GPT-40 (Hurst et al., 2024)
+and subsequently refined by language experts with
+mathematical expertise, ensuring the precise trans-
+lation of mathematical terminology. This process
+resulted in high-quality, consistent problems across
+all languages, with 125 problems per language at
+each difficulty level.
+
+In this study, we focus on the low, medium,
+and high levels because (1) these three levels suffi-
+ciently capture performance trends across different
+reasoning difficulties, and (2) the top-level prob-
+lems, which involve Olympiad and frontier math-
+ematics, are too challenging for the evaluated rea-
+soning models, leading to uniformly low accuracy
+that prevents statistically meaningful multilingual
+gap analysis. We use the official Polymath eval-
+uation template for all experiments. The prompt
+template is shown below:
+
+Polymath Evaluation Prompt Template
+
+Prompt format: Question in language L +
+Instruction prompt in language L
+
+The instruction prompt varies by language. For
+English, the instruction is “Note: Please put
+the final answer in the \boxed{}.”. For
+other languages, the instruction prompt is a trans-
+lation of the English version, and all language-
+specific instructions are available in the official
+Polymath repository ©.
+
+MMLU-ProX-Lite MMLU-ProX (Xuan et al.,
+2025) is a multilingual benchmark extending the
+reasoning-focused English benchmark MMLU-
+Pro (Wang et al., 2024) to 29 typologically diverse
+languages, enabling cross-linguistic comparison
+of reasoning ability with fully parallel question
+sets. Each language version of the full benchmark
+contains 11,829 multiple-choice questions cover-
+ing 57 subjects, with each question providing up
+to 10 answer options. A Lite version (MMLU-
+ProX-Lite) was released alongside the full bench-
+mark, consisting of 658 uniformly sampled ques-
+tions per language while maintaining balanced
+subject coverage and reasoning difficulty. In this
+study, we adopt MMLU-ProX-Lite for efficient ex-
+periments and restrict evaluation to five STEM-
+related subjects—math, physics, chemistry,
+computer science, and engineering—to focus
+on reasoning-intensive domains rather than factual
+
+https: //github.com/QwenLM/PolyMath/
+
+20
+
+recall. After applying this filtering, the resulting
+subset contains 257 samples per language.
+
+We adopt the official MMLU-ProX-Lite
+evaluation template implemented in the
+Im-evaluation-harness (Gao et al.,, 2024)
+for all experiments. Each prompt consists of (i) a
+short instruction introducing the subject, (ii) the
+question body, and (iii) a list of options labeled
+from A to J. The model is instructed to reason step
+by step and to conclude with a language-specific
+closing phrase indicating the selected option; for
+English, this takes the form "the answer is
+(X)" (where X denotes the correct letter), while
+other languages use the corresponding translation.
+All instructional phrases and subject names are
+likewise translated into the target language to
+ensure semantic consistency and fairness in
+multilingual reasoning evaluation. The English
+prompt format is shown below:
+
+MMLU-ProX-Lite Evaluation Prompt Tem-
+plate
+
+Prompt format (English example): The
+following are multiple choice questions
+(with answers) about subject. Think step
+by step and then finish your answer with
+"the answer is (X)" where X is the correct
+letter choice.
+
+Question: {question}
+
+Options:
+
+(A) {option 1}
+
+(B) {option 2}
+
+ad {option 10}
+
+Answer: Let’s think step by step.
+
+D.2 Evaluation Details
+
+Answer Extraction. We first perform rule-based
+answer extraction based on regular expressions.
+For Polymath, the final answer is identified
+from the expression enclosed in \boxed{}, while
+for MMLU-ProX-Lite, it is extracted from the
+language-specific closing phrase (e.g., r"answer
+is 7([A — —J])?") by selecting the last matching
+string. However, since models do not always follow
+the specified output format and the final answers
+often appear in diverse forms, we use Qwen2.5-7B-
+Instruct to parse and extract the final answer when
+regular-expression matching fails. The prompts
+used for answer extraction are shown below.
+
+
+Polymath Answer Extraction Prompt
+
+You are an answer extractor.
+
+Inputs:
+
+- Question: {question}
+
+- Reasoning trace: {reasoning_trace}
+
+Task:
+
+1) Read the Question and determine the ex-
+pected final answer type.
+
+- Possible types include: Numeric scalar,
+Comparison/Ordering among variables,
+Set/List, Interval/Inequality, Coordinate/-
+Tuple, Algebraic expression, or Multiple-
+choice letter.
+
+- Decide the most appropriate type for THIS
+Question.
+
+2) Carefully scan the Reasoning trace and
+identify the final/conclusive answer consis-
+tent with the expected type.
+
+- Prefer the final/most conclusive statement
+(e.g., “Therefore... ”, “Thus...”, “Final an-
+swer...”, or the last decisive equation).
+
+- If multiple candidates appear, choose the
+last one that is self-consistent.
+
+- Ignore exploratory or contradicted inter-
+mediate guesses.
+
+3) Output EXACTLY in the format:
+\boxed{FINAL_ANSWER}
+
+Formatting rules:
+
+- Put ONLY the final answer inside
+\boxed{} (no units, words, or explana-
+tions).
+
+- Do not include any explanation or extra
+symbols outside \boxed{}.
+
+- If no conclusive final answer is present
+in the trace, choose the last consistent can-
+didate stated as final; if still impossible,
+output \boxed{NO_ANSWER}.
+
+Output:
+
+MMLU-ProX-Lite Answer Extraction
+
+Prompt
+
+You are an answer extractor.
+
+You will be provided with the following in-
+puts:
+
+- Multiple-choice options (corresponding to
+the Question)
+
+- A reasoning trace that shows the step-by-
+step thought process
+
+21
+
+Task:
+
+1) Carefully scan the Reasoning trace and
+identify the final multiple-choice option an-
+SWer.
+
+- Valid answers are only single capital let-
+ters from [A-J].
+
+- If the final answer in the Reasoning trace
+is given as option text instead of a letter,
+use the provided multiple-choice options
+to map it to the corresponding letter from
+[A-]].
+
+- Prefer the final/most conclusive statement
+(e.g., "Therefore...", "Thus...", "Final an-
+swer...", or the last decisive choice).
+
+- If multiple candidates appear, choose the
+last consistent one.
+
+- Ignore exploratory or contradicted inter-
+mediate guesses.
+
+2) Output EXACTLY in the format:
+Answer: X
+
+Formatting rules:
+
+- Replace X with the chosen letter from [A-
+J].
+
+- Do not include any explanation, units, or
+extra text.
+
+Now, the inputs are given below.
+
+Inputs:
+
+- Multiple-choice options (corresponding to
+the Question): {options_block}
+
+- Reasoning trace: {reasoning_trace}
+
+Output:
+
+Answer Verification. We evaluate the cor-
+rectness of extracted answers using MATH-
+VERIFY (Kydlicek, 2025), a robust mathematical
+expression evaluation system developed for evalu-
+ating Large Language Model outputs in mathemat-
+ical tasks. For MMLU-ProX-Lite, correctness is
+evaluated by comparing the extracted and ground-
+truth answers—both in option format—using case-
+insensitive exact string matching.
+
+E Further Details on Understanding
+Failure Detection
+
+E.1 Dataset statistics
+
+Table 11 summarizes the number of samples used
+for calibration and evaluation in our experiments.
+For methods requiring threshold calibration or su-
+pervised training, we use MGSM (filtered) as the
+
+
+calibration data for Polymath-Low experiments
+and the validation split of MMLU-ProX-Lite for
+MMLU-ProX-Lite experiments, ensuring that the
+calibration data remains in-distribution with re-
+spect to the evaluation set. For Polymath-Low, 125
+MGSM samples per language are used as evalua-
+tion data, and we exclude these from the calibration
+set; MGSM (filtered) thus refers to the remainder
+of the MGSM dataset after this exclusion. For
+MMLU-ProX-Lite, we restrict the validation split
+to STEM-related subjects, consistent with the com-
+position of the test split.
+
+E.2 Implementation details
+
+LLM-based detector. We employ
+GPT-4.1-mini (OpenAl, 2025) as an LLM-
+based detector due to its strong multilingual
+understanding ability and cost-effectiveness. On
+the Multilingual MMLU’ benchmark, GPT-4.1-
+mini demonstrates strong multilingual performance
+with an accuracy of 78.5%, closely approaching
+GPT-40 (Hurst et al., 2024) (81.4%) while being
+significantly more cost-effective. We prompt
+the detector with the original input and the
+reasoning model’s reasoning trace at the base
+setting to output a binary judgment on whether the
+model has understood the problem, along with a
+brief explanation. We then parse the structured
+JSON output into a binary label for downstream
+evaluation. The prompt provided to the detector is
+shown below:
+
+"This is obtained by translating MMLU (Hendrycks et al.,
+2021) benchmark’s test set into 14 languages.
+
+22
+
+Prompt for LLM-based detector
+
+You are given a problem (question and possi-
+bly options) and a model’s reasoning trace.
+Your task is to decide whether the model
+correctly understood the problem.
+
+Do not solve the problem yourself.
+
+Return the output strictly in the following
+JSON format, with no extra text.
+
+The "Reason" field should be one or two
+sentences.
+
+{ "understood": true/false, "Reason": "<one
+or two sentences explanation of why you
+judged it this way>" }
+
+Problem: {problem text}
+Reasoning Trace: {reasoning trace}
+
+mmBERT detector. We also train a lightweight
+text-based classifier based on mmBERT (Marone
+et al., 2025), a state-of-the-art multilingual encoder
+trained on over 3T tokens across more than 1,800
+languages. We adopt the mmBERT-base variant for
+its strong multilingual classification performance
+and parameter efficiency (307M). We aggregate
+samples from all languages and split the combined
+dataset into training and validation sets with a 9:1
+ratio. Each training instance consists of the orig-
+inal input(problem statement) concatenated with
+the reasoning model’s reasoning trace at the base
+setting, separated by the special [SEP] token. La-
+bels are assigned as 1 when the base model’s final
+answer is incorrect (not understood) and 0 other-
+wise.
+
+We fine-tune the model for 30 epochs with a
+batch size of 8 and a learning rate of 3 x 107°
+using supervised fine-tuning. To address label im-
+balance, we adopt a weighted cross-entropy loss
+where class weights are set inversely proportional
+to class frequencies. Concretely, for a dataset
+{(z:,y:)} XY, with ny positive and ng negative sam-
+ples (N = ng + n1), the class weights are defined
+as:
+
+_N
+© 2ny]
+
+N
+
+w wo = —
+1 0 M0
+
+This inverse-frequency weighting ensures that both
+
+classes contribute equally to the loss regardless of
+
+their original proportions. The resulting objective
+
+
+Model Seed MGSM (filtered) MMLU-ProX-Lite (validation) | Polymath-Low MMLU-ProX-Lite (test)
+
+32 1184 516 1166 2091
+Qwen3-4B 42 1189 520 1163 2097
+
+52 1187 514 1170 2094
+
+32 1168 590 1191 2112
+GPT-OSS-20B 42 1173 582 1183 2083
+
+52 1173 585 1184 2106
+
+Table 11: Number of samples used for calibration and evaluation across datasets and random seeds. MGSM
+(filtered) denotes the MGSM calibration set after excluding the 125 samples per language used in Polymath-Low
+evaluation.
+
+is: * Average Confidence Method. Computes the
+N mean token confidence across all reasoning
+1 R R tokens:
+L=—— | log pi+wo (1—y:) log(1—p; :
+N 2 w1 Yi og pi+wo ( Yi) og( Di) , Ly+Ly
+avg_confidence = — > Ct
+where y; € {0,1} is the ground-truth label and Ly t=Lp+1
+
+pi = po(yi = 1 | x;) is the model’s predicted
+probability for the positive class. We minimize this
+loss using the AdamW optimizer (Loshchilov and
+
+e Minimum Confidence Method. Takes the
+minimum token confidence across the reason-
+
+Hutter, 2019). During training, we evaluate the Ing trace:
+
+model on the validation set after each epoch and min_confidence = min ct
+select the checkpoint that achieves the highest F1 te[Lp+1, Lp+Ly]
+
+score. To prevent overfitting, we use early stopping Both methods estimate how confidently the
+
+with a patience of five epochs, stopping training model] generates its reasoning steps. Smaller values
+when the validation F1 score fails to improve within jp dicate lower confidence, which we hypothesize
+this period. to be associated with a higher likelihood of under-
+standing failure.
+
+Finally, we define the input negative log-
+likelihood, which measures how familiar the model
+is with the input prompt. It is computed as the mean
+negative log-probability over all input tokens:
+
+Token-probability—based approaches. Given
+an input prompt x = (z1,...,2r,) and a reason-
+ing trace r = (r1,...,rr,), let py denote the lan-
+guage model’s conditional probability distribution
+over the next token given the previous tokens. The
+
+log-probability of the ground-truth next token y; at 1 Lop
+position ¢ is then defined as: Input_NLL = “I > log po (zt | £<t)
+Pi=1
+ty = log pg(yt | y<t) A higher input negative log-likelihood suggests that
+
+the model assigns lower likelihood to the input se-
+
+quence itself, which we hypothesize to indicate
+
+potential difficulty in understanding the input lan-
+guage or phrasing.
+
+K For evaluation, we determine the decision thresh-
+
+cr = 1 > log pg (w'? | yet) old for each signal using the value that maximizes
+
+K —1 the F1 score on the calibration dataset. Figure 6
+
+visualizes the distributions of these three signals for
+
+where w! denotes the k-th most likely token pre- understood (label = 0) and not-understood (label =
+
+dicted at position t. Higher c; values indicate 1) samples. As hypothesized, average confidence
+
+a more peaked next-token distribution and thus and minimum confidence tend to be lower for not-
+
+higher certainty, whereas smaller c; values indicate ~~ understood samples, indicating their usefulness as
+
+a more uniform distribution and lower certainty. understanding-failure signals. In contrast, input
+
+Based on these token confidences, we consider two negative log-likelihood shows no clear correlation
+
+detection methods: with the labels.
+
+We define the token confidence c; at each step
+as the negative log-probability averaged over the
+top-K most probable tokens (default KX = 20):
+
+23
+
+
+Overall « Average Confidence « BA=0.796 (TPR=0.79, TNR=0.80)
+T
+
+<l
+BY
+|
+
+—f=25,
+
+i
+—_—
+
+understood (NEG) —
+
+not understood (POS)
+
+{ @aOO ®OO ©
+
+20 25 30
+
+Score
+
+35 40 45
+
+(a) Average token confidence.
+
+Overall « Minimum Confidence « BA=0.759 (TPR=0.75, TNR=0.76)
+
++
+a
+i
+fi
+
+understood (NEG)
+
+{0000 CO GOO
+
+not understood (POS)
+
+{0 0o@ Oo Oo
+
+4 6 8 10
+
+Score
+
+12
+
+(b) Minimum token confidence.
+Overall « Prompt Log-Negative Likelihood « BA=0.648 (TPR=0.36, TNR=0.93)
+
+understood (NEG)
+
+not understood (POS)
+
+1 2 3 4 5 6 7 8
+Score
+
+(c) Input negative log-likelihood.
+
+Figure 6: Distributions of three token-probability—based
+signals — average confidence, minimum confidence,
+and input negative log-likelihood — measured by
+Qwen3-4B on the Polymath-Low dataset. Each box plot
+illustrates how these signals differ between the under-
+stood (label = 0) and not understood (label = 1) classes,
+and the vertical line indicates the threshold derived from
+the calibration dataset.
+
+Hidden-state-based prober. We additionally ex-
+plore a hidden-state—based approach that trains a
+lightweight classifier (“prober”) on the internal rep-
+resentations of the reasoning model to detect un-
+derstanding failures. For each sample, we extract
+the final-layer hidden state of the last token from
+the model’s reasoning trace under the Base setting.
+These hidden representations, paired with binary
+labels (1 for “not understood” and O otherwise),
+constitute the training data for the prober. We ag-
+gregate samples across all languages and split the
+dataset into training and development sets with a
+9:1 ratio. The prober is trained to minimize the
+weighted binary cross-entropy loss (Eq. E.2) us-
+
+24
+
+ing the AdamW optimizer (Loshchilov and Hutter,
+2019):
+
+1 R A
+L = —N [ws yi log pi+wo (1—y;) log(1—p;)
+
+i=1
+
+where y; € {0,1} is the ground-truth label, p; =
+po(yi = 1 | h;) is the prober’s predicted probability
+of a sample being not understood, and h; denotes
+the hidden representation of the i-th sample.
+
+We perform a grid search over learning
+rates {1073,107%,107°} and hidden layer sizes
+{0, 32,128,512, d/2, d}, where d is the dimension-
+ality of the original hidden state and 0 corresponds
+to a linear probe. Training is conducted with a
+batch size of 16 for up to 50 epochs, with early stop-
+ping using a patience of five epochs, terminating
+training if the validation F1 score does not improve
+within this window. We select the checkpoint that
+achieves the highest F1 score on the development
+set for evaluation.
+
+Self-reflection. We further evaluate the self-
+reflection method, where the reasoning model is
+prompted to assess whether it has understood the
+input. For each sample, we reuse the original input
+and reasoning trace. Then, we remove the end-
+of-thinking token (e.g., </think>) and append a
+fixed instruction for self-reflection, which allows
+the model to continue from its prior reasoning and
+generate a binary self-assessment. Generation is
+performed using greedy decoding. The instruction
+for self-reflection is shown below.
+
+Instruction for self-reflection
+
+Wait, before proceeding, I will reflect on my
+prior reasoning to assess my overall under-
+standing of the problem. I will respond with
+
+<Understandability>: YES or NO (YES if
+I’m fully confident that I understood the
+problem correctly, NO otherwise).
+<Understandability>:
+
+F Further Details on Selective Translation
+
+Translation. We use GPT-4.1 for translation in
+all experiments. The prompt used for translating
+Polymath is shown below:
+
+
+Instruction for Polymath
+
+Translate the following mathematical
+question enclosed within <instruction> and
+</instruction> into English. The text may
+contain mathematical notation and LaTeX
+formatting. You must strictly preserve:
+
+- All LaTeX math and commands
+EXACTLY as written, including
+inline math $...$, display math
+$$...%%, \(...\), \[...\], and any
+\begin{...}...\end{...} environ-
+ments.
+
+- All mathematical symbols, variables,
+numbers, operators, and equation labels.
+
+Provide only the translated instruction
+without any additional explanation.
+
+Wrap the translated output with <trans-
+lated> and </translated> tags.
+
+<instruction>{instruction }</instruction>
+
+For MMLU-ProX-Lite, each instance is repre-
+sented as a JSON object containing a question and
+multiple-choice options (option_0, option_1, ...).
+We first construct a payload that includes the ques-
+tion and all available options (0-9). The translator
+model is then instructed to translate values in this
+JSON—while preserving the keys, structure, and
+mathematical content—into English. The prompt
+used for translating MMLU-ProX-Lite is shown
+below:
+
+Instruction for MMLU-ProX-Lite
+You are a professional scientific translator.
+TASK
+
+- Translate ONLY the string **values** in
+the given JSON object into English.
+
+- Do not change the JSON keys, structure,
+or order.
+
+- Preserve all numbers,
+expressions, symbols, and units exactly.
+
+- Return ONLY the translated JSON object.
+
+mathematical
+
+INPUT: {payload}
+
+Selective translation. After translation, the trans-
+lated input is provided to the reasoning model via
+the understanding intervention (Section 3.2), where
+
+it corresponds to x4om. We adopt this approach to
+preserve multilingual consistency, ensuring that
+the final response remains in the same language
+as the input. Understanding intervention allows
+the model to reason without understanding fail-
+ures while keeping the final response in the input
+language. We also experimented with a simpler
+variant that, instead of applying the understanding
+intervention, directly feeds the translated input to
+the model along with an additional instruction, “Re-
+spond in X,” where X is the input language, but
+it underperformed in our preliminary experiments.
+Therefore, we use the understanding-intervention
+formulation as the default setting for selective trans-
+lation.
+
+G More Related Work
+
+In this section, we provide prior studies on multi-
+lingual reasoning in conventional large language
+models(LLMs) and compare with our work.
+
+Multilingual Reasoning. LLMs have made sig-
+nificant advances in multilingual reasoning, but
+performance gaps remain between high-resource
+and low-resource languages (Shi et al., 2023). To
+bridge this gap, Qin et al. (2023) exploited cross-
+lingual prompting to leverage strong reasoning abil-
+ities in English, while other works (Chen et al.,
+2024; Zhu et al., 2024; Ko et al., 2025) improved
+multilingual reasoning by fine-tuning on data gen-
+erated through translations. She et al. (2024) and
+Yang et al. (2025b) exploited the inherent perfor-
+mance imbalance between high- and low-resource
+languages to construct preference datasets and ap-
+plied preference optimization. Some prior works
+introduced external components to boost multilin-
+gual reasoning. Yoon et al. (2024) and Huang
+et al. (2024) merged LLMs with external multi-
+lingual models to enhance language understanding,
+and Shi et al. (2023) and Liu et al. (2025) trans-
+lated questions posed in low-resource languages
+into high-resource languages to bypass challenges
+in language understanding. Among recent works,
+Ko et al. (2025) report a similar finding that the
+performance gap in multilingual reasoning largely
+stems from models’ difficulty in comprehending
+non-English inputs, rather than their reasoning abil-
+ity. However, their study focuses on conventional
+LLMs and is limited to Korean, whereas we ana-
+lyze recent reasoning language models across di-
+verse languages. We further show that such com-
+prehension failures can be automatically detected
+
+
+and selectively mitigated through Selective Trans-
+lation.
+
+26
+
+
+Input Language
+
+Polymath-low
+
+0.0 0.0 0.0 0.0 0.0 0.0
+
+0.0 0.0 00 0.0
+
+2.7
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+0.0
+
+0.1
+
+0.1
+
+SS &
+
+0.0
+
+15
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+2.9
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+26
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0 0.0
+0.0 0.0
+0.0 0.0
+0.0 0.0
+0.0 0.0
+32 0.0
+0.0 3.5
+0.0 0.0
+
+0.0 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+5.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+33
+
+FLOSS Se
+
+Detected Language
+
+Input Language
+
+Language Distribution in Reasoning Trace
+
+Polymath-medium
+01 03 0.0 00 0.0 00 0.0 0.0
+04 01 0.0 00 0.0 00 0.0 0.0
+
+02 03 0.0 00 00 00 0.0 00
+
+01 02 0.2 00 00 00 0.0 0.0
+
+01 02 0.0 04 00 00 0.0 0.0
+
+01 02 0.0 00 02 00 0.0 0.0
+
+02 02 0.0 00 00 05 0.0 0.0
+
+01 02 0.0 00 00 00 0.4 00
+
+01 02 0.0 00 00 00 00 03
+
+02 02 0.0 00 00 00 0.0 0.0
+
+SS &
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.5
+
+FLOSS Se
+
+Language Distribution in Reasoning
+
+Polymath-low
+
+0.1 0.0 00 00 0.0 0.0
+
+0.1
+
+31
+
+0.1
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+0.0
+
+SF &
+Detected Language
+
+en
+de
+es
+
+08 0.0
+
+ar 25 06
+0.4
+0.1
+0.0
+
+03
+
+Input Language
+
+18
+
+0.0
+
+0.0
+
+18
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+33
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+18
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0 0.0
+
+0.0 0.0
+0.0 0.0
+0.0 0.0
+0.0 0.0
+32 0.0
+0.0 3.2
+0.0 0.0
+
+0.0 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+40
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+24
+
+FRO EEE
+
+Polymath-low
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+2.1
+
+Ss &
+
+0.0 00 0.0
+
+0.0 00 0.0
+
+00 0.0 0.0 00 00 0.0 0.0
+
+so Bl oo
+
+0.0 0.0
+
+0.0 0.0
+
+0.0 0.0
+
+0.0 [ff oo 0.0 0.0
+0.0 oo ZB oo 0.0
+0.0 oo [ff 00
+00 00 oo ER oo
+
+00 00 0.0 0.0
+
+0.0
+
+0.0
+
+0.0
+
+00 0.0 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+FRO EEE
+
+Detected Language
+
+en
+de
+
+es
+16
+
+ar 03
+ja
+ko
+th
+bn
+
+SW
+
+42 00
+
+6.7 01
+
+24 00
+
+Input Language
+
+18 00
+
+£133
+
+te 158 09 0.0 0.0 0.0 00 0.0 0.0 0.0
+
+Polymath-medium
+02 02 0.0 00 0.0 00 0.0 0.0
+
+04 02 0.0 00 00 00 0.0 00
+
+05 03 0.0 00 00 00 0.0 0.0
+
+02 0.1 00 00 00 0.0 00
+
+02 0.0 02 00 00 0.0 00
+
+02 0.0 00 02 00 0.0 00
+
+02 0.0 00 00 04 0.0 00
+
+02 0.0 00 00 00 05 00
+
+03 0.0 00 00 00 00 02
+
+02 0.0 00 00 00 0.0 00
+
+SF &
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+FRO EEE
+
+Polymath-high
+
+0.5
+
+0.2
+
+0.1
+
+0.2
+
+0.1
+
+0.1
+
+0.1
+
+0.2
+
+SS &
+
+0.0
+
+0.2
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.2
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+03
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.7
+
+0.0
+
+0.0
+
+0.0
+
+01 0.0 00 00 00 0.0
+
+01 0.0 00 00 00 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.4
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.7
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+03
+
+FRO IS Se
+
+Detected Language
+
+Trace (w/ Understandi
+
+Polymath-high
+
+0.2
+
+0.4
+
+0.1
+
+0.1
+
+0.2
+
+0.1
+
+0.2
+
+0.2
+
+0.1
+
+SF &
+Detected Language
+
+0.0
+
+0.0
+
+0.1
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.2
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+0.0
+
+0.0
+
+0.1
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.4
+
+0.0
+
+0.0
+
+0.0
+
+01 0.0 00 00 00 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.3
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+FLO EEE
+
+Language Distribution in Final Response
+
+Polymath-medium
+
+01 03 0.0 00 00 00 0.0 0.0
+
+01 0.0 00 00 00 0.0 00
+
+00 0.0 00
+00 0.0 00
+
+15 0.0 0.0
+
+1.0 0.0 0.0
+
+70-8 0.0
+0.0 oo FX] 00
+
+00 00 0.0 05
+
+0.0
+0.4
+09 14
+
+0.0 0.0
+
+04 00 0.0 00 00 00 0.0 0.0
+
+Ss &
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.9
+
+FRO EEE
+
+Polymath-high
+
+05 02 0.0 02 00 00 0.0
+
+is
+
+10.2
+
+0.2
+
+0.2
+
+11
+
+0.6
+
+0.0
+
+0.2
+
+Ss &
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.8
+
+0.0
+
+18 05 0.0 00
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+
+10.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.2
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0 00 09
+
+FLO EEE
+
+Detected Language
+
+MMLU-ProX-Lite
+
+03 0.0 00 00 00 00 0.0
+
+03 0.0 00 00 00 00 0.0
+
+1.0 0.0 00 00 00 0.0 0.0
+
+03 05 0.0 00 00 00 0.0
+
+03 0.0 03 00 00 00 0.0
+
+03 0.0 00 05 00 0.0 0.0
+
+02 0.0 00 00 09 00 0.0
+
+04 0.0 00 00 00 04 0.0
+
+03 0.0 00 00 00 00 10
+
+03 0.0 00 00 00 00 0.0
+
+SS &
+
+Detected Language
+
+ng Intervention)
+
+MMLU-ProX-Lite
+
+03 0.0 00 00 00 00 0.0
+
+03 0.0 00 00 00 00 0.0
+
+0.6 0.0 0.0 00 00 0.0 0.0
+
+02 0.2 00 00 00 00 0.0
+
+02 0.0 03 00 00 00 0.0
+
+03 0.0 00 04 00 00 0.0
+
+03 0.0 00 00 05 0.0 0.0
+
+03 0.0 00 00 00 03 0.0
+
+04 0.0 00 00 00 00 05
+
+03 0.0 00 00 00 00 0.0
+
+Nd
+Detected Language
+
+MMLU-ProX-Lite
+
+02 07 0.0 00 00 00 0.0
+
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+
+0.0 oo FR] oo
+
+00 00 0.0
+
+03 00
+
+me
+
+53 00 09 0.0
+
+11 0.0
+
+Ss &
+
+Detected Language
+
+Language Distribution in Final Response (w/ Understanding Intervention)
+
+Polymath-low
+
+0 0.0 0.0 00 00 0.0 0.0
+
+0.1 0.0 00 00 0.0 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+2.6
+
+Ss &
+
+0.0
+0.0
+0.0
+
+0.0
+
+>
+
+0.0
+
+00 00 0.0
+
+00 00 0.0
+
+0.0 00 00 0.0
+
+oo FR oo 0.0 0.0
+0.0 [Bf oo 0.0
+I
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+2.3
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+£00 SQ Se
+
+Polymath-medium
+
+04 14 0.0 00 00 00 0.0 0.0
+
+0.0
+0.0
+0.0
+0.0
+0.0
+
+0.0 00 0.0 oo FF oo
+
+0.0 00 00 00 0.0 20
+
+0.0
+0.0
+
+02 00 0.0 00 00 00 0.0 0.0
+
+Ss &
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.9
+
+FRO EEE
+
+Polymath-high
+
+1.7 03 0.0 00 00 00 0.0
+
+Ss &
+
+>
+
+0.4
+
+0.4
+
+0.0
+
+00 00 0.0
+
+00 00 0.0
+
+00 00 0.0
+
+00 [00 0.0
+00 [I 00
+
+00 00 87
+
+00 00 0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+$l 05 11 0.0 00 00 00 0.0 00 09
+
+£00 SQ Se
+
+MMLU-ProX-Lite
+
+09 05 0.0 00 00 00 0.0
+
+P< [X) 0.0 00 00 00 0.0
+8.2 oo [8 00 0.0 00 00 0.0
+7.9 00 oo oo 0.0
+
+16 00
+
+0.0
+
+0.0
+
+0.0
+
+00 0.0 0.0
+
+0.0 0.0
+
+35 00
+
+0.0 00 02 0.0 oo BH
+
+38 11 00 0.0 0.0 00 00 0.0 0.0
+
+Ss &
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+03
+
+FRO IS Se
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.1
+
+FLO EEE
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+FLO EEE
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+FLO EEE
+
+ee —_LL 2 — Ll m—
+
+100
+
+80
+
+60
+
+40
+
+20
+
+100
+
+80
+
+60
+
+40
+
+20
+
+100
+
+80
+
+60
+
+40
+
+20
+
+100
+
+Percentage (%)
+
+Percentage (%)
+
+Percentage (%)
+
+Percentage (%)
+
+Figure 7: Language distributions of reasoning traces and final responses for Qwen3-4B across Polymath (low/medi-
+um/high) and MMLU-ProX-Lite datasets, with and without the understanding intervention.
+
+27
+
+
+Language Distribution in Reasoning Trace
+
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en 03 0.0 0.0 00 00 0.0 0.0 0.0 0.0 04 06 0.0 00 00 00 0.0 00 0.0 06 0.0 0.0 0.0 00 0.0 00 0.0 12 0.0 0.0 0.0 00 0.0 00 0.0
+de 38 9.7 0.2 0.0 0.0 00 0.0 0.0 0.0 0.0 09 06 0.0 00 00 00 0.0 00 0.0 0.7 0.0 0.0 01 00 0.0 00 0.0 09 0.0 0.0 0.0 00 0.0 00 0.0 80
+Q es 03 2 0.0 0.0 00 0.0 0.0 0.0 0.0 06 0.0 00 0.0 00 0.0 00 0.0 0.8 0.0 0.0 0.0 00 0.0 00 0.0 36 0.0 00 0.0 00 0.0 00 0.0 —
+g ar 03 0.1 0.0 0.0 0.0 0.0 00 00 08 0.3 00 0.0 00 0.0 00 0.0 06 0.3 00 01 00 0.0 00 0.0 09 3.0 00 0.0 00 0.0 00 0.0 60 =
+2 ja 0.0 0.8 0.0 04 0.0 00 0.0 00 0.0 04 0.0 04 00 00 0.0 00 0.0 6 09 0.0 23 0.0 00 0.0 00 0.0 2
+os ko 0.0 0.8 0.0 00 06 00 0.0 00 0.0 06 0.0 00 04 00 0.0 00 0.0 .8 09 0.0 00 27 00 0.0 00 0.0 c
+5 th 0.0 05 0.0 00 0.0 05 0.0 00 0.0 05 0.0 00 01 04 0.0 00 0.0 6 06 0.0 0.0 0.0 30 0.0 00 0.0 40 g
+2 bn 0.0 06 0.0 00 0.0 00 0.6 00 0.0 0.7 0.0 0.0 0.0 00 0.1 00 0.0 .8 1.0 0.0 0.0 0.0 00 3.2 00 0.0 &
+SW 8 0.3 0.0 00 00 0.0 0.0 103 0.0 06 0.0 00 01 00 0.0 07 0.0 06 0.0 00 01 00 0.0 03 0.0 4 10 0.0 0.0 0.0 00 0.0 25 0.0 20
+te 04 0.2 0.0 0.0 00 0.0 0.0 0.0 a4 04 0.0 00 01 00 0.0 00 06 0.7 0.0 0.0 0.0 00 0.0 00 0.2 .8 0.7 0.0 0.0 0.0 00 0.0 00 3.1
+0
+SEEPS SEEPS SES TOILE SES TOILE
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Reasoning Trace (w/ Understanding Intervention)
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en Ek] 02 0.1 0.0 00 0.0 0.0 0.0 00 0.0 06 07 0.0 00 00 00 0.0 00 0.0 04 0.0 00 0.0 00 0.0 00 0.0 12 06 0.0 0.0 00 00 0.0 0.0 0.0
+de 0.0 20 07 0.0 0.0 00 00 0.0 00 0.0 04 0.0 00 0.0 00 0.0 00 0.0 30 05 0.0 0.0 00 00 0.0 0.0 0.0 80
+VU es 0.0 0.7 11 0.0 0.0 00 00 0.0 00 0.0 0.7 0.0 0.0 0.0 00 0.0 00 0.0 04 25 0.0 01 00 00 0.0 00 0.0 —
+g ar 0.0 04 04 08 00 00 00 0.0 00 0.0 05 0.2 00 0.0 00 0.0 00 0.0 0.7 08 0.9 0.0 00 00 0.0 0.0 0.0 60 =
+2 ja 0.0 06 0.0 11 0.0 00 0.0 00 0.0 04 0.0 05 0.0 00 0.0 00 0.0 0.7 06 0.0 27 00 00 0.0 0.0 0.0 j=
+hii ko 0.0 04 0.0 00 16 00 0.0 00 0.0 03 0.0 00 04 00 0.0 00 0.0 04 05 0.0 0.0 26 00 0.0 0.0 0.0 c
+5 th 0.0 04 00 00 00 09 0.0 0.0 00 04 0.0 00 0.0 04 0.0 00 0.0 05 04 0.0 0.0 00 20 0.0 00 0.0 40 8
+2 bn 0.0 05 0.0 00 0.0 00 1.5 00 0.0 05 0.0 0.0 0.0 00 0.6 00 0.0 0.7 05 0.0 0.0 00 00 21 0.0 0.0 &
+SW 0.1 0.0 00 0.0 0.0 0.0 69 0.0 05 0.0 00 0.0 00 0.0 04 0.0 05 0.0 0.0 0.0 00 0.0 03 0.0 06 06 0.0 0.0 00 00 0.0 27 0.0 20
+te 0.7 0.1 0.0 0.0 00 0.0 0.0 0.0 2s 03 0.0 00 0.0 00 0.0 00 09 06 0.0 00 01 00 0.0 00 06 09 06 0.0 0.0 00 00 0.0 00 09
+0
+SPE TRE SE SEF PTOIL ®E SET PTOIL SET PTOIL
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Final Response
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en 0.0 0.0 00 0.0 0.0 0.0 00 0.0 0.7 0.0 0.0 0.0 00 00 0.0 00 0.0 ] 0.7 04 0.0 00 0.0 00 0.0 00 0.0 .1 1.0 0.0 0.0 0.0 00 0.0 00 0.0
+de 0.0 0.0 00 0.0 0.0 0.0 00 0.0 210] j} 0.0 0.0 00 00 0.0 0.0 0.0 00 i} 1.1 0.0 00 00 0.0 0.0 00 0.0 . 03 0.0 0.0 0.0 00 0.0 00 0.0 80
+Q es ] 0.0 00 00 0.0 0.0 00 00 78 03 0.0 0.0 00 0.0 0.0 0.0 0.0 120 0.2 0.0 0.0 00 0.0 0.0 0.0 0.0 X . . X .0 0.0 0.0 0.0 0.0 —
+g ar 29 00 0.0 0.0 00 0.0 00 0.0 0.0 0.0 00 00 1] 0.6 0.0 0.0 0.0 . X .. X .0 0.0 0.0 0.0 0.0 60 =
+2 ja 29 00 0.4 0.0 0.0 0.0 . . . . .0 0.0 0.0 0.0 0.0 2
+S ko 0.6 0.0 0.0 0.0 00 0.0 00 0.0 c
+5 th 01 01 0.0 0.0 10.1 00 00 0.0 00 00 0.0 0.0 0.0 40 g
+2 bn 03 01 0.0 0.0 00 00 0.0 0.0 12 00 03 0.0 00 00 0.0 1 0.0 0.0 &
+SW 0.0 00 00 0.0 0.0 0.0 $8 16 33 0.0 0.0 00 0.0 0.0 “27:1 0.0 00 00 0.0 0.0 0.0 00 0.0 0.0 20
+te 0.0 0.0 00 0.0 0.0 0.0 Ek} 0.0 0.0 00 0.0 0.0 0.0 10 04 0.0 0.0 0.0 00 0.0 0.0 FE} 47 00 00 0.0 0.0 00 00 0.0 0.0
+0
+SEEPS SEEPS SES TOILE SES TOILE
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Final Response (w/ Understanding Intervention)
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en 0.7 0.2 0.0 0.0 00 0.0 0.0 0.0 0.0 315 02 0.0 0.0 00 00 0.0 0.0 0.0 04 02 0.0 0.0 00 00 0.0 00 0.0 02 0.0 0.0 0.0 00 0.0 00 0.0
+de 43 EE] 0.0 0.0 00 0.0 0.0 0.0 00 0.0 02 0.0 00 0.0 00 0.0 00 0.0 04 0.0 00 0.0 00 0.0 00 0.0 06 0.0 0.2 0.0 00 0.0 00 0.0 80
+[4] 10.0 00 0.0 0.0 0.0 00 00 15 0.2 0.0 0.0 00 0.0 0.0 0.0 0.0 0.1 0.0 0.0 00 0.0 0.0 0.0 0.0 29 00 0.0 0.0 00 0.0 0.0 0.0 0.0 —
+g ¥] 00 00 0.0 0.0 0.0 0.0 0.6 0.0 00 0.0 0.0 0.0 00 00 04 01 0.0 0.0 0.0 0.0 00 00 37 03 03 31 0.0 0.0 00 0.0 0.0 0.0 60 =
+2 0.0 0.0 0.0 0.0 0.0 0.0 03 02 0.0 0.0 00 0.0 0.0 0.0 04 04 0.0 0.0 00 0.0 0.0 0.0 0.7 0.0 j=
+S 0.0 0.1 0. . ¥1 00 0.0 00 0.0 09 01 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ¥ 00 00 00 0.0 €
+3 0.0 0.0 0.1 ¥A1 0.0 0.0 0.0 09 03 0.0 0.0 0.0 [3 0.0 0.0 0.0 0.0 0.0 0.0 40 g
+i= 0.0 0.0 0.1 0.0 00 0.0 0.0 0.0 0.0 05 01 0.0 0.0 00 00 0.0 0.0 00 0.0 0.0 a.
+SW 50 3.1 0.0 00 0.0 0.0 0.0 0.0 15 32 0.0 00 0.0 00 0.0 0.0 0.8 1.7 0.0 0.0 00 0.0 0.0 105 0.0 0.0 0.0 00 0.0 0.0 2s 0.0 20
+te as 00 0.0 0.0 00 0.0 0.0 0.0 0.0 15 01 0.0 0.0 00 00 0.0 0.0 0.8 02 0.0 0.0 00 00 0.0 0.0 0.0 0.0 00 0.0 0.0 0.0 (k]
+0
+S&F VOCE  @ S&F VOCE  @ S&F VES @ SEPT PTOIL ®@
+Detected Language Detected Language Detected Language Detected Language
+
+Figure 8: Language distributions of reasoning traces and final responses for gpt-oss-20b across Polymath (low/medi-
+um/high) and MMLU-ProX-Lite datasets, with and without the understanding intervention.
+
+28
+
+
+Input Language
+
+Ss &
+
+Input Language
+
+S®&
+
+en
+
+de 7.0 ZB 00 04 00 00
+
+Ss &
+
+QU es 30
+j=)
+3 ar oe
+2 ja os
+©
+— ko 18
+=
+> th 14
+[=%
+iS
+[]
+j=)
+S ar oo
+2 ja 17
+©
+1 ko 27
+5 th oo
+[=%
+£ bn 3s
+
+sw BB
+te 12
+
+Sw &
+
+Polymath-low
+0.0 0.0 00 00 0.0 0.0 0.0 0.0
+0.1 0.0 00 00 0.0 0.0 0.0 0.0
+5.2 0.0 00 0.0 0.0 0.0 00 0.0
+0.1 3.8 00 0.0 0.0 0.0 00 0.0
+0.0 0.0 34 0.0 0.0 0.0 00 0.0
+0.1 0.0 00 50 0.0 0.0 00 0.0
+0.1 0.0 00 0.0 52 0.0 00 0.0
+0.0 0.0 00 0.0 0.0 44 00 0.0
+0.1 0.0 00 0.0 0.0 0.0 75 0.0
+
+0.0 0.0 0.0 00 0.0 0.0 00 49
+
+FRO EEE
+
+Detected Language
+
+Ss &
+
+Polymath-medium
+02 04 0.0 00 0.0 00 0.0 0.0
+05 03 0.0 00 0.0 00 0.0 0.0
+01 06 0.0 00 0.0 00 0.0 0.0
+01 02 03 00 0.0 00 0.0 0.0
+01 02 0.0 04 0.0 00 0.0 0.0
+01 01 0.0 00 04 00 0.0 0.0
+01 02 0.0 00 0.0 06 0.0 0.0
+01 02 0.0 00 0.0 00 0.6 0.0
+01 01 0.0 00 0.0 00 0.0 1.0
+
+01 02 0.0 00 00 00 0.0 0.0
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.7
+
+FRO EEE
+
+Language Distribution in Reasoning
+
+Polymath-low
+0.0 0.0 00 00 0.0 0.0 0.0 0.0
+0.0 0.0 00 00 0.0 0.0 0.0 0.0
+4.7 0.0 0.0 00 0.0 0.0 0.0 0.0
+0.0 2.5 00 0.0 0.0 0.0 00 0.0
+0.0 0.0 34 0.0 0.0 0.0 00 0.0
+0.0 0.0 00 35 0.0 0.0 00 0.0
+0.0 0.0 00 0.0 50 0.0 00 0.0
+0.0 0.0 00 0.0 0.0 3.2 00 0.0
+0.1 0.0 00 0.0 0.0 0.0 61 0.0
+
+0.0 0.0 0.0 00 0.0 0.0 00 16
+
+FRO EE SN @
+
+Detected Language
+
+Polymath-low
+0.0 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+oo [00 0.0 00 0.0 0.0 0.0 0.0
+
+0.4 oo RJ oo 00 0.0 0.0 00 0.0
+
+02 0.0 0.0 0.0 0.0 00 0.0
+
+00 0.0 0.0 0.0 0.0 00 0.0
+
+oo ff oo 00 00
+0.0 oo [oo 0.0
+
+0.0 0.0 0.0 124 0.0
+
+00 0.0 0.0 0.0
+
+00 0.0 0.0 0.0
+
+09 0.0 0.0 0.0
+
+02 0.0 0.0 00 00 0.9 0.0 00 g
+
+FRO EEE
+
+Detected Language
+
+S®&
+
+Ss &
+
+Polymath-medium
+03 02 0.0 00 0.0 00 0.0 0.0
+06 02 0.0 00 0.0 00 0.0 0.0
+04 06 00 00 0.0 00 0.0 0.0
+03 02 0.2 00 0.0 00 0.0 0.0
+03 02 0.0 03 0.0 00 0.0 0.0
+03 02 0.0 00 05 00 0.0 0.0
+05 02 0.0 00 0.0 05 0.0 0.0
+03 01 0.0 00 0.0 00 04 0.0
+03 03 0.0 00 0.0 00 0.0 05
+
+03 02 0.0 00 00 00 0.0 0.0
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.4
+
+FRO EE SN @
+
+Ss &
+
+S®&
+
+Polymath-high
+
+0.2 0.0 00 00 0.0 0.0 00
+0.2 0.0 00 00 0.0 0.0 00
+05 0.0 00 00 0.0 0.0 00
+02 0.6 00 00 0.0 0.0 00
+01 0.0 03 00 0.0 0.0 00
+02 0.0 00 05 0.0 0.0 00
+0.1 0.0 00 00 09 0.0 00
+01 0.0 00 00 00 1.0 00
+02 0.0 00 00 0.0 0.0 24
+
+01 0.0 0.0 00 00 0.0 0.0
+
+Detected Language
+
+Trace (w/ Understand
+
+Polymath-high
+
+0.1 0.0 00 00 0.0 0.0 00
+0.1 0.0 00 00 0.0 0.0 00
+04 0.0 00 00 0.0 0.0 00
+01 0.2 00 00 0.0 0.0 00
+02 0.0 03 00 00 0.0 00
+01 0.0 00 03 0.0 0.0 00
+02 0.0 00 00 06 0.0 00
+02 0.0 00 00 00 0.2 00
+0.1 0.0 00 00 0.0 0.0 09
+
+01 0.0 0.0 00 00 0.0 0.0
+
+Detected Language
+
+Language Distribution in Reasoning Trace
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+19
+
+FLO EEE
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+03
+
+FRO EE SN @
+
+Language Distribution in Final Response
+
+Polymath-medium
+
+12 00 0.0 00 00 00 0.0 0.0
+
+0.0 oo [BR
+0.6 0.0 00 oo [i 0.0 0.0
+
+00 00 00 00 00 124 00
+02 0.0 00 00 00 0.0 00
+
+00 0.0 00 00 00 0.0 00
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+3.0
+
+FRO EEE
+
+Ss &
+
+Polymath-high
+
+¥J 0.2 0.1 0.0 00 00 00 0.0 0.0
+
+5 o: 0.0 01 00 00 0.0 0.0
+
+ax 9.8 00 00 00 00 00 0.0
+
+23 02 FR 01 00 00 0.0 00
+
+ax: 01 00 11.2 00 00 00 0.0
+
+00 167 00 0.0 0.0
+0.0 00 [I 00 0.0
+
+00 00 00 18 0.0
+
+01 0.0
+0.0 0.0
+01 0.0
+00 0.0 00 00 00 00 0.3
+
+04 0.0 03 00 00 00 0.0
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+28
+
+FLO EEE
+
+Ss &
+
+S®&
+
+Ss &
+
+MMLU-ProX-Lite
+
+03 0.0 00 00 0.0 0.0 00
+03 0.0 00 00 0.0 0.0 00
+13 0.0 00 00 0.0 0.0 00
+03 0.8 00 00 00 0.0 00
+03 0.0 04 00 00 0.0 00
+03 0.0 00 09 00 0.0 00
+03 0.0 00 00 12 0.0 00
+03 0.0 00 00 0.0 0.7 00
+02 0.0 00 00 00 00 21
+
+03 0.0 00 00 00 00 0.0
+
+Detected Language
+
+ng Intervention)
+
+MMLU-ProX-Lite
+
+04 0.0 00 00 0.0 0.0 00
+04 0.0 00 00 0.0 0.0 00
+0.8 0.0 00 00 0.0 0.0 00
+03 04 00 00 00 0.0 00
+03 0.0 04 00 00 0.0 00
+03 0.0 00 04 00 0.0 00
+04 0.0 00 00 11 0.0 00
+03 0.0 00 00 00 03 00
+03 0.0 00 00 00 0.0 12
+
+03 0.0 00 00 00 00 0.0
+
+Detected Language
+
+MMLU-ProX-Lite
+
+0.7 03 0.0 00 00 00 0.0 0.0
+
+27 J 02 0.0 00 00 00 0.0 0.0
+0 0.0
+
+83 0.0 pEXJ 0.0 0.0 00 O. 0.0
+
+1.7 o7 FH oo 00 00 0.0 00
+[0.0 0.0 0.0 [Bf oo 00 0.0 0.0
+0.0 0.0
+0.0 0.0
+0.0 0.0
+13 0.0
+
+0.0 0.0
+
+Detected Language
+
+Language Distribution in Final Response (w/ Understanding Intervention)
+
+Polymath-low
+
+0.0 0.0 00 00 0.0 0.0 0.0 0.0
+0.0 0.0 00 00 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0
+0.0 0.0
+
+00 0.0 0.0 00 00
+
+0.0 0.0 [ff oo 0.0
+0.0 0.0 0.0 [00
+00 0.0 1.0 oo [BR
+
+FRO SS
+
+00 0.0 0.0 0.0
+13 0.0 0.0 00
+
+00 0.0 0.0 0.0
+
+Detected Language
+
+Sw &
+
+Polymath-medium
+
+00 00 0.0 00 00 00 0.0 0.0
+
+325 0.0 00 00 00 0.0 00
+gos 198 oo 00 00 00 0.0 0.0
+os ff oo 00 00 0.0 0.0
+05 0.0 00 ZH 00 00 0.0 00
+0.0 00 [I] 00 0.0 0.0
+0.0 0.0 oo [8 00 0.0
+
+02 00 00 00 00 96 00
+
+12 00
+
+00 00
+
+00 0.0 00 00 00 0.0 00
+
+05 0.0 00 00 00 0.0 00
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+19
+
+FRO SS
+
+Sw &
+
+Polymath-high
+0.0 0.0 00 00 0.0 0.0 00
+0.1 0.0 00 00 0.0 0.0 00
+
+51 0.0 0.0 00 00 0.0 0.0
+
+00 fH 00 00 00 0.0 00
+
+00 0.0 7.8 00 00 0.0 0.0
+
+0.6 00 0.0 11.0 0.0 00 0.0
+
+00 184 0.0 0.0
+
+00 00 0.0 00
+
+00 0.0 0.0
+01 0.0 05
+03 0.0 00 00 00 00 0.0
+
+1.7 0.0 01 00 00 0.0 0.0
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.9
+
+FOSS
+
+Sw &
+
+MMLU-ProX-Lite
+05 0.0 00 00 0.0 0.0 00
+
+00 0.0 00 00 00 00 0.0
+
+oo [00 0.0 00 00 0.0 0.0
+0.0 oo Ff oo 00 00 0.0 00
+
+0 00 0.0 0.0 00 00 0.0 0.0
+
+00 Bl 00 0.0 0.0
+
+12.4 00 00 00 29 00 [EX] 0.0 0.0
+
+0.0 00 Hoo
+
+18 00 0.0
+00 0.0 0.0
+
+04 0.0 0.0
+
+03 0.0 0.0
+
+Detected Language
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.7
+
+FLO EEE
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.4
+
+FRO EE SN @
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+FLO EEE
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+0.0
+
+00 00 0.0 167 00
+00 00 0.0 oo I
+
+FOSS
+
+ee ——_— I —
+
+100
+
+80
+
+60
+
+40
+
+20
+
+100
+
+80
+
+60
+
+40
+
+20
+
+100
+
+80
+
+60
+
+40
+
+20
+
+100
+
+Percentage (%)
+
+Percentage (%)
+
+Percentage (%)
+
+Percentage (%)
+
+Figure 9: Language distributions of reasoning traces and final responses for Qwen3-1.7B across Polymath (low/medi-
+um/high) and MMLU-ProX-Lite datasets, with and without the understanding intervention.
+
+29
+
+
+Language Distribution in Reasoning Trace
+
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+0.0 0.0 00 00 0.0 0.0 0.0 0.0 03 02 0.0 00 0.0 00 0.0 00 00 01 0.0 00 00 0.0 0.0 0.0 0.0 04 0.0 00 00 0.0 0.0 0.0 0.0
+0.0 0.0 00 00 0.0 0.0 0.0 0.0 03 03 0.0 00 00 00 0.0 00 00 02 0.0 00 00 0.0 0.0 0.0 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0 80
+Q 3.7 0.0 00 0.0 0.0 0.0 00 0.0 01 04 00 00 0.0 00 0.0 00 00 06 0.0 00 00 0.0 0.0 0.0 0.0 10 0.0 00 0.0 00 0.0 0.0 0.0 —~
+g 0.1 2.6 00 0.0 0.0 0.0 00 0.0 01 03 03 00 00 00 0.0 00 00 01 0.2 00 00 0.0 0.0 0.0 0.0 03 05 00 00 0.0 0.0 00 0.0 60 =
+2 0.1 0.0 31 0.0 0.0 0.0 00 0.0 02 02 00 03 0.0 00 0.0 00 00 02 0.0 02 00 0.0 0.0 0.0 0.0 03 0.0 04 00 0.0 0.0 00 0.0 2
+os 0.0 0.0 00 28 0.0 0.0 00 0.0 01 02 0.0 00 03 00 0.0 00 00 02 0.0 00 04 0.0 0.0 00 0.0 03 0.0 00 05 0.0 0.0 0.0 0.0 c
+5 0.1 0.0 00 0.0 3.6 0.0 00 0.0 01 06 00 00 0.0 04 00 00 00 01 0.0 00 00 0.6 0.0 00 0.0 02 0.0 00 00 1.0 0.0 0.0 0.0 40 Y
+2 0.1 0.0 00 0.0 0.0 41 00 0.0 02 02 0.0 00 00 00 21 00 0.0 02 0.0 00 00 0.0 0.4 00 0.0 03 0.0 00 00 0.0 0.6 00 0.0 &
+0.1 0.0 00 0.0 0.0 0.0 44 0.0 02 03 0.0 00 00 00 0.0 37 0.0 02 0.0 0.0 0.0 00 0.0 24 0.0 03 0.0 00 0.0 00 0.0 25 0.0 20
+0.1 0.0 00 0.0 0.0 0.0 00 4.2 03 02 0.0 00 00 00 00 00 04 01 0.0 00 00 0.0 0.0 0.0 0.5 03 0.0 00 00 0.0 0.0 0.0 04
+0
+SEEPS SEEPS SES TOILE SES TOILE
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Reasoning Trace (w/ Understanding Intervention)
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+0.0 0.0 00 00 0.0 0.0 0.0 0.0 04 02 00 00 0.0 00 0.0 00 00 01 0.0 00 00 0.0 0.0 0.0 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0
+0.0 0.0 00 00 0.0 0.0 0.0 0.0 08 02 0.0 00 0.0 00 0.0 00 00 02 0.0 00 00 0.0 0.0 0.0 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0 80
+[4] 3.7 0.0 00 0.0 0.0 0.0 00 0.0 03 04 00 00 0.0 00 0.0 00 00 05 0.0 00 00 0.0 0.0 0.0 0.0 0.7 0.0 00 00 0.0 0.0 0.0 0.0 =
+g 0.0 1.4 00 0.0 0.0 0.0 00 0.0 04 03 03 00 00 00 0.0 00 00 01 0.1 00 00 0.0 0.0 0.0 0.0 03 0.2 00 00 0.0 0.0 0.0 0.0 60 g
+2 0.0 0.0 36 0.0 0.0 0.0 00 0.0 03 03 00 04 00 00 0.0 00 00 02 0.0 03 00 0.0 0.0 0.0 0.0 03 0.0 04 00 0.0 0.0 00 0.0 j=
+S 0.0 0.0 00 28 0.0 0.0 00 0.0 03 03 00 00 02 00 0.0 00 00 02 0.0 00 03 0.0 0.0 0.0 0.0 03 0.0 00 03 0.0 0.0 0.0 0.0 c
+5 0.0 0.0 00 0.0 47 0.0 00 0.0 03 02 0.0 00 00 04 00 00 00 02 0.0 00 00 04 0.0 00 0.0 04 0.0 00 00 06 0.0 00 0.0 40 g
+2 0.0 0.0 00 0.0 0.0 3.3 00 0.0 03 02 0.0 00 00 00 03 00 00 01 0.0 00 00 0.0 0.1 00 0.0 04 0.0 00 00 0.0 0.2 00 0.0 a.
+0.0 0.0 00 0.0 0.0 0.0 26 0.0 06 03 00 00 00 00 00 01 00 02 0.0 00 00 0.0 0.0 03 0.0 04 0.0 00 00 0.0 0.0 04 0.0 20
+0.0 0.0 00 0.0 0.0 0.0 00 23 04 03 00 00 00 00 00 00 01 01 0.0 00 00 0.0 0.0 00 0.2 03 0.0 00 00 0.0 0.0 00 0.2
+0
+SPE TRE SE SEF PTOIL ®E SET PTOIL SET PTOIL
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Final Response
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en 0.0 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0 02 00 0.0 00 0.0 00 0.0 00 00 02 03 0.0 00 0.0 00 0.0 00 00 0.0 0.0 00 00 0.0 0.0 0.0 0.0
+de LN 0.0 0.0 00 00 0.0 0.0 0.0 0.0 pf 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0 235 0. 0.0 04 0.0 00 0.0 00 0.0 01 0.0 00 00 0.0 0.0 0.0 0.0 80
+Q es 7.6 os [fH] oo 0.0 00 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 10.5 0.0 0.0 0.0 0.0 0.0 00 0.0 —
+g ar 08 12 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 os BF oo 0.0 00 0.0 0.0 0.0 X 60 =
+2 ja 25 03 0.0 0.0 foo 0.0 0.0 00 00 0.0 0.0 00 00 0.1 0.0 [i 00 00 0.0 00 0.0 2
+os ko 16 08 0.0 0.0 0.0 0.0 0.0 oo [8 00 0.0 0.0 0.0 0.0 0.0 00 [BH 00 0.0 0.0 0.0 c
+5 th 0.0 00 0.0 0.0 0.0 0.0 0.8 0.0 0.0 oo ff 0a 0.0 0.0 0.0 0.0 0.0 oo [i800 0.0 0.0 40 Y
+£ bn 17 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 oo [Bf] oo 0.0 1.7 0.0 0.0 0.0 00 9.3 00 0.0 &
+SW 21 ED 0.5 0.0 0.0 0.0 0.0 0.0 E800 05 0.0 00 0.0 00 0.0 39 0.0 0.8 0.0 0.0 0.0 00 0.0 26 0.0 20
+te 116 03 00 00 00 00 00 00 00 :y& gE] 03 00 00 00 00 00 00 00 10.7 00 00 00 00 00 00 00 17
+0
+SEEPS SEEPS SES TOILE SES TOILE
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Final Response (w/ Understanding Intervention)
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en 0.0 0.0 00 00 0.0 0.0 0.0 0.0 0.0 00 0.0 00 0.0 00 0.0 00 0.0 06 04 00 00 0.0 00 0.0 00 00 £1 03 01 0.0 00 0.0 00 0.0 00 0.0
+de 0.0 0.0 00 00 0.0 0.0 0.0 0.0 ¥/ 00 0.0 00 00 00 0.0 0.0 0.0 [127 os 0.0 08 0.0 00 0.0 00 0.0 23 ZB os 0.0 0.0 0.0 00 0.0 0.0 0.0 80
+LV es 75 os [FH 00 0.0 0.0 0.0 0.0 00 00 BB os BF oo 0.0 0.0 0.0 0.0 00 00 1] 02 35 0.0 00 00 00 0.0 00 0.0 40 03 =
+g ar 0.0 04 0.0 ff 00 0.0 0.0 0.0 0.0 0.0 37 ox [%] oo 0.0 00 0.0 00 0.0 12 00 (8 00 0.0 00 0.0 0.0 0.0 0.0 0.0 60 g
+2 ja 00 07 0.0 0.0 0.0 0.0 00 00 208 31 0.0 0.0 [Bf oo 00 00 00 00 [3 40 04 0.0 [fl 00 00 00 00 00 04 13 2
+S ko 0.8 00 0.0 0.0 0.0 0.0 0.0 0.0 28 0.0 0.0 0.0 0.0 0.0 0.0 0.0 27 01 0.0 00 [I] 00 0.0 0.0 0.0 28 07 5
+5 0.0 0.0 0.0 0.0 7.0 09 0.0 0.0 00 00 0.0 0.0 0.0 04 00 0.0 0.0 oo [8 00 0.0 0.0 51 06 40 5
+2 0.0 0.0 0.0 0.0 0.0 0.0 0.0 00 [fH 00 0.0 09 11 0.0 0.0 00 00 3.2 00 0.0 a.
+0.0 0.0 0.0 0.0 0.0 00 Hoo 0.0 0.0 0.0 00 0.0 05 0.0 09 11 0.0 00 0.0 00 0.0 00 0.0 20
+0.0 0.0 0.0 0.0 0.0 0.0 ay: -| 0.0 0.0 00 00 0.0 0.0 55 11 15 0.0 00 00 0.0 0.0 00 09 54 01
+0
+S&F VOCE  @ S&F VOCE  @ S&F VES @ SEPT PTOIL ®@
+Detected Language Detected Language Detected Language Detected Language
+
+Figure 10: Language distributions of reasoning traces and final responses for Qwen3-8B across Polymath (low/medi-
+um/high) and MMLU-ProX-Lite datasets, with and without the understanding intervention.
+
+30
+
+
+Language Distribution in Reasoning Trace
+
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+0.1 0.0 00 00 0.0 0.0 0.0 0.0 02 02 0.0 00 0.0 00 0.0 00 00 02 0.0 00 00 0.0 0.0 0.0 0.0 04 0.0 00 00 0.0 0.0 0.0 0.0
+0.0 0.0 00 00 0.0 0.0 0.0 0.0 04 04 00 00 0.0 00 0.0 00 00 02 0.0 00 00 0.0 0.0 0.0 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0 80
+Q 2.8 0.0 00 0.0 0.0 0.0 00 0.0 02 05 0.0 00 0.0 00 0.0 00 00 05 0.0 00 00 0.0 0.0 0.0 0.0 09 0.0 00 00 0.0 0.0 0.0 0.0 —~
+g 0.1 1.8 00 0.0 0.0 0.0 00 0.0 02 03 03 00 00 00 0.0 00 00 02 03 00 00 0.0 0.0 00 0.0 03 03 00 00 0.0 0.0 00 0.0 60 BS
+2 0.0 0.0 23 0.0 0.0 0.0 00 0.0 02 02 00 02 0.0 00 0.0 00 00 02 0.0 02 00 0.0 0.0 0.0 0.0 03 0.0 03 00 0.0 0.0 00 0.0 EH]
+os 0.0 0.0 00 22 0.0 0.0 00 0.0 01 02 0.0 00 03 00 0.0 00 00 01 0.0 00 03 0.0 0.0 0.0 0.0 04 0.0 00 03 0.0 0.0 0.0 0.0 c
+5 0.0 0.0 00 0.0 2.9 0.0 00 0.0 01 03 0.0 00 00 06 0.0 00 0.0 01 0.0 00 00 04 0.0 00 0.0 03 0.0 00 00 0.6 0.0 00 0.0 40 Y
+2 0.1 0.0 00 0.0 0.0 2.8 00 0.0 02 03 0.0 00 00 00 04 00 00 02 0.0 00 00 0.0 0.5 00 0.0 03 0.0 00 00 0.0 0.4 00 0.0 &
+0.0 0.0 00 0.0 0.0 0.0 30 0.0 02 02 0.0 00 00 00 0.0 02 00 03 0.0 00 00 0.0 0.0 04 0.0 03 0.0 00 00 0.0 0.0 05 0.0 20
+0.1 0.0 00 0.0 0.0 0.0 00 3.6 03 01 00 00 0.0 00 0.0 00 05 01 0.0 00 00 0.0 0.0 0.0 04 03 0.0 00 00 0.0 0.0 00 0.3
+0
+SEEPS SEEPS SES TOILE SES TOILE
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Reasoning Trace (w/ Understanding Intervention)
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+0.2 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0 03 02 0.0 00 0.0 00 0.0 00 00 01 0.0 00 00 0.0 0.0 0.0 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0
+22 0.0 0.0 00 00 0.0 0.0 0.0 0.0 0.7 03 0.0 00 0.0 00 0.0 00 00 02 0.0 00 00 0.0 0.0 0.0 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0 80
+[4] 01 2.6 00 00 00 0.0 0.0 00 0.0 04 04 00 00 0.0 00 0.0 00 00 04 0.0 00 00 0.0 0.0 0.0 0.0 06 0.0 00 00 0.0 0.0 0.0 0.0 =
+g 02 0.1 1.0 00 0.0 0.0 00 00 0.0 04 03 0.2 00 00 00 0.0 00 00 02 0.1 00 00 0.0 0.0 0.0 0.0 03 0.1 00 00 0.0 0.0 0.0 0.0 60 Ss
+2 01 0.0 0.0 22 00 0.0 0.0 0.0 0.0 04 03 00 01 00 00 0.0 00 00 02 0.0 02 00 0.0 0.0 0.0 0.0 03 0.0 02 00 0.0 0.0 00 0.0 |)
+S 01 0.1 0.0 00 12 0.0 0.0 00 0.0 03 03 0.0 00 03 00 0.0 00 00 02 0.0 00 02 0.0 0.0 0.0 0.0 03 0.0 00 02 0.0 0.0 0.0 0.0 c
+5 02 0.1 0.0 00 00 2.6 0.0 00 0.0 04 02 00 00 00 04 00 00 00 02 0.0 00 00 03 0.0 00 0.0 04 0.0 00 00 03 0.0 00 0.0 40 g
+2 02 0.0 0.0 00 00 0.0 2.4 00 0.0 04 02 00 00 00 00 03 00 00 02 0.0 00 00 0.0 0.3 00 0.0 03 0.0 00 00 0.0 0.2 00 0.0 a.
+01 0.0 0.0 00 00 0.0 0.0 13 0.0 04 03 00 00 00 00 00 01 00 02 0.0 00 00 0.0 0.0 01 0.0 04 0.0 00 01 0.0 0.0 02 0.0 20
+00 0.0 0.0 0.0 00 0.0 0.0 00 25 04 03 00 00 00 00 00 00 02 02 0.0 00 00 0.0 0.0 00 0.2 03 0.0 00 00 0.0 0.0 00 0.2
+0
+SPE TRE SE SEF PTOIL ®E SET PTOIL SET PTOIL
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Final Response
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+en 0.0 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0 13 00 0.0 0.0 00 00 0.0 00 0.0 04 0.0 00 00 0.0 0.0 0.0 0.0 0.0 0.0 00 00 0.0 0.0 0.0 0.0
+de 27 [28] 02 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 00 00 0.0 0.0 00 0.0 03 0.0 00 00 0.0 0.0 0.0 0.0 0.0 00 00 0.0 00 0.0 80
+Q es 220] 0.0 [gH 00 0.0 00 0.0 0.0 0.0 0.0 02 147 00 0.0 00 00 0.0 0.0 0.0 0.0 0.0 00 00 0.0 0.0 0.0 0.0 0.0 00 00 0.0 00 0.0 —~
+g ar 0.0 03 0.0 0.0 00 0.0 0.0 0.0 0.0 16 11 | 0.0 00 00 0.0 0.0 0.0 os EX] oo 0.0 00 0.0 0.0 0.0 0.0 00 00 0.0 00 0.0 60 BS
+2 ja 0.1 00 0.0 0.0 0.0 0.0 0.0 0.0 0.3 0.0 208 00 0.0 0.0 0.0 0.0 0.8 0.0 44 0.0 00 0.0 00 0.0 0.0 00 0.0 0.0 0.0 EH]
+os 0.0 0.0 oo JZ 00 0.0 0.0 0.0 0.0 0.0 oo [EB 00 0.0 0.0 0.0 05 0.0 0.0 87 00 0.0 00 0.0 0.0 00 0.0 0.0 0.0 c
+5 0.0 0.0 0.0 oo fH 00 0.0 0.0 0.1 0.0 0.0 oo [Bf 00 0.0 0.0 04 0.0 00 00 [I] 00 0.0 0.0 0.0 00 0.0 0.0 40 Y
+2 0.0 0.0 0.0 0.2 0.0 0.0 0.0 00 [FF] 00 0.0 03 0.0 00 0.0 00 7.0 0.0 0.0 &
+0.5 0.0 0.0 00 0.0 00 0.0 00 0.0 33 0.0 15 0.0 0.0 0.0 00 0.0 00 0.0 0.0 00 0.0 0.0 [8] 00 20
+te 50 02 0.0 0.0 00 00 0.0 0.0 0.0 06 0.0 00 0.0 0.0 0.0 0.0 p= 0.7 0.0 03 00 0.0 0.0 0.0 09 6.5 03 0.0 0.0 00
+0
+SEEPS SEEPS SES TOILE SES TOILE
+Detected Language Detected Language Detected Language Detected Language
+Language Distribution in Final Response (w/ Understanding Intervention)
+Polymath-low Polymath-medium Polymath-high MMLU-ProX-Lite 100
+0.0 0.0 00 00 0.0 0.0 0.0 0.0 0.7 05 0.0 00 0.0 00 0.0 00 0.0 01 0.0 00 00 0.0 0.0 0.0 0.0 ¥] 05 03 0.0 00 0.0 00 0.0 00 0.0
+A 0.0 0.0 00 00 0.0 0.0 0.0 0.0 £1 0.0 0.0 00 00 0.0 0.0 0.0 0.0 05 0.0 00 00 0.0 0.0 0.0 0.0 o1 BB os 0.0 0.0 0.0 00 0.0 0.0 0.0 80
+V es 2e3 00 [ff 00 0.0 00 0.0 0.0 0.0 0.0 01 128 00 0.0 02 00 0.0 0.0 00 03 0.0 00 00 0.0 0.0 0.0 0.0 7.7 0.0 0.0 00 0.0 0.0 0.0 =
+g ar 0.0 0.6 0.0 ff oo 0.0 0.0 0.0 0.0 0.0 0.8 00 3 00 0.0 00 0.0 00 0.0 ox [i oo 0.0 00 0.0 0.0 0.0 £958 00 0.0 00 0.0 0.0 0.0 60 g
+2 ja 0.0 0.7 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.7 0.0 0.0 E800 0.0 0.0 0.0 0.0 01 0.0 08 00 0.0 0.0 0.0 0.0 22 00 0.0 00 0.0 0.0 0.0 j=
+S ko 09 0.7 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.7 00 0.0 oo ff 00 0.0 0.0 0.0 02 0.0 00 93 00 0.0 00 0.0 0.0 00 0.0 0.0 0.0 5
+5 th 0.0 00 0.0 0.0 0.0 0.0 0.0 0.0 04 00 0.0 00 oo [i 00 0.0 0.0 03 0.0 00 00 184 0.0 0.0 0.0 0.0 0.0 oo [Bf 00 0.0 0.0 40 5
+2 0.0 0.0 0.0 Bo 0.0 11 0.0 0.0 0.0 0.0 00 [8 00 0.0 03 0.0 0.0 0.0 00 40 00 0.0 0.0 0.0 0.0 oo [FB oo 0.0 a.
+0.0 0.0 0.0 0.0 0.0 [8 00 03 00 0.0 00 00 00 0.0 26 0.0 04 0.0 04 00 0.0 0.0 00 0.0 0.0 0.0 0.0 0.0 0.0 [Bf 00 20
+0.0 0.0 0.0 0.0 0.0 oo ZH 05 08 0.0 00 00 00 0.0 00 80 0.8 0.0 0.0 0.0 00 0.0 00 27 115 09 0.8 0.0 00 0.0 0.0 0.0 ay: |
+0
+S&F VOCE  @ S&F VOCE  @ S&F VES @ SEPT PTOIL ®@
+Detected Language Detected Language Detected Language Detected Language
+
+Figure 11: Language distributions of reasoning traces and final responses for Qwen3-14B across Polymath
+(low/medium/high) and MMLU-ProX-Lite datasets, with and without the understanding intervention.
+
+31
+
+
+Share of Gaps (%)
+
+Share of Gaps (%)
+
+Share of Gaps (%)
+
+Share of Gaps (%)
+
+Share of Gaps (%)
+
+1007
+
+90
+
+80
+
+70
+
+60
+
+50
+
+a0
+
+30
+
+20
+
+10
+
+1007
+
+9
+
+80
+
+70
+
+60
+
+50
+
+a0
+
+30
+
+20
+
+10
+
+100
+
+90
+
+80
+
+70
+
+60
+
+50
+
+40
+
+30
+
+20
+
+10
+
+100 7
+EY
+80
+70
+60
+50
+a0
+30
+20
+10
+
+100
+
+90
+
+80
+
+70
+
+60
+
+50
+
+40
+
+30
+
+20
+
+10
+
+th
+MMLU-ProX-Lite
+
+00.0%)
+
+th bn
+MMLU-Prox-Lite
+
+9.8%
+00.0%100.0%)
+88.0%
+
+68.5%
+
+bn
+
+th
+
+Polymath-High
+
+bn sw
+Polymath-High
+
+Qwen3-1.7B
+
+7.8%
+13.3%
+-1% M12 8%
+1% 46.2%
+63.6%
+La 77.2% .5% ll 79.4%
+9% fl 53.8%
+
+te ja ko
+Polymath-Low
+
+23.8%
+
+sw
+
+Qwen3-4B
+45.1%
+87.1%
+
+Polymath-Low
+
+7.3%
+16.0%
+13.1%
+10.0%
+Fe-s= 70 mem Understanding
+= Reasoning
+m= Generating in Input Language
+bn sw
+Polymath-Medium
+
+Figure 12: Language-specific gap decomposition for Qwen3-1.7B.
+
+5.2% |W 7.1%
+12.7%
+27.9%
+47.3%
+98.4%
+85.7%
+66.9%
+45.6%
+
+mmm Understanding
+mm Reasoning
+mem Generating in Input Language
+
+bn
+Polymath-Medium
+
+sw te
+
+Figure 13: Language-specific gap decomposition for Qwen3-4B.
+
+Qwen3-8B
+
+100.0%]
+
+L0.0% 8 95.6% | 96.7%
+
+mm Understanding
+Reasoning
+I Generating in Input Language
+
+te
+MMLU-ProX-Lite
+
+SW te
+Polymath-High
+
+Figure 14:
+
+MMLU-ProX Lite
+
+51.8%
+
+ko th bn
+
+MMLU-ProX-Lite
+
+93.2%
+
+ko
+
+100.0%)
+81.6%
+
+th
+
+Polymath-High
+
+th sw
+Polymath-High
+
+45.4%
+52.0%
+89.7%
+54.6%
+48.0%
+10.3%
+de ar ja
+
+ko
+
+th
+
+Polymath-Low
+
+Qwen3-14B
+
+16.1% [ff 13.5%
+22.9%
+00.0%
+83.9% [fl 86.5%
+77.1%
+
+ko th
+Polymath-Low
+
+bn
+
+gpt-0ss-20b
+
+18.6%
+
+8.8% [11.1%
+
+Polymath-Low
+
+bn sw te
+
+Polymath-Medium
+
+Language-specific gap decomposition for Qwen3-8B.
+
+m= Understanding
+mm Reasoning
+m= Generating in Input Language
+
+bn sw te
+
+Polymath-Medium
+
+Figure 15: Language-specific gap decomposition for Qwen3-14B.
+
+49.3%
+
+m= Understanding
+mmm Reasoning
+m= Generating in Input Language
+
+ar ja
+Polymath-Medium
+
+Figure 16: Language-specific gap decomposition for gpt-oss-20b.
+
+32
+

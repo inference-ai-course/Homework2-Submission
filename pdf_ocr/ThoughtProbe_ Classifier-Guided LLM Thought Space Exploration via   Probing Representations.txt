@@ -1,0 +1,2277 @@
+arX1v:2510.27355v1 [cs.CL] 31 Oct 2025
+
+ThoughtProbe: Classifier-Guided LLM Thought Space Exploration
+via Probing Representations
+
+Zijian Wang
+School of Computer Science
+The University of Sydney
+zwan@998@uni. sydney.edu. au
+
+Abstract
+
+This paper introduces ThoughtProbe, a novel
+inference-time framework that leverages the
+hidden reasoning features of Large Language
+Models (LLMs) to improve their reasoning per-
+formance. Unlike previous works that manip-
+ulate the hidden representations to steer LLM
+generation, we harness them as discriminative
+signals to guide the tree-structured response
+space exploration. In each node expansion, a
+classifier serves as a scoring and ranking mech-
+anism that efficiently allocates computational
+resources by prioritizing higher score candi-
+dates for continuation. After completing the
+tree expansion, we collect answers from all
+branches to form a candidate answer pool. We
+then propose a branch-aggregation method that
+marginalizes over all supporting branches by
+aggregating their CoT scores, thereby identify-
+ing the optimal answer from the pool. Experi-
+mental results show that our framework’s com-
+prehensive exploration not only covers valid
+reasoning chains but also effectively identi-
+fies them, achieving significant improvements
+across multiple arithmetic reasoning bench-
+marks. The code is available at https://
+github.com/Zijian@@7/Thoughtprobe.
+
+1 Introduction
+
+Chain of Thought (CoT) reasoning has emerged as
+a pivotal approach for enhancing LLMs’ problem-
+solving capabilities(Wei et al., 2022). However,
+eliciting this capability from pre-trained base
+LLMs typically requires expensive post-training or
+carefully designed prompting strategies(Yao et al.,
+2023; Kojima et al., 2022; Hoffman et al., 2024).
+Recent research demonstrates that LLMs’ in-
+ternal hidden representations serve as meaningful
+proxies for CoT behaviors, revealing a correspon-
+dence between reasoning patterns and specific lin-
+ear features within the internal activation space(Ye
+et al., 2024). This correspondence has given rise to
+two distinct insights for leveraging representations
+
+Chang Xu
+School of Computer Science
+The University of Sydney
+C.Xu@sydney.edu. au
+
+to improve reasoning performance. The first in-
+sight adopts a causality perspective, viewing hidden
+representations as causal factors that influence the
+CoT generation. This has led to activation steering
+techniques that manipulate representations along
+specific directions to enhance reasoning capabil-
+ities(Hong et al., 2025; Tang et al., 2025; Hgjer
+et al.).
+
+Despite promising results, such approaches face
+inherent limitations. Direct manipulation risks dis-
+rupting the model’s internal representational struc-
+ture, potentially pushing activations out of distri-
+bution and degrading linguistic quality(von Riitte
+et al., 2024; Da Silva et al., 2025). Moreover, the
+high-dimensional nature of the latent space makes
+it challenging for a single linear direction to cap-
+ture the complexity of reasoning features, which
+often involve intricate patterns spanning multiple
+cognitive dimensions(Luo et al., 2024; Bo et al.,
+2025).
+
+In this work, we adopt an alternative perspective,
+which recognizes the strong correlation between
+hidden representations and the manifestation of
+CoT in generated text. Rather than manipulating
+representations to steer LLM generation, we lever-
+age their discriminative capacity as indicators to
+detect reasoning patterns within the model’s natural
+outputs. Through rigorous empirical investigation,
+we first demonstrate that representations exhibit
+remarkable power in distinguishing between CoT
+and non-CoT content, particularly within specific
+representation types and network layers, as evi-
+denced by a simple classifier’s performance. Also,
+we show the classifier is a reliable evaluator that
+can assign higher scores to high quality CoT con-
+tent, supported by both theoretical evidence and
+empirical validation.
+
+Building on these findings, we present Thought-
+Probe, a novel inference-time computational frame-
+work that effectively explores CoT paths via re-
+sponse space exploration. Specifically, Thought-
+
+
+Sample diverse
+LLMs responses
+1
+
++ $5000 X
++ 1750 +1750 = 3500 X
+
+Question: Mr. Sam shared
+a certain amount of money
+between his two sons, Ken
+and Tony. If Ken got $1750,
+and Tony got twice as
+much as Ken, how much
+was the money shared?
+Answer:
+
+$5250=x$ Vv
+
++ The amount of money shared was $5000 x
+«If Ken got $1750, and Tony got twice as
+much as Ken, then Tony got $3500.
+
+Deliberative, thoughtful responses
+Let the amount shared be x. Then, Ken got
+$1750, and Tony got $3500. So, the total
+amount shared is $1750 + $3500 = $5250.
+Therefore, the amount shared is $5250. v/
+«We can write the equation as:
+
+$1750 + 2(1750) = x$, $1750 + 3500 = x$
+
+Intuitive, non-thoughtful responses
+
+Rep & Layer
+Selection
+
+x N Layer
+
+® Thoughtful
+® Non Thoughtful
+
+Figure 1: Pre-trained LLMs could naturally generate both CoT and non-CoT responses when sampling multiple
+times, and hidden representations provide a strong signal for discriminating them.
+
+Probe systematically explores the response space as
+an iterative tree expansion process, with the input
+question as the root node, and branches as the can-
+didate CoT paths. At each expansion step, multiple
+token sequences are generated in parallel as candi-
+date child nodes, whose CoT score is evaluated by
+the classifier through probing their hidden represen-
+tations. By prioritizing higher scoring candidates
+for continuation, we efficiently allocate computa-
+tional resources and increase the likelihood of in-
+cluding correct reasoning paths in our exploration
+tree. This exploration process continues until either
+reaching the termination token or exhausting the
+computational budget.
+
+Upon completion of tree expansion, we obtain
+multiple branches, each leading to a candidate an-
+swer, forming a comprehensive answer pool. To de-
+termine the optimal one, rather than using Best-of-
+N sampling(Huang et al., 2025; Sun et al., 2024a),
+we propose a branch-aggregation selection through
+value marginalization that considers CoT score
+across all branches leading to each candidate an-
+swer. Specifically, the value of each answer is
+computed by aggregating the CoT score of all its
+supporting branches, with the final answer selected
+as the one that achieves the highest marginal value.
+
+Experiments on multiple reasoning benchmarks
+demonstrate that ThoughtProbe consistently out-
+performs existing inference-time computing meth-
+ods, achieving significant improvements over both
+sampling-based methods (e.g., self-consistency)
+prompting-based techniques (e.g., zero-shot CoT
+and ToT) and activation-steering method. Our
+work provides new insights into enhancing LLMs’
+reasoning capabilities without requiring expensive
+fine-tuning or elaborate prompting strategies, and
+opens up promising directions for developing more
+
+robust reasoning systems that can effectively lever-
+age the model’s internal representations.
+
+2 Preliminary
+
+2.1 LLMs Architecture and Hidden
+Representation
+
+To provide a foundation for the discussion, we first
+describe the basic structure of a Transformer-based
+LLM architecture (Vaswani, 2017). The input text
+is initially tokenized into a sequence of tokens,
+which are then mapped to embeddings to form
+the initial representation sequence x(?) € RT emp
+Here, T' is the sequence length, and dep is the
+embedding dimension.
+
+The embeddings are then processed through mul-
+tiple Transformer layers. In each layer , its hidden
+representations are composed of three components:
+activations from multi-head self-attention (MHA),
+multi-layer perceptron (MLP), and residual connec-
+tions. This process can be formulated as:
+
+al) = MHA (h®) (Att activations)
+
+al) = MLP (all) +h®)  (MLP activations)
+h(t) = al) + all) +h (Hidden states)
+
+2.2 LLMs Reasoning Structure
+
+Reasoning structures typically manifest in two fun-
+damental topologies: sequential chains and branch-
+ing trees. The chain structure reflects the step-
+by-step nature of logical deduction, while the tree
+structure captures the exploration of multiple po-
+tential reasoning paths. Below, we formally de-
+fine these structures and their probabilistic formu-
+lations.
+
+Reasoning Chain: For an input question @, a
+reasoning chain is defined as a sequence of interme-
+
+
+diate thought steps R = [Q, 71, 2, ..., "N], leading
+to a final answer A. Here, r; represents an inter-
+mediate thought at the i-th step, and N denotes
+the chain length. The answer can be extracted by
+appending a trigger prompt at the end of the chain,
+like “Therefore, the answer is". The probability of
+generating such a chain can be formalized as:
+
+N
+P(R,A|Q) = P(r|Q) J] P(rilQ,r1:-1)
+i=2
+-P(A|Q, R)
+
+where P(r1|Q) is the probability of the first step,
+P(r;|@,r1.i—1) is the probability of the i-th step,
+and P(A|Q, R) is the probability of the final an-
+swer. At each step 7, a new thought r; is appended
+to form R = @Q, Tlyeeny Ti—1, Ti].
+
+More specifically, each reasoning step r; is itself
+a token sequence, which can be further decom-
+posed as:
+
+T;
+P(ri|Q,r1i-1) = [[ P(rHQ, rica, ri)
+
+t=1
+
+where, rt denotes the ¢-th token in the i-th reason-
+ing step, T; represents the total number of tokens
+in the i-th step, rit represents the previously
+generated tokens in the current step. In each token
+generation, the hidden representation Rep(r!) of
+token r! is accessible for probing.
+
+Branching Chains into Trees: By sampling
+diverse tokens at each reasoning step, a single chain
+can branch into a tree structure, where () serves as
+the root node, each node represents an intermediate
+reasoning step. This tree-based expansion explores
+multiple reasoning branches simultaneously and
+can increase the probability of covering the correct
+reasoning chain and answer. At each step r;, we
+could sample k different continuations:
+
+Here, rl represents the j-th sampled continu-
+ation at step i. Each root-to-leaf chain forms a
+distinct branch, leading to its answer, and col-
+lectively these branches generate an answer pool
+A={A1, As, ..., Ap}.
+
+While the tree structure improves solution cov-
+erage, it introduces two key challenges: (1) Can-
+didate Selection: How to evaluate and prioritize
+promising children nodes in each exploration step?
+(2) Answer Determination: How to select the opti-
+mal answer from the pool A?
+
+3 ThoughtProbe: Classifier-guided
+Reasoning Tree Exploration
+
+This section presents our ThoughtProbe framework
+that guide the response space exploration where
+the guidance signal is derived by probing repre-
+sentations. We first validate the discriminative
+power of representations in discriminating CoT and
+non-CoT responses through comprehensive prob-
+ing experiments across different LLMs. We then
+introduce a classifier-guided beam search algorithm
+that systematically explores the response space to
+construct a diverse answer pool. Finally, we pro-
+pose marginalization methods to aggregate these
+answers based on CoT score, enabling effective
+optimal answer selection.
+
+3.1 Probing Representations
+
+Setup We construct a binary representation classi-
+fication dataset by first collecting paired CoT/non-
+CoT responses for questions sampled from GSM8K
+(Cobbe et al., 2021) training set. For each question,
+we generate 10 distinct responses and classify them
+using GPT4o0-as-Judge. We define CoT responses
+as those exhibiting correct step-by-step reasoning
+processes, while non-CoT responses provide an-
+swers directly without intermediate reasoning steps.
+Subsequently, we extract token-level representa-
+tions from three widely-used LLMs: Mistral-7b
+(Jiang et al., 2023), Gemma-2-2b (Team et al.,
+2024), and Phi-1.5 (Li et al., 2023), capturing
+activations across various layers and representa-
+tion types. More details are provided in the ap-
+pendixD.1.
+
+Classifier We employ Logistic Regression (LR)
+as our classifier. LR models the probability of CoT
+through a two-step process: first computing the
+logit (log-odds) using a linear function w' x + b,
+then transforming it to probability of positive via
+the sigmoid function o.
+
+ Ply=1x)
+logit=ln—— 2 =w x+0b
+8 Ply = 0fx)
+
+1
+
+where w is the weight vector, b is the bias term,
+and x is the input feature vector.
+
+For each layer and representation type (Hidden
+states, Attention activations, and MLP activations),
+we train LR classifiers and evaluate their perfor-
+mance using AUC-ROC, and F1-score.
+
+Classification Results Figure 2 illustrates clas-
+sification performance, that varies across represen-
+
+
+Mistral-7b
+10 10
+
+— mp
+08 08
+
+° 8] — Hidden state
+
+8 06 S061 —— Attn
+
+3 3
+
+I 041 MP Sos
+2
+
+02 02
+
+00 0.0
+[ 5 10 15 20 25 30 [ 5 10 15 20 25 30
+Layer Layer
+
+3 &
+
+@ — mp S — mp
+
+L061. jidden state 208 —— Hidden state
+— an
+
+—— Attn
+
+0 H 10 15 20 ° 5 To 20
+
+Gemmaz2-2b
+
+10
+08
+
+Q
+
+006
+
+4
+
+8 a
+Sos MP
+Ed
+
+02
+
+0.0
+
+Figure 2: Layer-wise classification performance (F1-
+Score and AUC-ROC) across different representation
+types and LLMs.
+
+tation types and layers in different LLMs. (1) Rep-
+resentation type analysis: In Mistral-7b, hidden
+states outperform both MLP and Attention activa-
+tions. For Phi-1.5, Attention outputs demonstrate
+stable superiority despite hidden states’ fluctua-
+tions. In Gemma2-2b, Attention outputs maintain
+consistent performance while hidden states and
+MLP activations fluctuate significantly. (2) Layer-
+wise analysis: Layer depth influences performance
+differently across models. Mistral-7b shows a clear
+shallow-to-deep improvement trend, indicating pro-
+gressive CoT feature refinement. Conversely, Phi-
+1.5 and Gemma2-2b exhibit fluctuating patterns
+with no consistent directional trends, suggesting
+more distributed CoT representations throughout
+layers. Despite variations, we conclude that all
+LLMs achieve over 80% performance with their
+optimal configurations, indicating the promising
+discriminative power of representations.
+
+Logit as Ranking Score Beyond the promising
+classification performance, we also validate that the
+classifier’s logit can serve as a theoretically sound
+score for ranking and selecting higher CoT score
+candidates. Prior research(Sun et al., 2024b) has
+demonstrated that a binary classifier’s logit implies
+ordering equivalence with preference rewards in
+the Bradley-Terry model(Bradley and Terry, 1952),
+establishing that:
+
+x1) > (x2) = 7(x1) > 7(22)
+
+where [(x) represents the logit value and r(z) de-
+notes the reward function in the Bradley-Terry
+model. A brief proof is provided in the appendix
+A.1. We empirically validate this ranking capability
+in Figure3. The left subplot shows CoT responses
+
+consistently achieve higher logit values than non-
+CoT responses, while the right subplot demon-
+strates correct CoT responses maintain higher logit
+values than incorrect ones. This suggests our clas-
+sifier captures response quality regardless of rea-
+soning correctness. Both theoretical and empirical
+evidence support using the classifier’s logit as a
+ranking score for tree exploration.
+
+15
+
+15
+10
+
+10
+
+ol 4
+
+—— Non-CoT | 0s
+— coT
+
+—— Incorrect CoT
+—— Correct CoT
+
+00
+B00 ws 1m ws 20 I EEE
+Token sequence length
+
+IEE)
+Token sequence length
+
+wo 25 150 175 200
+
+Figure 3: Mean logit values and variance regions along
+the token sequence. Left: Comparison between CoT
+and non-CoT responses. Right: Comparison between
+correct and incorrect CoT responses.
+
+3.2 Classifier-guided Beam Search
+
+With the classifier’s logit as the ranking score, we
+propose a classifier-guided beam search for effec-
+tive response space exploration. Specifically, for a
+parent node (root question or intermediate reason-
+ing step), the tree expansion process is formulated
+as follows:
+
+Diverse Beam Construction: The process be-
+gins by generating diverse candidate continuations,
+organized into a beam. To encourage diversity,
+stochasticity must be introduced during token se-
+quence generation. In this paper, we employ Top-K-
+Start Greedy Decoding, which explores alternative
+top-k tokens at the first decoding step, followed
+by greedy decoding for subsequent steps (Wang
+and Zhou, 2024). The resulting k reasoning chains,
+denoted as B = {Ry, Ra, ..., Ry}, represent po-
+tential continuations with associated hidden states,
+forming the initial beam for further processing.
+
+Derive CoT Score via Classifier: Once the
+beam is constructed, a pre-trained classifier is used
+to evaluate the CoT score of each candidate . The
+classifier operates on the hidden state representa-
+tions of the chains and assigns a score to each one.
+Specifically, for a candidate chain R;, the CoT
+score S; is computed as S; = [(Rep(R;[—1])),
+where [(-) is the logit output of classifier and
+Rep(R;[—1]) represents the hidden state of the last
+token in R;.
+
+Beam Pruning by Score Ranking: After scor-
+ing, all candidate chains are ranked based on their
+CoT scores, and only the top-n highest-scoring
+candidates are retained for further expansion. The
+
+
+i Attn \, :
+5 rt MLP ™ rf X ry
+||
+x
+
+y
+Rep & Layer]
+Selection
+
+090
+
+Reasoning tree expansion
+
+1 Scorer
+
+[ E Input question ra : j-th sampled thought at step i. 2
+ow
+
+BB | [| : Complete reasoning chains leading to an answer
+
+3 w= Scorer «++
+Scorer st 2 —
+1 ty = 2 Scorer X
+w= Scorer
+=
+
+X
+w= Scorer ,..
+=
+
+w= Scorer +e»
+
+Answer(@BI0 0 )=4,
+
+Answer pool
+
+«++ Answer( II 0 ) = 4, 3
+1432 == 42P
+
+Marginalization
+Answer(@I0 0 )= Ap_,
+
+Final Answer
+Answer(gm mm )=4p
+
+Final answer
+determination
+
+Answer pool extraction
+
+CoT Score
+
+Figure 4: Our classifier-guided tree exploration framework. At each parent node, multiple candidates are sampled
+and evaluated by a pre-trained classifier by probing representations. Nodes are selected for further expansion based
+on scores. Each exploration branch produces a candidate answer, forming an answer pool from which the final
+answer is determined through marginalization across all branches.
+
+pruned beam, denoted as B’, is defined as B' =
+{Rs | i <n}, where o is the permutation that
+sorts the scores in descending order, and R;) rep-
+resents the candidate corresponding to the ¢-th high-
+est score. By dynamically adjusting the beam width
+n, we can control the trade-off between exploration
+breadth and computational efficiency. This pruning
+step ensures that only promising reasoning paths
+are preserved, effectively reducing computational
+overhead while maintaining the quality of the rea-
+soning process.
+
+Implementation Details: Our framework con-
+sists of two phases: a branching phase for system-
+atic exploration with depth m and beam width n,
+followed by a completion phase for final genera-
+tion. During the branching phase, we iteratively
+expand the tree for m steps. At each step 7, we
+first generate k candidate responses for each node
+and select the top-n candidates based on their CoT
+scores, with each candidate expanded by generating
+a sequence of 7; tokens. In the completion phase,
+all leaf nodes from the branching phase are ex-
+tended using greedy decoding until either reaching
+a completion token or the maximum length limit.
+For input formatting, we adopt a simple question-
+answer template: “Question:[question]\nAnswer:"
+without any additional prompting techniques.
+
+3.3 Answer Pool Marginalization
+
+After completing the tree expansion process, we
+generate final answers by appending the prompt
+“Therefore, the answer is” to each branch, resulting
+in an answer pool A = {A, As, ..., Ap}. To select
+the final answer from the pool, several straight-
+forward approaches can be applied: (1) majority
+
+voting based on answer frequency, and (2) single-
+branch selection that selects the answer from indi-
+vidual branch with the highest score metrics (e.g.,
+final score or mean score). Instead, we propose
+branch-aggregation selection that determines the
+final answer by aggregating branch score metrics
+for each answer.
+
+Specifically, for each candidate answer A;, we
+collect its supporting branches R(A;), which con-
+sists of all branches that arrive at A; as their fi-
+nal answer, formally defined as R(A;) = {R |
+answer(R) = A;}. Then we compute the value
+of each branch from its node score sequence
+[S1, So, ..., Sn], using its final score Sy as the
+branch value. For each unique answer, we then ag-
+gregate the values of all its supporting branches by
+summation: Value(A;) = 3 pe pa, Value(R).
+Finally, we select the answer with the highest
+aggregated value as our final answer: A* =
+argmaz a,c AV alue(A;). We provide a detailed
+comparative analysis of different answer selection
+methods in Section 4.2.
+
+4 Experiments
+
+Dataset and LLMs We evaluate our method on
+popular mathematical reasoning benchmarks: (1)
+GSMSK (Cobbe et al., 2021), a challenging dataset
+of grade school math problems; (2) MultiArith
+(MA) (Roy and Roth, 2016); (3) SVAMP (Patel
+etal., 2021); (4) MAWPS (Koncel-Kedziorski et al.,
+2016); and a logical reasoning benchmark: (5)
+CoinFlips (CF) (Srivastava et al., 2022). For our
+experiments, we use the same LLMs as in Section
+3.1: Mistral-7b, Gemma2-2b, and Phi-1.5.
+
+
+Baselines We compare our approach with six
+representative baselines: (1) Greedy Decoding: Se-
+lects the highest-probability token at each step of
+generation. (2) Zero-shot CoT prompting (Zs CoT)
+(Kojima et al., 2022): Appends "Let’s think step by
+step" to questions, encouraging step-wise problem-
+solving without task-specific training. (3) Zero-
+shot Tree of Thought prompting (Zs ToT) (Yao
+et al., 2023): Generate multiple reasoning steps via
+prompting and evaluate through self-assessment
+prompts. (4) Activation-Steering (Act-S)(Hgjer
+et al.): Steers model activations along a direction
+vector derived from the difference between CoT
+and non-CoT hidden states. (5) Chain-of-Thought
+Decoding (CoT-Dec) (Wang and Zhou, 2024): Gen-
+erates multiple solution paths and selects the most
+confident one based on the average probability mar-
+gin between the top two token predictions in the
+answer segment. (6) Self-consistency (SC) (Wang
+et al., 2022): Employs a majority voting mecha-
+nism across multiple generated responses to iden-
+tify the most consistent answer. In appendixC and
+B, we provide a detailed analysis of the time com-
+plexity of each method and reproducing details.
+
+Hyperparameters Config For the branching
+phase, we set the depth m = 3 and beam width
+n = 3. At each step, we generate k = 10 candi-
+dates and select top-n based on CoT scores, with
+token generation lengths 7; = [1, 20, 20] for steps
+© = 1,2,3. For the completion phase, we extend
+each leaf node with two steps of greedy decoding,
+generating 100 tokens per step. A detailed analy-
+sis of how depth m and beam width n affect the
+framework’s performance is presented in Section
+44.
+
+4.1 Main Experimental Analysis
+
+As shown in Table 1, our method consistently out-
+performs baseline approaches in most scenarios,
+achieving substantial improvements in problem
+solving accuracy.
+
+Cross-Model Analysis Our method shows ro-
+bust performance gains across different LLM
+scales. For the larger Mistral-7b model, we ob-
+serve the most significant improvements, with our
+method achieving 38.18% accuracy on GSM&K,
+surpassing the strongest baseline (Zs CoT) by
+14.01%. The performance advantage maintains
+for smaller models like Gemma2-2b and Phi-1.5,
+where our method improves GSMS8K accuracy by
+3.7% and 12.36% respectively compared to their
+best baselines. This demonstrates our method’s
+
+LLM Methods GSM8K MA SVAMP MAWPS CF
+Greedy 11.92 15.16 52.66 58.29 47.60
+IS SC 17.13 27.22 58.00 66.56 51.60
+in Zs CoT 26.17 50.47 56.33 69.81 53.00
+£ Zs ToT 33.82 52.65 59.75 71.69 54.40
+g Act-S 15.48 18.93 56.48 59.45 48.00
+CoT-Dec 25.79 39.76 58.66 64.78 51.20
+Ours 38.18 58.57 61.33 80.64 56.80
+Greedy 6.42 5.53 38.53 46.16 44.40
+2 SC 7.59 8.41 40.00 47.00 49.80
+Zs CoT 16.92 42.11 39.33 51.69 48.40
+g Zs ToT 18.73 45.74 44.08 55.37 53.20
+5 Act-S 7.38 11.43 41.36 49.84 45.00
+© CoTDec 14.34 33.22 38.99 50.28 47.40
+Ours 20.62 50.00 48.66 63.86 54.60
+Greedy 5.69 24.44 24.33 33.74 42.60
+SC 25.02 33.88 29.03 39.16 46.20
+\n Zs CoT 7.21 83.88 39.33 65.18 54.40
+Z Zs ToT 29.56 53.45 41.85 67.18 55.60
+A Act-S 6.65 25.65 28.66 37.84 44.20
+CoT-Dec 23.12 25.00 23.66 50.05 49.40
+Ours 37.38 80.56 45.66 68.45 56.80
+
+Table 1: Problem solving accuracy compared with base-
+lines across LLMs and datasets
+
+LLMs Methods GSMSK MultiArith SVAMP WAMPS
+
+Cover Rate 85.44 91.65 90.33 94.33
+
+F Agg/BoN  38.18/27.84 58.57/32.78 61.33/52.45 80.64/63.18
+
+M Agg/BoN  38.21/24.92 55.15/33.42 58.44/51.52 77.33/61.42
+
+IR Agg/BoN 42.92/23.52 57.53/35.63 60.21/47.42 79.33/64.21
+Vote 39.21 56.15 59.44 78.33
+
+Mistral-7b
+
+Cover Rate 79.65 84.33 88.44 90.74
+
+F Agg/BoN  20.62/11.52 50.00/25.53 48.66/16.82 63.86/35.42
+
+M Agg/BoN  18.15/10.83  47.77/27.63 45.33/23.63 61.33/43.85
+
+IR Agg/BoN  21.53/13.53 51.21/34.42 47.44/19.42 62.33/40.91
+Vote 19.21 48.15 46.44 62.33
+
+Gemma2-2b
+
+Cover Rate 84.33 89.42 88.63 92.82
+
+F Agg/BoN  37.38/21.72 80.56/56.86 45.66/29.74 68.45/49.72
+
+M Agg/BoN  35.77/20.44  77.21/49.63 42.33/31.42 65.53/50.82
+
+IR Agg/BoN  38.21/21.93  79.53/48.82 44.65/30.84 69.84/51.72
+Vote 36.21 78.15 43.44 66.49
+
+Phi-1.5
+
+Table 2: Performance comparison of different an-
+swer selection methods. F Agg/BoN, M Agg/BoN,
+and IR Agg/BoN represent the accuracy of branch-
+aggregation/best-of-N selection using final scores, mean
+scores, and increase ratio respectively. Vote shows the
+accuracy of majority voting baseline.
+
+effectiveness and generalizability across different
+model scales.
+
+Cross-Dataset Analysis Our method shows
+varying effectiveness across different datasets.
+On GSMS8K’s complex multi-step problems, we
+demonstrate consistent superiority across all mod-
+els. For MultiArith, while achieving strong perfor-
+mance with Mistral-7b (58.57%) and Gemma-2-2b
+(50.00%), Phi-1.5 shows slightly lower accuracy
+(80.56%) compared to Zs CoT (83.88%), suggest-
+ing simpler arithmetic problems might benefit less
+from our approach. On SVAMP and MAWPS, we
+maintain consistent improvements, with notable
+gains on MAWPS (3.27%-12.17% over the best
+baseline). On CoinFlips, we achieve 56.80% ac-
+curacy, which is higher than the best baseline (Zs
+CoT) by 12.20% in phi-1.5. Notably, we train our
+
+
+IR SVM
+
+LLMs Dataset MLP Attn Hidden states | MLP Attn Hidden states
+GSMSK 3521/1842 3457/1723 38.18/13.75 3643/1742 33.37/623  38.32/12.39
+
+Misualgy  MultiArith 5155/1633 49.82/21.65 58572339 49.55/18.33 50.50/18.65  57.45/20.11
+SVAMP 3543/2872 34.65/2323 61.33/25.76 3643/2742 3543/2642 60.39/17.23
+
+WAMPS  69.55/39.33 72.81/42.65 80.64/52.46 68.55/38.92 77.52/733  79.38/18.65
+
+GSMSK 1541/65] 20.62/1586 1741/1239  1841/5.62 1841/48]  19.91/9.71
+Gomman.op  MUliATith 4241/1774 50.002123  40.92/29.72  4641/623  48.41/10.63 4165/1585
+SVAMP 3543/1392 48.66/27.23 4533/3076 3643/1642 4743/542  44.81/13.84
+
+WAMPS  48.55/28.74 63.86/29.65 47.64/23.59 49.55/27.33 64.55/2637 46.84/16.65
+
+GSMSK  1541/3.60 37.38/11.82  14.14/928  1641/484 3641/2348  13.83/7.93
+
+phils MultiArith 46412482 80.56/2123 45412461 4741/1571 5413472 4428/1947
+SVAMP 3443/1671 45.66/27.75 4339/2576 3543/2142 4643/2424  43.14/24.85
+
+WAMPS  47.55/27.48 68.45/49.65 46.64/32.53 48.55/26.33 67.55/45.62 45.72/29.38
+
+Table 3: Performance comparison of different classifiers (LR and SVM) and representations (MLP, Attention,
+Hidden states) using accuracy scores on top-3 and bottom-3 layers (reported as top-3/bottom-3) on math reasoning
+
+datasets.
+
+classifier only on GSMSK training set and use this
+single classifier across all datasets, demonstrating
+strong generalization to various mathematical rea-
+soning datasets.
+
+4.2 Answer Selection Analysis
+
+Table 2 presents a comprehensive comparison of
+different approaches for final answer selection from
+the answer pool. We first examine the coverage
+rate - the percentage of correct answers present
+in the pool - which indicates an upper bound for
+selection accuracy. The high coverage rates (79%-
+94%) demonstrate that our exploration strategy ef-
+fectively traverses the response space and captures
+valid reasoning chains.
+
+We then evaluate two main selection paradigms:
+Best-of-N(BoN) selection and branch-aggregation
+selection, across three score sequence metrics: fi-
+nal scores, average scores, and increase ratio (de-
+fined as the proportion of score improvements be-
+tween adjacent nodes). Our analysis shows that
+branch-aggregation selection consistently outper-
+forms BoN selection across all metrics. Among
+the three metrics, final scores yield the best perfor-
+mance, followed by increase ratio, while average
+scores show relatively inferior results. Additionally,
+we benchmark these methods against the baseline
+majority voting approach, which shows superior
+performance to single-branch selection but falls
+short of branch-aggregation selection.
+
+4.3 Classifier Feature Analysis
+
+Table 3 shows the performance comparison of dif-
+ferent classifiers features, including classifier type,
+representation type and layers range.
+
+Classifier type Study We comparing Support
+
+Vector Machine(SVM) and LR classifiers, we ob-
+serve their comparable performance across differ-
+ent representations, layers, and LLMs. While SVM
+shows slightly better results in some cases, the dif-
+ferences are marginal, suggesting both classifiers
+can effectively guide the search process.
+
+Representation Layer Analysis We analyze the
+impact of layer by comparing top-3 and bottom-
+3 layers based on their classification F1-scores.
+The results show that across all LLMs, using top-
+performing layers consistently outperforms bottom
+layers. For GSM8K, the average improvements
+are 31.36%, 29.79%, and 30.04% on Mistral-7b,
+Gemma-2-2b, and Phi-1.5 respectively, demonstrat-
+ing that layer selection significantly affects search
+effectiveness.
+
+Representation Type Study Hidden states yield
+the best search performance for Mistral-7b, while
+attention activations prove more effective for both
+Gemma-2-2b and Phi-1.5. This pattern mirrors
+the relative strengths we observed in classification
+performance, suggesting a consistent relationship
+between classifier logit and reward.
+
+4.4 Tree Search Space Scaling Laws
+
+We investigate how different search space size con-
+figurations affect model performance by varying
+beam width n and tree depth m. For each con-
+figuration, we maintain the initial sampling size
+k = 10 while adjusting width n € {1,2,3,4,5,6}
+and depth m € {1,2,3,4,5,6}. All generated
+chains are constrained to a maximum length of
+240 tokens, with tokens evenly distributed across
+depth steps (7; = 240/m tokens per step). Figure
+5 demonstrates how performance varies with differ-
+ent combinations of width and depth, using Phi-1.5
+
+
+on GSMSK.
+
+Beam Width Impact The accuracy improves
+substantially as the beam width increases, demon-
+strating the benefits of maintaining more parallel
+branches at each expansion step. The improvement
+trend begins to plateau around width = 4, suggest-
+ing that maintaining 3-4 parallel reasoning trajecto-
+ries provides sufficient exploration while remaining
+computationally efficient. Further increasing the
+beam width yields diminishing returns, possibly
+due to the introduction of more noise than CoT
+content.
+
+Search Depth Study The accuracy improves as
+search depth increases and reaches its peak at depth
+3 or 4. Beyond this optimal depth, performance
+gradually declines, suggesting that deeper searches
+may accumulate errors and explore irrelevant rea-
+soning paths. This optimal depth aligns with gen-
+eral problem solving patterns, as most tree search
+methods can solve reasoning problems within 3-4
+key reasoning steps (He et al., 2024; Wang et al.,
+2024).
+
+Depth
+Figure 5: The accuracy plot when scaling the search
+space with different expansion depth and beam width.
+
+5 Related Work
+5.1 Reasoning Ability Enhancement in LLMs
+
+Methods to improve LLMs’ reasoning ability can
+be categorized into tuning-based and inference-
+time approaches. Tuning-based methods focus
+on fine-tuning LLMs with high-quality rationales.
+STaR (Zelikman et al., 2022) iteratively bootstraps
+rationales through generation and filtering. TRICE
+(Hoffman et al., 2024) employs MCMC sampling
+to construct training data with rationales and lever-
+ages rationalization for failed cases. DeepseekR1
+(Guo et al., 2025) uses outcome reward to rein-
+forces the CoT ability. Inference-based methods
+design structured reasoning frameworks to guide
+LLMs during inference. Chain-of-thought (CoT)
+(Wei et al., 2022; Kojima et al., 2022) breaks down
+reasoning into sequential steps. Tree-of-thoughts
+(ToT) (Yao et al., 2024; Long, 2023) enables multi-
+
+path exploration with backtracking. Graph-of-
+Thoughts (GoT) (Besta et al., 2024) extends to
+arbitrary graph topologies for complex reasoning
+patterns. Tree-based methods have emerged as
+mainstream by balancing exploration capability
+with structural simplicity.
+
+5.2 Linear Representation Hypothesis in
+LLMs
+
+The Linear Representation Hypothesis (LRH), ini-
+tially proposed in word embeddings (Mikolov et al.,
+2013), suggests that semantic features exist as lin-
+ear directions in activation space. Recent work
+has extended this to LLMs (Luo et al., 2024; von
+Riitte et al., 2024; Zou et al.; Park et al.), showing
+that high-level concepts like truthfulness (Li et al.,
+2024; Burns et al., 2022), morality (Zou et al.), and
+factual knowledge (Gurnee and Tegmark, 2023)
+can be represented linearly in model’s activation
+space. This finding enables two key applications:
+detection and guidance. For detection, linear classi-
+fiers can effectively probe specific concepts (Chen
+et al., 2024; Du et al., 2024), with their high per-
+formance indicating the linear encoding of these
+concepts. For guidance, these identified directions
+can be leveraged to steer model behavior during
+inference (Lee et al.; Li et al., 2024; Zhao et al.,
+2024).
+
+6 Conclusion
+
+In this work, we present ThoughtProbe, a pure
+inference-time framework that leverages LLMs’
+hidden reasoning features to improve reasoning
+performance. Our probing experiments reveal that
+LLM architectures encode CoT differently across
+representation types and layers, with simple lin-
+ear classifiers achieving strong performance. We
+also show theoretically and empirically that these
+classifiers effectively score and rank candidates to
+guide the search process. Building on this discov-
+ery, we develop a classifier-guided beam search
+algorithm that effectively explores the reasoning
+space by prioritizing promising candidates. Our
+framework combines tree-structured exploration
+with branch aggregation for final answer determi-
+nation, enabling systematic utilization of valid rea-
+soning chains within response space. Extensive
+experiments across multiple benchmarks demon-
+strate the effectiveness of our approach, achieving
+significant improvements over existing methods.
+
+
+Limitations
+
+Despite our approach’s effectiveness, we acknowl-
+edge several limitations that may warrant further
+investigation. First, our current implementation
+relies on fixed token lengths to segment interme-
+diate thoughts during tree node expansion, which
+may disrupt natural reasoning by forcing arbitrary
+branching points. Future work should explore more
+flexible, semantic-aware splitting criteria to bet-
+ter preserve complete units of reasoning. Second,
+while the answer pool achieves promising coverage
+rates for correct answers, our final answer selection
+process has room for improvement. The observ-
+able gap between coverage and accuracy suggests
+current chain evaluation and branch-aggregation
+strategies may not optimally capture answer qual-
+ity. Future research could develop more sophis-
+ticated scoring metrics and aggregation methods.
+Another limitation is increased inference-time cost:
+ThoughtProbe’s tree expansion and classifier evalu-
+ation require more computation and higher latency
+than standard single-path or sampling methods, es-
+pecially with greater search depth and beam width.
+This may limit practicality in latency-sensitive set-
+tings. Future work could reduce overhead via more
+efficient pruning, early stopping, or lightweight
+scoring.
+
+References
+
+Maciej Besta, Nils Blach, Ales Kubicek, Robert Gersten-
+berger, Michal Podstawski, Lukas Gianinazzi, Joanna
+Gajda, Tomasz Lehmann, Hubert Niewiadomski, Pi-
+otr Nyczyk, and 1 others. 2024. Graph of thoughts:
+Solving elaborate problems with large language mod-
+els. In Proceedings of the AAAI Conference on Artifi-
+cial Intelligence, volume 38, pages 17682-17690.
+
+Jessica Y Bo, Tianyu Xu, Ishan Chatterjee, Katrina
+Passarella-Ward, Achin Kulshrestha, and D Shin.
+2025. Steerable chatbots: Personalizing lms with
+preference-based activation steering. arXiv preprint
+arXiv:2505.04260.
+
+Ralph Allan Bradley and Milton E Terry. 1952. Rank
+analysis of incomplete block designs: I. the method
+of paired comparisons. Biometrika, 39(3/4):324—
+345.
+
+Collin Burns, Haotian Ye, Dan Klein, and Jacob Stein-
+hardt. 2022. Discovering latent knowledge in lan-
+guage models without supervision. arXiv preprint
+arXiv:2212.03827.
+
+Chao Chen, Kai Liu, Ze Chen, Yi Gu, Yue Wu,
+Mingyuan Tao, Zhihang Fu, and Jieping Ye. 2024.
+
+Inside: LIms’ internal states retain the power of hallu-
+cination detection. arXiv preprint arXiv:2402.03744.
+
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,
+Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias
+Plappert, Jerry Tworek, Jacob Hilton, Reiichiro
+Nakano, and 1 others. 2021. Training verifiers to
+solve math word problems, 2021. URL https://arxiv.
+org/abs/2110.14168.
+
+Patrick Queiroz Da Silva, Hari Sethuraman, Dheeraj
+Rajagopal, Hannaneh Hajishirzi, and Sachin Ku-
+mar. 2025. Steering off course: Reliability chal-
+lenges in steering language models. arXiv preprint
+arXiv:2504.04635.
+
+Xuefeng Du, Chaowei Xiao, and Yixuan Li. 2024.
+Haloscope: Harnessing unlabeled llm genera-
+tions for hallucination detection. arXiv preprint
+arXiv:2409.17504.
+
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao
+Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shi-
+rong Ma, Peiyi Wang, Xiao Bi, and 1 others. 2025.
+Deepseek-rl: Incentivizing reasoning capability in
+Ilms via reinforcement learning. arXiv preprint
+arXiv:2501.12948.
+
+Wes Gurnee and Max Tegmark. 2023. Language
+models represent space and time. arXiv preprint
+arXiv:2310.02207.
+
+Mingqian He, Yongliang Shen, Wenqi Zhang, Zeqi Tan,
+and Weiming Lu. 2024. Advancing process verifica-
+tion for large language models via tree-based prefer-
+ence learning. arXiv preprint arXiv:2407.00390.
+
+Matthew Douglas Hoffman, Du Phan, David Dohan,
+Sholto Douglas, Tuan Anh Le, Aaron Parisi, Pavel
+Sountsov, Charles Sutton, Sharad Vikram, and Rif
+A Saurous. 2024. Training chain-of-thought via
+latent-variable inference. Advances in Neural In-
+formation Processing Systems, 36.
+
+Bertram Hgjer, Oliver Jarvis, and Stefan Heinrich.
+2025. Improving reasoning performance in large lan-
+guage models via representation engineering. arXiv
+preprint arXiv:2504.19483.
+
+Bertram Hgjer, Oliver Simon Jarvis, and Stefan Hein-
+rich. Improving reasoning performance in large lan-
+guage models via representation engineering. In
+The Thirteenth International Conference on Learning
+Representations.
+
+Yihuai Hong, Dian Zhou, Meng Cao, Lei Yu, and Zhi-
+jing Jin. 2025. The reasoning-memorization interplay
+in language models is mediated by a single direction.
+arXiv preprint arXiv:2503.23084.
+
+Audrey Huang, Adam Block, Qinghua Liu, Nan Jiang,
+Akshay Krishnamurthy, and Dylan J Foster. 2025. Is
+best-of-n the best of them? coverage, scaling, and op-
+timality in inference-time alignment. arXiv preprint
+arXiv:2503.21878.
+
+
+Albert Q Jiang, Alexandre Sablayrolles, Arthur Men-
+sch, Chris Bamford, Devendra Singh Chaplot, Diego
+de las Casas, Florian Bressand, Gianna Lengyel, Guil-
+laume Lample, Lucile Saulnier, and 1 others. 2023.
+Mistral 7b. arXiv preprint arXiv:2310.06825.
+
+Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-
+taka Matsuo, and Yusuke Iwasawa. 2022. Large lan-
+guage models are zero-shot reasoners. Advances in
+neural information processing systems, 35:22199—
+
+22213.
+
+Rik Koncel-Kedziorski, Subhro Roy, Aida Amini, Nate
+Kushman, and Hannaneh Hajishirzi. 2016. Mawps:
+A math word problem repository. In Proceedings of
+the 2016 conference of the north american chapter of
+the association for computational linguistics: human
+language technologies, pages 1152-1157.
+
+Bruce W Lee, Inkit Padhi, Karthikeyan Natesan Ra-
+mamurthy, Erik Miehling, Pierre Dognin, Manish
+Nagireddy, and Amit Dhurandhar. Programming re-
+fusal with conditional activation steering, 2024. URL
+https://arxiv. org/abs/2409.05907.
+
+Kenneth Li, Oam Patel, Fernanda Viégas, Hanspeter
+Pfister, and Martin Wattenberg. 2024. Inference-
+time intervention: Eliciting truthful answers from
+a language model. Advances in Neural Information
+Processing Systems, 36.
+
+Yuanzhi Li, Sébastien Bubeck, Ronen Eldan, Allie
+Del Giorno, Suriya Gunasekar, and Yin Tat Lee. 2023.
+Textbooks are all you need ii: phi-1.5 technical report.
+arXiv preprint arXiv:2309.05463.
+
+Jieyi Long. 2023. Large language model guided tree-of-
+thought. arXiv preprint arXiv:2305.08291.
+
+Jinqi Luo, Tianjiao Ding, Kwan Ho Ryan Chan, Darshan
+Thaker, Aditya Chattopadhyay, Chris Callison-Burch,
+and René Vidal. 2024. Pace: Parsimonious con-
+cept engineering for large language models. arXiv
+preprint arXiv:2406.04331.
+
+Tomas Mikolov, Wen-tau Yih, and Geoffrey Zweig.
+2013. Linguistic regularities in continuous space
+word representations. In Proceedings of the 2013
+conference of the north american chapter of the as-
+sociation for computational linguistics: Human lan-
+guage technologies, pages 746-751.
+
+Kiho Park, Yo Joong Choe, and Victor Veitch. The
+linear representation hypothesis and the geometry
+of large language models, 2023. URL: https://arxiv.
+org/abs/2311.03658.
+
+Arkil Patel, Satwik Bhattamishra, and Navin Goyal.
+2021. Are nlp models really able to solve
+simple math word problems? arXiv preprint
+arXiv:2103.07191.
+
+Subhro Roy and Dan Roth. 2016.
+eral arithmetic word problems.
+arXiv:1608.01413.
+
+Solving gen-
+arXiv preprint
+
+Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao,
+Abu Awal Md Shoeb, Abubakar Abid, Adam Fisch,
+Adam R Brown, Adam Santoro, Aditya Gupta, Adria
+Garriga-Alonso, and 1 others. 2022. Beyond the
+imitation game: Quantifying and extrapolating the
+capabilities of language models. arXiv preprint
+arXiv:2206.04615.
+
+Hanshi Sun, Momin Haider, Ruiqi Zhang, Huitao
+Yang, Jiahao Qiu, Ming Yin, Mengdi Wang, Peter
+Bartlett, and Andrea Zanette. 2024a. Fast best-of-n
+decoding via speculative rejection. arXiv preprint
+arXiv:2410.20290.
+
+Hao Sun, Yunyi Shen, and Jean-Francois Ton. 2024b.
+Rethinking bradley-terry models in preference-based
+reward modeling: Foundations, theory, and alterna-
+tives. arXiv preprint arXiv:2411.04991.
+
+Xinyu Tang, Xiaolei Wang, Zhihao Lv, Yingqian Min,
+Wayne Xin Zhao, Binbin Hu, Ziqi Liu, and Zhiqiang
+Zhang. 2025. Unlocking general long chain-of-
+thought reasoning capabilities of large language mod-
+els via representation engineering. arXiv preprint
+arXiv:2503.11314.
+
+Gemma Team, Morgane Riviere, Shreya Pathak,
+Pier Giuseppe Sessa, Cassidy Hardin, Surya Bhupati-
+raju, Léonard Hussenot, Thomas Mesnard, Bobak
+Shahriari, Alexandre Ramé, and 1 others. 2024.
+Gemma 2: Improving open language models at a
+practical size. arXiv preprint arXiv:2408.00118.
+
+A Vaswani. 2017. Attention is all you need. Advances
+in Neural Information Processing Systems.
+
+Dimitri von Riitte, Sotiris Anagnostidis, Gregor Bach-
+mann, and Thomas Hofmann. 2024. A language
+model’s guide through latent space. arXiv preprint
+arXiv:2402.14433.
+
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le,
+Ed Chi, Sharan Narang, Aakanksha Chowdhery, and
+Denny Zhou. 2022. Self-consistency improves chain
+
+of thought reasoning in language models. arXiv
+preprint arXiv:2203.11171.
+Xuezhi Wang and Denny Zhou. 2024. Chain-of-
+
+thought reasoning without prompting. arXiv preprint
+arXiv:2402.10200.
+
+Zhenglin Wang, Jialong Wu, Yilong Lai, Congzhi
+Zhang, and Deyu Zhou. 2024. Seed: Accelerating
+reasoning tree construction via scheduled speculative
+decoding. arXiv preprint arXiv:2406.18200.
+
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou,
+and 1 others. 2022. Chain-of-thought prompting elic-
+its reasoning in large language models. Advances
+in neural information processing systems, 35:24824—
+
+24837.
+
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran,
+Tom Griffiths, Yuan Cao, and Karthik Narasimhan.
+2023. Tree of thoughts: Deliberate problem solving
+
+
+with large language models. Advances in neural
+information processing systems, 36:11809-11822.
+
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran,
+Tom Griffiths, Yuan Cao, and Karthik Narasimhan.
+2024. Tree of thoughts: Deliberate problem solving
+with large language models. Advances in Neural
+Information Processing Systems, 36.
+
+Tian Ye, Zicheng Xu, Yuanzhi Li, and Zeyuan Allen-
+Zhu. 2024. Physics of language models: Part 2.1,
+grade-school math and the hidden reasoning process.
+In The Thirteenth International Conference on Learn-
+ing Representations.
+
+Eric Zelikman, Yuhuai Wu, Jesse Mu, and Noah Good-
+man. 2022. Star: Bootstrapping reasoning with rea-
+soning. Advances in Neural Information Processing
+
+Systems, 35:15476—15488.
+
+Yu Zhao, Alessio Devoto, Giwon Hong, Xiaotang Du,
+Aryo Pradipta Gema, Hongru Wang, Kam-Fai Wong,
+and Pasquale Minervini. 2024. Steering knowledge
+selection behaviours in lms via sae-based representa-
+tion engineering. arXiv preprint arXiv:2410.15999.
+
+Andy Zou, Long Phan, Sarah Chen, James Camp-
+bell, Phillip Guo, Richard Ren, Alexander Pan,
+Xuwang Yin, Mantas Mazeika, Ann-Kathrin Dom-
+browski, and 1 others. Representation engineer-
+ing: A top-down approach to ai transparency. corr,
+abs/2310.01405, 2023. doi: 10.48550. arXiv preprint
+ARXIV.2310.01405.
+
+A Appendix
+
+A.1 Justification of using classifier logit as a
+scoring and ranking mechanism
+
+In this section, we provide a brief proof that a
+
+binary classifier’s logit implies ordering equiva-
+
+lence with preference rewards in the Bradley-Terry
+
+model(Sun et al., 2024b; Bradley and Terry, 1952).
+
+Binary Classification Setting: Let X be the
+input space. For any x € X:
+
+* P(y = 1|z) denotes the probability of posi-
+tive class
+
+* I(x) := logit is the classifier logit output
+* P(y = 1]z) = sigmoid(l(x))
+
+Bradley-Terry Preference Model: Given a
+question ¢, for any two responses x1, x2 € XA:
+
+* P(x; > w2|q) denotes preference probability
+that response z; is preferred to x»
+
+. BN exp(r(z1]a))
+Pei - 2200) = Somme res @a)
+
+softmax(r(x1|q), r(x2|q)).
+
+* r(-|q) is the underlying reward function that
+evaluates the quality of a response. We omit
+the question ¢ in the following discussion for
+brevity.
+
+Lemma A.1 (Classification-Preference Connec-
+tion). For any instance x € X:
+
+Py = 1) =Ejupp [Plz = 7] (1D
+
+Proof. In binary classification, we can view the
+process as a competition where:
+
+* x competes against a random competitor j
+
+* P(y = 1|z) represents the winning probabil-
+ity of z
+
+* When j is randomly sampled from p(j), this
+probability equals E; [P(x >= j)]
+
+Suppose that the classifier is trained on prefer-
+ence data derived from the Bradley-Terry model,
+where preference pairs are treated as binary clas-
+sification data, we have the following theorem to
+connect the classifier logit and the reward function:
+
+
+Theorem A.2 (Logit implies reward ordering).
+Given two instances x1 and xo:
+
+(x1) > U(x) = r(x1) > (22) (2)
+
+Proof. We prove [(x1) > l(z2) = r(x1) > r(x2)
+using preference probabilities’ strict monotonicity.
+Given [(x1) > (x2), the sigmoid function’s
+strict monotonicity means P(y = 1|z1) > P(y =
+1|z2). Using the Classification-Preference Connec-
+tionA.1 and Bradley-Terry model, we show:
+
+CT explr(an)
+200) [ewe + eG
+exp(r(z2))
+exp(r(r2)) + exp(r(7))] ~°
+Since p(j) > 0 and f(r,j) = er)
+
+is strictly increasing in 7, at least one j has
+f(r(z1),5) > f(r(=z2),j), implying r(z1) >
+
+Therefore, the logit ordering implies the reward
+ordering.
+
+Theorem A.3 (Logit is lower bounded by reward).
+There exists a constant C' dose not depend on x,
+such that:
+
+(x) >r(x)—-C 3)
+
+Proof. Under the Bradley-Terry model:
+
+exp(r(z))
+exp(r(x)) + exp(r(7))
+
+Ply = 1]z) = E;
+
+By Jensen's inequality, since f(t) = _45 is con-
+vex in t for a > 0:
+
+exp(r(z))
+exp(r(z)) + Elexp(r(j))]
+
+Taking logit transformation:
+
+Ply =1|z) =
+
+6S)
+
+P(y = 1|z)
+1—P(y=1|z)
+C
+
+[(x) =logitP(y = 1|x) = log
+
+The above theorem shows that we can use the
+classifier logit as a scoring and ranking mechanism
+for the responses during the tree search. As we
+define CoT responses are preferred to non-CoT
+responses and are treated as positive samples in
+classifier training, the above theorem implies that
+
+the logit of CoT responses are higher than that of
+non-CoT responses.
+
+It’s important to note that using classifiers as
+complete substitutes for reward models in down-
+stream optimization scenarios requires additional
+theoretical constraints and considerations. We refer
+readers to the comprehensive analysis presented in
+(Sun et al., 2024Db).
+
+B Baselines Reproducing Details
+
+For the activation steering method, we follow the
+implementation described in (Hgjer et al., 2025),
+calculating a control vector v using the difference-
+in-mean approach. Specifically, we feed all positive
+and negative responses to the LLM and compute
+the mean hidden representations for both positive
+and negative responses. The control vector v is
+then derived as the difference between these two
+means. During inference, we input a question to
+the LLM and apply the control vector v to steer
+the hidden representations in the forward pass. The
+representation types and layers selected for steering
+match those used in our ThoughtProbe method for
+each LLM. We set the steering strength parameter
+to 1 across all experiments.
+
+For the zero-shot ToT, we follow the implemen-
+tation described in the appendix B.1 of (Yao et al.,
+2023). The task format prompt is "the answer is
+n" where n is a number. The standard IO prompt
+is "Answer the following question with format: in-
+put’. The thought generation prompt is Answer
+the following question: input Make a strategy then
+write. Your output should be of the following for-
+mat: Strategy: Your strategy about how to answer
+the question. Answer: Your answer to the question.
+It should end with format. The voting/evaluation
+prompt is Given an instruction and several choices,
+decide which choice is most promising. Analyze
+each choice in detail, then conclude in the last line
+"The best choice is s", where s the integer id of the
+choice..
+
+C Computation Complexity Notion and
+Discussion
+
+We show computational complexity notions of all
+methods.
+
+The computational complexity analysis in Table
+4 reveals several key insights about the efficiency
+of different reasoning methods. Traditional ap-
+proaches like Greedy decoding and ZS-CoT main-
+tain linear complexity with respect to sequence
+
+
+Method Computational Complexity
+
+Greedy o(T) -
+
+single sequence processing
+OT +P) -
+
+P is prompt overhead
+
+SC OnxT)-
+
+n parallel sequences
+
+O(n x T') + confidence scoring
+OT+LxH)-
+
+L=layers number,
+H=Steering overhead
+
+Ob? x (Cr + Cg)) -
+d=tree depth,
+
+b=thoughts number,
+Cr=thought prompt cost,
+Cp=evaluation prompt cost
+Ok xn™x (C+1))-
+n=beam width, m=depth,
+C'=classifier cost,
+k=candidates per step
+
+ZS-CoT
+
+CoT-Dec
+
+Act-S
+
+ZS-ToT
+
+ThoughtProbe
+
+Table 4: Computational complexity comparison of dif-
+ferent methods.
+
+length, making them computationally efficient but
+limited in reasoning capability. Self-consistency
+methods (SC) scale linearly with the number of
+parallel sequences, offering a reasonable balance
+between computational cost and performance.
+
+Activation steering (Act-S) introduces additional
+overhead proportional to the number of layers be-
+ing steered, but maintains the same asymptotic
+complexity as standard decoding. In contrast, tree-
+based methods like ZS-ToT face exponential com-
+plexity growth (O(b%)) as tree depth increases,
+severely limiting their practical application to com-
+plex reasoning tasks despite their strong perfor-
+mance.
+
+Our ThoughtProbe method achieves a favorable
+complexity profile of O(k x n™ x (C'+1)), where
+n is the beam width, m is the exploration depth, k
+is the number of candidates per step, and C repre-
+sents the classifier cost. While this still involves
+exponential growth with depth, our approach is
+more efficient in practice than traditional tree-based
+methods like ZS-ToT because: (1) we typically use
+smaller beam widths and depths, (2) our classifier-
+guided pruning effectively reduces the search space,
+and (3) the linear classifier overhead is minimal
+compared to token generation costs. This analysis
+demonstrates that ThoughtProbe offers an effec-
+
+tive balance between computational efficiency and
+reasoning capability, making it practical for deploy-
+ment in real-world applications while maintaining
+comparable or superior performance to more com-
+putationally intensive methods.
+
+
+D More Probing Experiments Details
+
+D.1 Classifier Training Data Construction
+Details
+
+We first employ Top-K-Start Greedy Decoding,
+which explores alternative top-k tokens at the first
+decoding step, followed by greedy decoding for
+subsequent steps, to sample 10 distinct responses.
+To ensure response quality, we first filter the sam-
+pled responses to remove potential repetitions of
+input questions as LLMs occasionally exhibit a
+pattern where they restate the original question
+after providing their answer. We apply a post-
+processing step to extract only the solution-relevant
+content, ensuring each response contains purely
+reasoning and answer components without redun-
+dant question restatements. After filtering, we
+prompt GPT4o0 as a judge to label the filtered re-
+sponses as either CoT or non-CoT responses. The
+prompt is as follows:
+
+You are an expert at analyzing reasoning pat-
+terns in Al responses. Given a question-response
+pair, your task is to determine whether the response
+follows a Chain of Thought (CoT) reasoning pat-
+tern or not.
+
+Chain of Thought (CoT) responses show explicit
+step-by-step reasoning before arriving at the fi-
+nal answer. They break down the problem, work
+through intermediate steps, and show the logical
+progression that leads to the conclusion.
+
+Non-CoT responses provide direct answers with-
+out showing the reasoning process or intermediate
+steps.
+
+For the question-response pair provided be-
+low, analyze whether the response uses Chain of
+Thought reasoning by checking if it: 1. Shows ex-
+plicit reasoning steps 2. Breaks down the problem
+into parts 3. Works through intermediate calcu-
+lations or logical steps 4. Explains the thinking
+process before giving the final answer
+
+Reply with: - "COT" if the response demon-
+strates Chain of Thought reasoning with clear in-
+termediate steps - "NON-COT" if the response
+gives a direct answer without showing the rea-
+soning process Question: [Question will be in-
+serted here] Response: [Response will be inserted
+here] Our CoT/non-CoT dataset, constructed us-
+ing Mistral-7b sampling and GPT-40 annotation,
+directly transfers to train effective classifiers for
+Phi-1.5 and Gemma?2-2b without reconstruction.
+The fundamental CoT vs. non-CoT distinction cap-
+tures abstract reasoning patterns that generalize
+
+across LLM architectures. The rationale behind
+dataset reusability is that we only need paired data
+capturing fundamental CoT vs non-CoT reasoning
+patterns, which transfer across LLMs due to shared
+training objectives and representational structures,
+
+D.2 Classifier Training Settings
+
+For our experiments, we collected a dataset com-
+prising 1245 positive (CoT) and 1868 negative
+(non-CoT) samples, with each sample represent-
+ing a question-response pair. Analysis of response
+lengths revealed that CoT responses averaged 131.7
+tokens, while non-CoT responses averaged only
+15.8 tokens.
+
+We extracted token-wise hidden representations
+from all layers of the LLM network and trained a
+separate classifier for each layer. To address the
+imbalance in response lengths between positive
+and negative samples, we implemented a strategic
+sampling approach: extracting hidden representa-
+tions every five tokens for CoT responses and every
+token for non-CoT responses, thereby creating a
+more balanced training dataset.
+
+We train the classifier using the Logistic Regres-
+sion and Support Vector Machine (SVM) classi-
+fiers. The epoch number is 100, the learning rate is
+0.001, using stochastic gradient descent (SGD) as
+the optimizer.
+
+E More Probing Experiments Results
+
+E.1 Classifier Classification Performance
+
+Building upon our main findings, we conduct an ex-
+tensive evaluation using both Logistic Regression
+(LR) and Support Vector Machine (SVM) classi-
+fiers, assessed through Accuracy, F1-score, and
+AUC-ROC metrics. As shown in Figures 6 and 7,
+these complementary metrics reinforce and extend
+our key observations:
+
+(1) Representation type analysis: The distinct
+patterns observed across different LLMs are con-
+sistently reflected across all metrics. In Mistral-7b,
+hidden states maintain their superior performance
+across both classifiers and all evaluation metrics,
+with MLP and attention activations showing com-
+parable but slightly lower performance. For Phi-
+1.5, the notable fluctuation in hidden states and
+the stable superiority of attention outputs are ro-
+bustly captured by all metrics. In Gemma2-2b,
+attention activations consistently demonstrate the
+strongest discriminative power across all evalua-
+tion criteria, while hidden states and MLP outputs
+
+
+show substantial variations. This consistent pattern
+across different evaluation frameworks strengthens
+our observation about model-specific architectural
+strategies for encoding thoughtful reasoning.
+
+(2) Layer-wise analysis: The layer-specific
+trends identified in our main analysis persist across
+different classification approaches and metrics.
+Mistral-7b’s progressive improvement in deeper
+layers is consistently observed in both LR and
+SVM results, regardless of the evaluation metric
+used. The more distributed patterns in Phi-1.5 and
+Gemma2-2b, characterized by fluctuations with-
+out clear directional trends, are similarly preserved
+across all evaluation frameworks. These consis-
+tent findings across multiple metrics provide strong
+validation for our conclusions about how different
+LLMs architecturally encode thoughtfulness fea-
+tures.
+
+E.2 Classifier logit value analysis
+
+We conduct a detailed analysis of classifier logit
+value distributions across multiple language mod-
+els (Mistral-7b, Gemma2-2b, Phi-1.5). Using both
+Logistic Regression and SVM classifiers, we com-
+pare the distributional patterns between the most
+discriminative layers (top-3 F1 scores) and least
+discriminative layers (bottom-3 F1 scores).
+
+Figures 8, 9 present comprehensive comparisons
+of classifier logit values for Gemma2-2B. Figures
+10, 11 present comprehensive comparisons of clas-
+sifier logit values for Mistral-7B. Figures 12, 13
+present comprehensive comparisons of classifier
+logit values for Phi-1.5.
+
+Specifically, Figure 8 compares thoughtful cor-
+rect responses against intuitive responses, while
+Figure 9 contrasts thoughtful correct responses
+with thoughtful incorrect responses. These compar-
+isons are conducted within both top-3 and bottom-3
+performing layers (ranked by F1-scores), spanning
+across different classifier architectures (Logistic
+Regression and SVM) and various representation
+types (attention activations, MLP activations, and
+hidden states), providing a thorough validation of
+the scoring and ranking ability of the classifier’s
+logit.
+
+Notably, in attention activations, which achieve
+the best classification performance among all rep-
+resentation types, thoughtful correct responses con-
+sistently receive higher logit values than both in-
+tuitive responses and thoughtful but incorrect re-
+sponses, demonstrating the robust discriminative
+ability of our approach. However, this clear rank-
+
+ing pattern is occasionally violated in MLP activa-
+tions and hidden states, where thoughtful correct re-
+sponses sometimes receive lower logit values than
+the other response types. Moreover, this ranking
+trend is more pronounced in top-3 performing lay-
+ers compared to bottom-3 layers, suggesting that
+layers with stronger discriminative power better
+preserve the desired response quality ordering.
+
+Similar patterns are observed in Mistral-7B and
+Phi-1.5 models, indicating that our trained classi-
+fiers demonstrate strong scoring and ranking capa-
+bilities across different model architectures, mak-
+ing them reliable guides for thought space explo-
+ration.
+
+
+Accuracy
+
+Accuracy
+
+Accuracy
+
+Accuracy
+
+Accuracy
+
+Accuracy
+
+Mistral-7b
+
+10 1.0 10 T T
+—=— MLP
+0.8 a © %87 —— Hidden state |
+[2] o
+0.4 4 —— MLP T 0.4 4 —— MLP 2 0.4
+dT Hidden state wd Hidden state 02
+- —e— Attn - —— Attn -
+0.0 ; 0.01 - 0.0
+0 5 10 15 20 25 30 0 5 10 15 20 25 30 0 5 10 15 20 25 30
+Layer Layer Layer
+Gemma2-2b
+10 1.0 10
+0.8 0.8 © 081
+o
+0.6 0.6 TC 06
+I<) [&]
+0.44 —— MP S 044 —— mp 2 041 —— MP
+zd Hidden state 3 —e— Hidden state ez Hidden state
+“1 —— an T0927 mtn “1 —— Attn
+0.0 0.0 — T T T T 0.0
+0 5 10 15 20 25 0 5 10 15 20 25 0 5 10 15 20 25
+Layer Layer Layer
+Phi-1.5
+10 1.0 10
+0.8 0.8 0.8
+7 FERRY Va N 2 8
+Q o
+06 —— MLP 3 06] Mp 9d oe —— MLP
+: —— Hidden state I | — Hidden state 2 —— Hidden state
+—— Attn —— Attn —— Attn
+0.44 r y T y 0.4 + + y 0.4 i y T y
+0 5 10 15 20 0 5 10 15 20 0 5 10 15 20
+Layer Layer Layer
+Figure 6: LR classification performance across LLMs and representation types
+Mistral-7b
+10 10 10 T T
+—— MLP
+0.84 008 ©0847 Hidden state
+3 2 — Attn
+0.61 —— MP R06 1 —— mp S061
+—=— Hidden state w —=— Hidden state <
+0.44 —=— Attn 0.4 1 —=— Attn 0.4
+[J 5 10 15 20 25 30 0 5 10 15 20 25 30 0 5 10 15 20 25 30
+Layer Layer Layer
+l Gemma2-2b
+1.07 10 10
+0.8 1 20.8 < R v g 084
+8 | | 2
+@ 3)
+0.61 —— MLP = 0.6 1 —— MLP 2067 —— mp
+—=— Hidden state —=— Hidden state —=— Hidden state
+04+ —e— Attn 0.4 1 —— Attn 0.44 —— Attn
+0 5 10 15 20 25 0 5 10 15 20 25 0 5 10 15 20 25
+Layer Layer Layer
+Phi-1.5
+10 10 10
+0.8 0.8 0.8
+[) Q
+o
+] &
+0.61 —— MLP | Gof — mp & 06 —— MP
+—— Hidden state pi —=— Hidden state 2 —— Hidden state
+04 —— Attn 0.41 —— Attn 0.4 —— Attn
+T T T a T T T T T T T T
+0 5 10 15 20 0 5 10 15 20 0 5 10 15 20
+Layer Layer Layer
+
+Figure 7: SVM classification performance across LLMs and representation types
+
+
+Top-3 classification performance layers(Attn Activation)
+
+~ Non-Thoughtful ~— Non-Thoughtful
+01 —— Thoughtful 01 —— Thoughtful
+0 0 100 150 200 0 0 100 150 200
+Bottom-3 classification performance layers(Attn Activation)
+2.59
+34
+2.01
+2 15
+1.04
+14
+~— Non-Thoughtful | 0.5 —— Non-Thoughtful
+04 ~— Thoughtful 0.04 —— Thoughtful
+0 50 100 150 200 0 50 100 150 200
+LR SVM
+Top-3 classification performance layers(Hidden states)
+—— Non-Thoughtful 30 {
+407 Thoughtful
+30 204
+20
+10 A
+10
+—— Non-Thoughtful
+0 0 —— Thoughtful
+0 50 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(Hidden states)
+600
+-600
+—800 400 1
+-1000 2004
+-1200 —— Non-Thoughtful —— Non-Thoughtful
+—— Thoughtful 04 —— Thoughtful
+0 50 100 150 200 0 50 100 150 200
+LR SVM
+
+Top-3 classification performance layers(MLP Activation)
+
+0.5 —— Non-Thoughtful 00 —— Non-Thoughtful
+00 —— Thoughtful : —— Thoughtful
+: T T T T T T T T T T
+
+0 50 100 150 200 0 50 100 150 200
+
+Bottom-3 classification performance layers(MLP Activation)
+1.2
+
+~— Non-Thoughtful
+10 —— Thoughtful 11
+1.0
+0.8
+0.9
+06 0.8 —— Non-Thoughtful
+0.7 ~— Thoughtful
+T T T r r r T T T T
+0 50 100 150 200 0 50 100 150 200
+LR SVM
+
+Figure 8: Mean logit values and variance regions in Gemma2-2b, comparing lengthy thoughtful correct responses
+with concise intuitive incorrect ones.
+
+
+Top-3 classification performance layers(Attn Activation)
+
+~~ Thoughtful but wrong
+~—— Thoughtful and correct
+
+~—— Thoughtful but wrong
+
+0 ~— Thoughtful and correct
+mse
+
+0 50 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(Attn Activation)
+2.51
+3
+2.04
+2 15
+1.0
+14
+—— Thoughtful but wrong 0.51 —— Thoughtful but wrong
+0A ~—— Thoughtful and correct 0.0 ~—— Thoughtful and correct
+. : . - - - : - - -
+0 50 100 150 200 0 50 100 150 200
+LR SVM
+Top-3 classification performance layers(Hidden states)
+0+ —— Thoughtful but wrong 04 Thoughttul but wrong
+~~ Thoughtful and correct
+
+~~ Thoughtful and correct
+—104 .
+
+-204
+
+—-304
+
+—-104
+
+—-20
+
+—304
+
+—40
+
+T
+100
+
+150 200 0 50 100
+Bottom-3 classification performance layers(Hidden states)
+
+—— Thoughtful and correct
+
+~—— Thoughtful and correct
+
+150 200 0 50 100
+SVM
+Top-3 classification performance layers(MLP Activation)
+
+T T
+150 200
+
+1.5
+1.5
+1.0
+1.04
+0.5
+0.5
+~—— Thoughtful and correct 0.04
+T v v r v T v T v
+0 50 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(MLP Activation)
+~—— Thoughtful but wrong 1.2
+1.0 { — Thoughtful and correct 114
+1.0 4
+0.8
+0.9
+0.6 1 0.84 ~~ Thoughtful but wrong
+~— Thoughtful and correct
+T T T T T 0.71 T T T T T
+0 50 100 150 200 0 50 100 150 200
+LR SVM
+
+Figure 9: Mean logit values and variance regions in Gemma2-2b, comparing lengthy thoughtful correct responses
+
+with lengthy incorrect ones.
+
+
+
+Top-3 classification performance layers(Attn Activation)
+
+21 151
+1.04
+1
+05+
+04 —— Non-Thoughtful 0.04 ~—— Non-Thoughtful
+—— Thoughtful —— Thoughtful
+- r r r r : - r r r r r r N r r r r
+0 25 50 75 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+Bottom-3 classification performance layers(Attn Activation)
+114
+16
+
+141 1.01 7 5
+121 091
+1.0
+~ Non-Thoughtful | og 4 ~— Non-Thoughtful
+
+0.81 —— Thoughtful —— Thoughtful
+0 25 50 75 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+LR SVM
+Top-3 classification performance layers(Hidden states)
+ad
+2
+24
+od
+od
+~— Non-Thoughtful ~ Non-Thoughtful
+21 —— Thoughtful —— Thoughtful
+T T T T T T T T T -24 T T T T T T T T T
+0 25 50 7s 100 125 150 175 200 0 25 50 7s 100 125 150 175 200
+
+Bottom-3 classification performance layers(Hidden states)
+
+0.8 1 —— Non-Thoughtful 0.74 —— Non-Thoughtful
+~—— Thoughtful ~—— Thoughtful
+0.6 {
+T T T T T T T T T 0.6 T T r T T T T T T
+0 25 50 7s 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+LR SVM
+
+Top-3 classification performance layers(MLP Activation)
+
+6 ~—— Non-Thoughtful
+—— Thoughtful 04
+5
+4 21
+3
+~— Non-Thoughtful
+
+2 “+1 —— Thoughtful
+
+v T v T T T T T T T r T r T r T r T
+
+0 25 50 75 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+
+Bottom-3 classification performance layers(MLP Activation)
+
+0.4 0.4 1
+0.3
+034
+0.2
+0.1 0.2
+0.0 ~—— Non-Thoughtful 0.1 ~— Non-Thoughtful
+~—— Thoughtful —— Thoughtful
+0.1 ua 9
+T T T T T T T T T T r T T T T T T T
+0 25 50 75 100 125 150 175 200 0 25 50 7s 100 125 150 175 200
+LR SVM
+
+Figure 10: Mean logit values and variance regions in Mistral-7b, comparing lengthy thoughtful correct responses
+with concise intuitive incorrect ones.
+
+
+Top-3 classification performance layers(Attn Activation)
+
+~— Thoughtful but wrong
+—— Thoughtful and correct
+
+0 25 50 75 100 125 150 175 200
+
+Bottom-3 classification performance layers(Attn Activation)
+110
+
+1.05
+1.00
+
+0.95
+
+~—— Thoughtful but wrong
+~—— Thoughtful and correct
+
+0.90
+
+0 25 50 75 100 125 150 175 200
+SVM
+
+64
+2.5
+
+54
+2.0
+
+a4
+15
+
+34
+1.0 mer SER
+
+2 { —— Thoughtful but wrong ~—— Thoughtful but wrong
+
+—— Thoughtful and correct 0.5 —— Thoughtful and correct
+11 r r r v r v r r i r v r i r r r r
+0 25 50 75 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+
+Bottom-3 classification performance layers(Hidden states)
+
+1.00
+0.98
+~—— Thoughtful but wrong
+0.96 ~—— Thoughtful and correct
+0 25 50 75 00 15 150 175 200 0 25 50 75 00 125 150 175 200
+LR SVM
+Top-3 classification performance layers(MLP Activation)
+v —— Thoughtful but wrong
+0.0 — —— Thoughtful and correct | 0.01
+-0.5 .
+-0.5 4
+-1.0
+“154 -1.0 A
+r : : : : : : r : r r r : r : r : :
+0 25 50 75 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+Bottom-3 classification performance layers(MLP Activation)
+08] —— Thoughtful but wrong —— Thoughtful but wrong
+—— Thoughtful and correct | 0.88 1 —— Thoughtful and correct
+0.7 v
+0.86
+0.6 4 0.84 1
+0.5 0.82
+r r r r r r r r r r r r r r r r r r
+0 25 50 75 100 125 150 175 200 0 25 50 75 100 125 150 175 200
+LR SVM
+
+Figure 11: Mean logit values and variance regions in Mistral-7b, comparing lengthy thoughtful correct responses
+with lengthy incorrect ones.
+
+
+Top-3 classification performance layers(Attn Activation)
+27
+
+01 04
+1 Cm —— Non-Thoughtful | -1 Co —— Non-Thoughtful
+21 —— Thoughtful —— Thoughtful
+
+0 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(Attn Activation)
+2
+14
+14
+04
+0
+—— Non-Thoughtful —— Non-Thoughtful
+1 —— Thoughtful -14 ~—— Thoughtful
+0 100 150 200 0 50 100 150 200
+LR SVM
+Top-3 classification performance layers(Hidden states)
+2
+24
+14
+04 04
+—
+-1-
+2] —— Non-Thoughtful —24 — —— Non-Thoughtful
+—— Thoughtful —— Thoughtful
+0 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(Hidden states)
+254
+200 4
+04
+150 4 —25 1
+-50 4 Ven
+100 4
+~—— Non-Thoughtful =751 al —— Non-Thoughtful
+—— Thoughtful —1004 —— Thoughtful
+50 +— : : : : : : : :
+0 100 150 200 0 50 100 150 200
+LR SVM
+
+Top-3 classification performance layers(MLP Activation)
+
+1 ESSERE | | neu
+
+a4 I/
+NV ath —— NonThoughtful | -11 ~~~ —— Non-Thoughtful
+2 —— Thoughtful —— Thoughtful
+: : . : - : : : .
+0 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(MLP Activation)
+3 ~—— Non-Thoughtful
+—— Thoughtful 24
+: ng AN,
+0
+—— Non-Thoughtful
+-1 24 —— Thoughtful
+. : : : . : : - -
+0 100 150 200 0 50 100 150 200
+LR SVM
+
+Figure 12: Mean logit values and variance regions in Phi-1.5, comparing lengthy thoughtful correct responses with
+
+concise intuitive incorrect ones.
+
+
+
+Top-3 classification performance layers(Attn Activation)
+2
+
+~~ Thoughtful but wrong ~—— Thoughtful but wrong
+~— Thoughtful and correct —14 ~—— Thoughtful and correct
+
+0 50 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(Attn Activation
+1.51
+
+1.01
+
+0.51
+0.01
+~—— Thoughtful but wrong _0.54
+—— Thoughtful and correct :
+-1.0
+[J 50 100 150 200 [4] 50 100 150 200
+LR SVM
+
+Top-3 classification performance layers(Hidden states)
+
+© =» N Ww »
+
+° ~—— Thoughtful but wrong ~— Thoughtful but wrong
+
+—— Thoughtful and correct —— Thoughtful and correct
+-1
+[J 50 100 150 200 [4 50 100 150 200
+
+Bottom-3 classification performance layers(Hidden states)
+
+10
+5
+
+0
+~—— Thoughtful but wrong
+~—— Thoughtful and correct | -5
+
+0 50 100 150 200
+
+o
+
+50 100 150 200
+
+Top-3 classification performance layers(MLP Activation)
+
+1
+
+[4]
+~—— Thoughtful but wrong ~—— Thoughtful but wrong
+~—— Thoughtful and correct “1 ~—— Thoughtful and correct
+
+0 50 100 150 200 0 50 100 150 200
+Bottom-3 classification performance layers(MLP Activation)
+
+~—— Thoughtful but wrong
+~—— Thoughtful and correct
+
+Figure 13: Mean logit values and variance regions in Phi-1.5, comparing lengthy thoughtful correct responses with
+
+lengthy incorrect ones.

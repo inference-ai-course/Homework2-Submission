@@ -1,0 +1,898 @@
+arXiv:2510.27258v1 [cs.LG] 31 Oct 2025
+
+Higher-order Linear Attention
+
+Yifan Zhang! Zhen Qin Quanquan Gu?
+
+Princeton University  ?University of California, Los Angeles
+yifzhang@princeton.edu qgu@cs.ucla.edu
+
+October 30, 2025
+
+Abstract
+
+The quadratic cost of scaled dot-product attention is a central obstacle to scaling autoregressive
+language models to long contexts. Linear-time attention and State Space Models (SSMs) provide
+scalable alternatives but are typically restricted to first-order or kernel-based approximations,
+which can limit expressivity. We introduce Higher-order Linear Attention (HLA), a causal,
+streaming mechanism that realizes higher interactions via compact prefix sufficient statistics. In
+the second-order case, HLA maintains a constant-size state and computes per-token outputs in
+linear time without materializing any nxn matrices. We give closed-form streaming identities, a
+strictly causal masked variant using two additional summaries, and a chunk-parallel training
+scheme based on associative scans that reproduces the activations of a serial recurrence exactly.
+We further outline extensions to third and higher orders. Collectively, these results position HLA
+as a principled, scalable building block that combines attention-like, data-dependent mixing with
+the efficiency of modern recurrent architectures.
+
+Project Page: https://github.com/yifanzhang-pro/HLA
+
+1 Introduction
+
+The Transformer architecture (Vaswani et al., 2017), powered by scaled dot-product attention,
+underpins modern large language models (LLMs). Yet the O(n?) computational and memory
+complexity in sequence length n constrains long-context use. A rich line of work therefore explores
+more efficient attention mechanisms (e.g., Linear Attention (Katharopoulos et al., 2020; Wang et al.,
+2020; Choromanski et al., 2020; Schlag et al., 2021; Sun et al., 2023; Qin et al., 2023; Yang et al.,
+2023; Qin et al., 2024; Yang et al., 2024b; von Oswald et al., 2025)), Modern Recurrent Neural
+Networks (RNNs) (Peng et al., 2024; Sun et al., 2024; Peng et al., 2025), Fast Weight Programmers
+(Delta Networks, Schlag et al. (2021)), State Space Models (SSMs) (Gu et al., 2021; Gu and Dao,
+2023; Dao and Gu, 2024) and Memory Networks (Behrouz et al., 2024, 2025a,b), which admit O(1)
+per-token state updates at inference.
+
+We propose Higher-order Linear Attention (HLA), generalizing linear attention by incorporating
+higher interactions through compact prefix summaries (sufficient statistics). The key observation is
+that higher attention-like operators admit factorized forms in terms of low-order moments (e.g., sums
+of key outer products), enabling exact causal streaming without constructing attention matrices.
+In the second-order case, HLA maintains an constant-size state per head and produces outputs in
+
+
+linear time per token (O(d?+dd,), here d is the query/key dimension and d, the value dimension,
+independent to the sequence length).
+
+We address two central challenges: (i) enforcing strict autoregressive causality at second-order
+without sacrificing streaming updates or introducing any nxn intermediates; and (ii) enabling
+chunk-parallel training that exactly matches the activations of a serial recurrence. First, we derive
+an exact masked formulation that enforces strict autoregressive causality by augmenting the state
+with two additional summaries; the resulting algorithm remains streaming and efficient. Second,
+we present a chunk-parallel training scheme based on an associative (monoid/semidirect-product)
+operator that yields the same activations as a serial loop while exploiting intra- and inter-chunk
+parallelism.
+
+Our contributions are summarized as follows:
+
+1. Exact masked streaming at second order. We give a complete algebra of extended summaries
+that yields strictly causal second-order HLA with per-token constant cost, together with formal
+statements and proofs establishing masked streaming identities and online updates. The unnor-
+malized HLA is the default operator; the ratio-normalized variant is an option built from the
+same summaries.
+
+2. Associative scans that match serial activations. We define an associative (semidirect-product)
+operator for unmasked and masked settings (with and without exponential decay) and prove that
+a standard exclusive scan produces forward activations identical to those of a serial recurrence.
+We also state the reverse-mode algebra.
+
+3. Third-order extension. We present the full masked third-order state and online updates, with a
+strictly causal streaming kernel.
+
+HLA is intended as a drop-in, attention-like mixer for long-context models. It provides (i)
+attention-style, data-dependent weighting; (ii) strictly causal streaming with O(1) per-token update
+memory independent of sequence length; and (iii) parallel training via scans without resorting to
+approximate backpropagation through time. We deliberately focus on algorithmic structure and
+implementation.
+
+2 Background
+
+Notations. We use bold lowercase for vectors and bold uppercase for matrices/tensors. Token
+index t denotes the current time; d is the query/key dimension; d, is the value dimension. Unless
+otherwise stated, HLA outputs are in the default unnormalized form, which avoids length-dependent
+renormalization. We adopt row-vector outputs o; € R™%: a ratio-normalized (row-normalized)
+variant divides by a masked scalar denominator built from the same summaries for scale control
+and comparability with linear attention. Throughout, prefir summaries are statistics computable in
+streaming fashion with O(1) memory per token and per head.
+
+2.1 Scaled dot-product attention
+
+Given queries Q € R™? keys K € R™*? and values V € R"*% scaled dot-product atten-
+tion (Vaswani et al., 2017) is
+
+QK'
+Vd
+
+Attn(Q,K,V) = sofa + A) V,
+
+2
+
+
+where A € R™*" is the additive causal mask (zeros on and below the diagonal; —oo above). For
+algebraic manipulations outside the softmax (e.g., Section 3.1), we use the Hadamard product ®
+with a binary causal mask, denoted by L (ones on and below the diagonal; zeros above), to mask
+bilinear forms consistently.
+
+2.2 Linear attention
+
+Linear attentions (Wang et al., 2020; Katharopoulos et al., 2020; Choromanski et al., 2020) approxi-
+mate the softmax kernel by a feature map ¢ : RR" (maybe unnormalized):
+
+$a)" (32; o(kj)v])
+
+Maintaining the running sums o(kj)v, and }_; ¢(k;) yields O(nr(d+d,)) time and O(r d,)
+memory complexity.
+
+3 Higher-order Linear Attention
+
+In this section, we will introduce Higher-order Linear Attention (HLA). We begin with second-order
+linear attention as a warm-up, and present its extension to third-order linear attention in Section 7.
+
+Second-order tensor attention mechanism. Second-order tensor attention can be written as
+T;:= (QK')(QK")' = Q(K'K)Q' e R™",
+
+so that [Ta];; = q; (K'K)q;. The right-hand side shows a dependence on the second moment
+KK € R94, suggesting streaming implementations via prefix moments.
+We maintain prefix summaries at time ¢:
+
+Si =) kik] e R™Y,
+
+i<t
+v _
+c¥ = > aw, e Rx,
+i<t
+m¥ = > q; € RY.
+i<t
+
+All the above prefix summaries can be updated in a streaming fashion. In particular, the updates of
+SK and onal cost O(d?) and O(dd,) time per token, respectively.
+
+Unnormalized HLA. The output of second-order HLA at time ¢ is the numerator-style bilinear
+form built from prefix moments:
+op = aq; Skc@v. (3.1)
+
+This choice avoids length-dependent renormalization while preserving streaming updates and the
+same state as the normalized variant.
+
+
+Normalized HLA. In order to define the normalized output of HLA, we define the numerator and
+denominator at t as follows:
+
+num; = qf Skc@v, den; = a; SEm?,
+and the normalized output of HLA is given by
+nuny q/ SK cv
+
+Or = = , 3.2
+den; + ¢ a SEm® + ¢ (3:2)
+
+where € > 0 is a small constant added for numerical stability.
+
+Notably, SK acts as a learned, data-dependent metric on query space; cv Vis a value accumulator
+modulated by past queries; and m¥ provides a query mass for optional scale control. This mirrors a
+second-order polynomial kernel in (q, k) while remaining strictly streaming and causal once masked
+(Section 3.1).
+
+Connection with linear attention. Setting SK =I yields
+
+\%
+mm; =q CPV => (a/q) vi, deny =q/mP => q/q,
+i<t i<t
+
+So the normalized output reduces to a linear-attention form with kernel K(q;,q;) = q;' q;. When
+queries and keys are tied (q; = k;), this coincides with linear attention using the identity feature
+map ¢(z) = x. In general, second-order HLA implements the data-adaptive degree-2 polynomial
+kernel K;(q,q') = q'SEq whose metric SX = 3._, kk; depends on the past keys, strictly
+enriching first-order linearizations while retaining streaming. Absent tying q = k, this differs from
+identity-feature linear attention.
+
+3.1 Causal masking via extended summaries
+
+Let L denote the binary causal mask (lower-triangular, including the diagonal). For the masked
+second-order matrix,
+
+(LeQK)LoQKN], = > (aka) ki) =a Shine,
+
+i<min(t,5)
+
+Equivalently, the strictly causal second-order output at time t can be written in matrix form by
+masking on the right before applying values:
+or = © ©QKHLoQK) |e L) Vv.
+This row-wise ®L enforces the restriction j < t when multiplying by V.
+Define two additional prefix summaries
+
+G; = > (kik) c" c RIX
+
+i<t
+
+he = (kik! ) mf, eR.
+
+i<t
+
+We have the following theorem, which gives the unnormalized and normalized outputs of HLA with
+a causal mask.
+
+
+Theorem 3.1 (Masked streaming identity for second order). For each , let
+numesk = qf (sFee” - Gi) , denask — qf (Fm - hy) .
+Consequently, the strictly causal, masked default unnormalized output is
+on = af (SFC - Gi). (3.3)
+An optional linear normalization divides by the masked denominator,
+of (sfc? - a)
+
+af (SFmf — hy) +=
+
+Or =
+
+where € > 0 is a small constant added for numerical stability.
+
+Proof. Let W = L ® (QK") with L lower-triangular including the diagonal. For the second-order
+weight matrix, we have WW with entries (WW), ; = > i<min(r.g) (af ki) (a) ki). Then the
+masked, unnormalized numerator at time t is
+
+num} _ > (WW )t.j Vv, _ > (> q; k; k,; a)v] = a; SY kik] )ayv] )
+
+jst jstoisy jst iggy
+
+where the second equality uses the fact that min(¢,j) = j when j < t. Interchanging finite sums
+
+yields
+S (Ski Jay] = sF av] = stay] 3 (2 kk Jay]. (35)
+J<t i<j J<t J<t J<t j<ist
+I I
+1 2
+
+where the last equality holds due to SK = Sk — do j<i<t kk.
+
+In Eq. (3.5), the first term I; equals SKceY. For the second term Ip, swap the order of
+summation: 7. >; (1) = 2i< 2j<;(+), we can obtain Ip = 37, (kik) )( 2; a;v)) = Gy.
+This proves the numerator identity. The proof for the denominator is analogous with v; replaced by
+1 (i.e., q; replaced by 1-summaries), yielding SK mY — hy. Finally, the division by dentask + € gives
+
+Online updates. Using the fact that (kk')X = k(k' X), we have
+Si = Sf, + kik/, cc? =c? +a, my? =m | + aq,
+Gi = G1 + ki(k] C21), hy = hy + ke(k/ m® )).
+
+Therefore, the per-token cost remains O(d?>+dd,) in total.
+
+4 Chunk-parallel training via associative scans
+
+In Section 3.1, we have presented the recurrent form for second-order HLA. As we know, training
+a purely recurrent model is inefficient on GPUs. We adopt within-chunk scans with width w and
+inter-chunk scans across B chunks (Blelloch, 1990). A similar technique has been widely used in the
+literature of linear attention (Yang et al., 2023; Qin et al., 2024). We write B. for the number of
+chunks to avoid overloading B elsewhere; thus, inter-chunk scans are across B. chunks.
+
+
+4.1 Unmasked monoid
+
+Let S = (S,C,m) with token “deltas” AS; = kik, AC; = qv’, Am; = q;. Define elementary
+segments 7; = (AS, AC, Amy) and the additive monoid
+
+(S4,Ca,my) ® (Sp, Cr, mp) = (Ss+Sp, C4+Cp, my+mp).
+
+An exclusive Blelloch scan on {71,..., 7} yields per-token prefixes Py = @,_, Ti, from which the
+inclusive state at t is obtained locally by adding 7;. Here and below, A then B denotes adjacent
+segments in time (all indices in A precede those in B).
+
+4.2 Masked semidirect product
+
+For the masked case use S = (S, C,m, G, h). For a single-token segment, G = h = 0. Concatenation
+is
+
+(S4,Ca,my, G4, hy) ® (Sp, Cp, mp, Gp, hp) =
+
+4.1
+(Sa+SB, C4+Cp, my+mp, G4+Gp + SpCy, hathp + Spmy), (4.1)
+
+which is associative (direct expansion). Perform the same exclusive scan; per-token inclusive states
+follow by adding the local deltas and the cross-terms AS;C;_; and AS;m;_1.
+
+Decay-aware monoid. Let v € (0,1) be a fixed exponential decay and let a segment X carry its
+length £(X) and attenuation p(X) i= ~*). For the unmasked triple S = (S,C, m) the decayed
+concatenation is
+
+(Sa; Ca,ma, pa) Gy (Sp, Cp, mp, pp) = (ppSa+Sp, ppCa+Cp, ppma+mp, papp),
+and analogously for the masked (S,C, m, G,h) state:
+
+(S4,Ca,my, Ga, hy, pa) ®, (Sp, Cp, mp, Gp, hp, pp) =
+(p5Sa+Ss, pBCa+Cp, ppma+mp,
+
+pBGa+Gp + Sp(ppCa), ppha+hp + Sp(ppmy), paps).
+
+Associativity follows from bilinearity and p-multiplicativity.
+
+Theorem 4.1 (Scan equivalence: serial vs. (decayed) associative scans). Consider a sequence of
+token segments {71,...,7,} and either @ (no decay) or &, (with decay). Let P; be the exclusive
+prefix obtained by a Blelloch scan under the chosen operator. For each t, the inclusive state
+computed locally from P; and 7; equals the state produced by a serial left-to-right recurrence on
+tokens 1:t. Consequently, the per-token masked outputs are identical to those of the serial algorithm.
+
+Proof. We prove for the masked, decayed case; the other cases are specializations. Define the
+serial recurrence X; = ®,(X;—1,7;) given by the online updates in Section 3.1 with decay vy. By
+construction, ®, coincides with the binary map f,(X,)) i= X ®, )Y when Y is a single-token
+segment. Because @, is associative with identity the zero-length segment £ (all-zero summaries,
+p = 1), the Blelloch scan yields P; = & @& Ti ® + -- © Ti—1. The local inclusive update computes
+Pi © Tt, which equals &; by associativity and the definition of ®.. The masked outputs are functions
+only of the inclusive state (Theorem 3.1), hence coincide with the serial outputs.
+
+
+
+Backward for gradients. Let @&* denote the vector-Jacobian adjoint of & evaluated at the forward
+states. A reverse (decayed) scan applying @7 with checkpointing at tile boundaries yields gradients
+that match those of the serial recurrence, by Theorem 4.1 and the chain rule.
+
+Remark 4.2 (Inclusive vs. exclusive scans). Given segments (77, ..., Ty) and an associative operator
+@ with identity £, the exclusive scan returns prefixes Pr =E @T1 ® --- @® T;_1, while the inclusive
+scan returns Z; = Py & Ti. Our forward algorithms compute P; via an exclusive Blelloch scan
+and then form the inclusive state locally by combining P; with the token’s deltas (and required
+cross-terms). This choice exposes maximal parallelism and ensures exact equality to the serial
+recurrence by Theorem 4.1. With decay, the identity is the zero-length segment (O0,...,0, p=1); the
+exclusive /inclusive distinction is unchanged.
+
+Intra-chunk parallelism. Within a chunk of width w, an exclusive Blelloch scan over {T7,..., Ty}
+under @ (or @,) yields Py for all ¢ in O(log w) span and O(1) auxiliary memory per position. The
+per-token inclusive states are then computed independently as Z; = P; ® 7.
+
+Inter-chunk parallelism. For B. chunks, each chunk c¢ produces a single summary Sl) =
+Dicchunk « Te- An exclusive scan across the B. summaries gives carry-in prefixes Pl) for every
+chunk. Each position ¢ in chunk c¢ then uses the merged prefix PE P: before adding its local 7; to
+obtain the inclusive state. This is the same parallel skeleton widely used in modern linear-attention
+and recurrent networks that maintain streaming sufficient statistics (Sun et al., 2023; Qin et al.,
+2023; Yang et al., 2023; Qin et al., 2024; Yang et al., 2024b).
+
+Connection to linear attention. First-order linear attentions and related modern RNN kernels
+scan additive/decayed summaries (e.g., >. ¢(k)v' and denominators) using exactly this intra-/inter-
+chunk pattern. HLA plugs into the same infrastructure: only the state tuple and cross-terms change
+(e.g., (S,C,m, G,h) for second order), while the exclusive/inclusive logic and two-level scan strategy
+remain identical. Thus, HLA inherits the throughput characteristics of these systems with strictly
+higher expressivity.
+
+4.3 Adding decay and regularization
+Decayed states. Introduce a time decay v € (0,1):
+Si = Si +k, CFV =CT +a], mf =m, +a,
+and the cross-summaries obey
+Gy =7G1 + ki(k/ C2), hy = yh + ke(k/ mf),
+
+which are the decayed analogues of the online updates in Section 3.1. Decay controls spectral
+growth and improves recency bias while maintaining associativity (with respect to segment-local
+normalization) (Sun et al., 2023; Qin et al., 2023; Yang et al., 2023, 2024a; Peng et al., 2024; Behrouz
+et al., 2024; Peng et al., 2025; Behrouz et al., 2025a,b).
+
+5 Implementation details and complexity
+
+In this section, we discuss the implementation details and provide a complexity analysis.
+Recall that for each token and each head (second order), we have
+
+
+o State: SK c Rid C9 ¢ RI*d m¥ c RY (and masked G; € R¥*% h, € RY).
+
+e Compute: evaluate u; = q; SX (mat-vec) and then uC? (row—matrix), with masked
+corrections —q; G¢; the denominator uses um? — q/ h;. This avoids forming Sf ce
+explicitly; masked cross-terms still use k; X to avoid cubic cost.
+
+e Parallelism: within-chunk Blelloch scans (span O(logw)) and inter-chunk exclusive scans
+across B. chunks, both using the same @.
+
+Algorithm 1 Masked (Second Order) HLA with Within-Chunk Scan
+
+Require: Chunk tokens (q[l:w], k[1:w], v[l:w]), &, optional ridge A, optional decay +, optional flag normalize
+1: Token segments: for t = 1..w, set AS; + kk], AC; + q;v/ , Am; + q;, and initialize G;=0, h;=0.
+2: Exclusive scan over {(AS;,AC;,Am,,0,0)}}", using @ in Eq. (4.1) (with decay if used) to obtain
+
+prefixes Ps = (S: 1, Cy 1, 1M 1, Gy 1, hy 1).
+3: for t = 1 to w in parallel do
+: Inclusive state:
+
+6: Gy + 7G—1 + AS; C;_1; hy + vhy_1 + AS; m;_;
+
+7: Effective S: S¢ «+S; + AI > optional ridge for stability
+
+8: Default masked unnormalized output:
+
+9:  u< q/ St > O(d?) matvec
+10: num + uC; — q/ Gy > O(ddy)
+11: olla «pum
+12: Optional normalization:
+
+13: if normalize then
+
+14: den + um; —q/ h; +¢
+15: olla + olla /den
+
+16: end if
+
+17: end for
+
+18: return {o}'?}¥
+
+5.1 Pseudocode
+
+We present a PyTorch-like reference for masked second-order HLA with a within-chunk exclusive
+scan. Unmasked and/or diagonal-regularized variants follow by removing (G,h). Normalization is
+optional; by default, the implementation returns the unnormalized output and may divide by the
+masked denominator if requested.
+
+Remark. Adding AI yields a stabilized causal variant of the masked operator; it does not correspond
+to the exact masked bilinear form of (L ® QK).
+
+5.2 Implementation considerations
+
+HLA only replaces the standard attention sublayer in the transformer block, while the feed-forward
+sublayer and normalization sublayers remain unchanged. Drop-in replacement requires only swapping
+the kernel while keeping positional encodings and masking identical to the baseline. Multi-query
+keys/values (sharing K, V across heads) reduce state from O (hd?) to O(d*>+hdd,) while preserving
+the algebra.
+
+
+The summaries (S,C,m, G,h) are per head. With multi-query (K,V shared across heads),
+the key moment Sf is shared and stored once per layer (O(d?)), while (ce, m?, Gi, ht) remain
+per-head (O(hdd,+hd)). This yields a total memory of O(d>+hdd,) instead of O(hd*+hdd,)
+when each head maintains its own Sf.
+
+For throughput, maintain S& in a packed symmetric layout (store only the upper triangle,
+sd(d+1) entries) to reduce bandwidth without changing the algebra. Within a chunk of width w,
+use an exclusive Blelloch scan to obtain prefixes in O(log w) span and constant extra memory per
+position; inter-chunk scans use the same operator across B. chunks.
+
+6 Asymmetric Higher-order Linear Attention
+
+Motivation. The second-order HLA in Section 3 realizes the symmetric triple product AAV
+with A = QK" (masked later). We introduce a complementary asymmetric variant that uses the
+left-cascaded product
+AAV = T T
+QK Q)(K'V),
+AAV
+
+and show it admits strictly causal streaming with O(d?+dd,) per-token cost. We call this operator
+AHLA (Asymmetric Higher-order Linear Attention).
+
+6.1 Definition and masked streaming identity
+
+Let A=L® (QK") be the causally masked affinity, where L is the binary lower-triangular mask
+(including the diagonal). The AAV weights are
+
+t
+(AA); => (aki) (a/kj), j<t.
+i=j
+To obtain strictly causal outputs when applying to values, interpret the final multiplication as
+
+(AA) © L)V; the streaming identity in Theorem 6.1 implements exactly this row-wise masking.
+Consequently, the (unnormalized) output is
+
+oft =3 "SN (a) ki) (ai ky) v) (6.1)
+
+Jt i=jy
+
+Introduce the streaming prefix summaries
+
+PIV =) kv) e RE, my’ =) kj € RY
+jst Ist
+E; => ki(q/ PV) e RP,
+1<t
+n; == > ki (af mK) e RY
+1<t
+
+Note. For chunk-parallel scans used in training, we additionally introduce a segment-level cross
+moment RX; see Section 6.2 for its definition and role in the concatenation operator.
+
+
+Theorem 6.1 (Masked streaming identity for AHLA). With the above definitions,
+JE
+oAHLA _ TE, and ~~ GAHLA — A t
+q, ny +¢€
+
+where the second expression is an optional linear normalization using the masked denominator. The
+online (strictly causal) updates are
+
+PY =P + kv, m;* =m, +k,
+E,=E;, 1+ k: (a; PY), n =n; 1+ ki (a; m{*).
+Proof. From Eq. (6.1), fix i and sum over j < i: Yi<ila) kj) v) = q; PXV. Then ofHLA —
+Yici(al ki) (a) PF) =q/ (Lis ki(a/ PV) = q/ E;. Replacing v; by 1 gives the denominator
+
+with m/f , hence n;. The stated updates follow by isolating index i=t and using that PXYV =
+PAY + kv) and mE = mE | +k.
+
+Cost. For streaming/serial inference, the dominant work is forming q/ PXY € R49 and the
+outer product kq(-); the total is O(dd,) time and O(d d,+d) state per head (for P, E, m,n). For
+chunk-parallel scans used in training, an additional block statistic RX? appears only inside the
+concatenation operator (Section 6.2), contributing O(d?) memory per chunk summary but not to
+the streaming path.
+
+Decay mechanism. With exponential decay v € (0,1),
+PY =P + kev my = ym’, + ki,
+Ei =7E; 1 +k; (af PY), n, =n; 1 +k (af mf),
+
+which preserves associativity of the scan operator below.
+
+6.2 Chunk-parallel scans for AHLA
+Unmasked /masked concatenation. For segment A followed by B, consider the augmented state
+S = (REQ, PEYV m® E n).
+Here RX is the segment-level key—query cross moment, defined by
+REQ — 3 k,q, € RI
+
+iE€segment
+
+It is used only during chunk concatenation to form the cross terms RpP 4 and Rpmy in Eq. (6.2);
+It is not required by the serial /streaming forward path in Algorithm 2. With exponential decay, the
+segment’s RE? attenuates as pR A+R p in the decayed concatenation.
+
+The undecayed associative concatenation is
+
+(Ra, Pa,my,Eg,ng) ®anra (Rp, Pp, mp, Ep, ng) =
+
+(Ra+Rz, PAo+Ppg, my+mp, Epx+Ep+RpP 4, na+np+Rpm,), (6.2)
+
+which is associative by direct expansion of 3°, 4 5 ki(q; P<;) and the observation that for i € B
+the missing cross-prefix equals RpP 4 (and analogously for n).
+
+10
+
+
+Decay-aware concatenation. Let each segment carry its attenuation p(-) = v/¢). Then
+
+(R,P,m,E n, p) = (pBRA+RB, pePa+Pp, ppmg+mp,
+pBEA+ER+RB(pBPA), ppnatnp+Re(ppma), paps),
+
+which is associative by bilinearity and multiplicativity of p.
+
+Scan equivalence. An exclusive Blelloch scan under @appa (or its decayed form) followed by
+local inclusion reproduces exactly the activations of the serial recurrence given above.
+
+6.3 Pseudocode
+
+Algorithm 2 AHLA (Second-order) streaming with causal mask and optional decay
+
+Require: {q:, ky, vi}, decay v € (0, 1], stability € > 0, flag normalize
+1: Init: P=04xd,, m=0g4, E=04xq4,, n=04
+2: fort =1 ton do
+
+3: P+ AP +k]; m+ ym+k,
+
+4: r<q/P > 1xd,
+5: s+ q/m > scalar
+6: E—17E+kir; n<ymn+sk;
+
+7: oq, E
+
+8: if normalize then
+
+9: den + q/n+¢e; o; + o;/den
+
+10: end if
+
+11: end for
+
+12: return {o:}},
+
+Relation to AAV. AHLA emphasizes a matrix power of A, weighting each value v; through
+a single pass qa, k; routed by an intermediate key index i. In contrast, the symmetric AA"V
+aggregates via the metric SX and query summaries. Both are second-order, strictly causal, and
+stream with identical asymptotic costs but induce different inductive biases.
+
+7 Third-Order Linear Attention
+In this section, we will introduce third-order HLA.
+
+7.1 Steaming form of Causal HLA
+
+Third-order tensor attention mechanism. Let A = QK' € R™" and L be the binary causal
+mask. Unmasked third-order tensor attention uses the matrix AA" A. Its (¢, j)-entry is
+
+[(AATA); =) D (al ki)(a ki) | (ark) = q (KTK) > al | kj,
+
+un \ 1 <n
+
+which immediately yields a streaming factorization through prefix moments.
+
+11
+
+
+Unmasked factorization. Define prefix summaries SF = >i kik] € Rex, S¥ =D it qiq, €
+Rd PEV = 5 kv] e Re mf = dict Ki € RY. The default (unnormalized) third-order
+operator is
+
+3 q) SK KV
+
+0?) = q] SKSYPLY.
+
+An optional normalization divides by q, SF om Ke if desired.
+
+Masked streaming summaries. To impose strict causality, we introduce cross-summaries:
+
+GY = 3" (kik) SE  PEY € RO, hi" = (kk) )S? mK, e RY,
+i<t i<t
+
+G7: => SHS 1 (aia; ) JPY € Rx, = Sit (aa) m/ 1 € RY,
+i<t i<t
+
+G” = 8K S? (kiv]) € Rx, bY = 3 sks? Kk; eR
+i<t i<t
+
+Then the masked, unnormalized quantities are defined as follows:
+
+wn qT (sESPPEY Gl) af — al)
+
+den" = q (SFSPmf — bi — hf¥ — nf").
+
+The following theorem shows that the (normalized) output of third-order HLA can be computed
+
+3)mask 3)mask
+based on num! mask and den! ymask
+
+Theorem 7.1 (Masked streaming identity for third order). For each ¢, the strictly causal third-order
+output in the default (unnormalized) form is
+
+3 3 k
+o! ) = num! Jmask,
+
+An optional normalized variant divides by the masked denominator,
+
+@) num mask
+Or = nck
+den, +e
+and the online updates are
+87 = Si +k SP =sy Lut da
+PEV = PEV 4 kv/, mf =m’ | +k. (7.1)
+
+GY = G!! Y + (kek, [Sy PY 1)
+G” = G 2, + SE (ara) )PEY,
+GP = Gc + 8K 89 (kv). (7.2)
+
+h{" = nt, + - (kek) )S2 > mf 15
+nh” = hn? T SE (quay [mf
+bh = bh’, +8{,87 ki. (7.3)
+
+12
+
+
+Proof. Let W =L® (QK") and consider (WW W)V. The ¢-th row applied to V is
+
+SUS WWW |v = af YY SK aul | kv).
+
+Jt \ ust J<t \u<t
+Using Sut SE =SK + > u<t—1(Su KY and repeatedly applying Dic = Dict — Qu<i<t 10 peel off
+the dependence on future indices relative to each summation boundary yields
+> UsESP kv] = (kik! )SP PE => SE (qua) )PEY DSK, vi),
+j<t i<t i<t ist
+
+which is precisely SK SYpK v ele) Gg? GY. Left-multiplication by q/ gives the masked
+numerator, and replacing v; by 1 yields the denominator. Online updates follow by isolating the
+i = t contributions and using (kk')X = k(k' X).
+
+7.2 Pseudocode
+
+We present explicit pseudocode for masked third-order HLA in two parts: (i) a strictly causal
+streaming kernel for inference, and (ii) the associative scan operator used for chunk-parallel training.
+All operations are per head; shapes follow Section 7.1.
+
+Algorithm 3 Masked (Third Order) HLA Streaming Kernel
+
+Require: Sequences {q¢, ke, vi}, decay v € (0, 1], stability e > 0, flag normalize
+1: Init: SE =0gxa, S® =04x4, PXV =04x4,, m<=0,
+
+2: GW=04y4,, GP =04y4,, GB =04x4,, h(M=0,, h@=o0,, h®=0,
+
+3: for Lc tied de
+
+4: Shey «SX: SY. +S; Porev + PEY: myo + mK
+
+5: Inclusive first- order updates (with decay):
+
+7: PEV TPprev + kv; : mf « YMpey + Ky
+
+8: Cross-summaries (matvec/fouter-product forms):
+
+9: wu + S@e kis GW GW + ky (uf Prev); hM «yh ® + ky (uf mye)
+10: as — Sher qr; GP «4G? 4g, (a Pprev); h® « yh? + ay (a mprev)
+11: uz SQ. ky; as «+ Shey uz; GO) yGO) fazv]; h®) « yh®) 1 a3
+12: Output (unnormalized by default):
+
+13: y+ SE qu; 2+ Sy; termA + 2" PEV; termB «+ q; GO); termC + q, TG): termD «+ qa, elS
+14: 0; < termA — termB — termC — termD
+
+15: if normalize then
+
+16: denvec «+ SK (S9m%X) — h() —h® — h®)
+
+17: den <q, denvec + ¢; 0; + 0;/den
+
+18: end if
+
+19: end for
+
+20: return {o;}}_,
+
+Usage. We provide the strictly causal streaming kernel in Algorithm 3. Designing a chunk-parallel
+scan operator that exactly reproduces serial activations requires additional segment-level summaries
+beyond (SK,8%9, PEV mK G13) h(1:3)): we leave this composition to future work.
+
+13
+
+
+8 Related Work
+
+The literature on subquadratic sequence modeling spans (i) fast-weight style dynamic-parameter
+models, (ii) kernel /feature-map linearizations of attention, and (iii) recurrent /state-space approaches.
+HLA belongs to a complementary class: it preserves attention-style, data-dependent mixing but
+realizes higher interactions through compact prefix moments with exact causal masking and scan-
+parallel training.
+
+Fast weights and fast weight programmers (FWPs). Fast weights, dating to early connectionist
+memory models (Hinton and Plaut, 1987), implement short-term, input-dependent synaptic changes.
+Schmidhuber’s fast weight programmers (Schmidhuber, 1992) introduced differentiable controllers
+that program a separate fast-weight matrix; later, Ba et al. (2016) revived this idea to attend to the
+recent past. A series of works made the connection to modern attention explicit: Schlag et al. (2021)
+showed a formal equivalence between linearized self-attention and FWPs, where outer-product
+updates AW; oc kyv,] accumulate an associative memory queried by q; Irie et al. (2021) extended
+FWPs with recurrence in the programmer and the fast net. Yang et al. (2024b) utilizes WY
+Transformations (Bischof and Van Loan, 1987) to implement chunkwise parallel training of Delta
+Network (Schlag et al., 2021). Parallel lines explore higher or preconditioned mixing by maintaining
+or inverting second-moment matrices. In our formulation, Sf plays the role of a learned kernel;
+working directly with SX avoids explicit matrix inversion and preserves streaming updates, whereas
+inverse-based methods typically require heavier linear algebra (Behrouz et al., 2025a,b; von Oswald
+et al., 2025).
+
+Linear Attention Mechanisms. A common route is to replace the softmax kernel by explicit
+features ¢ to enable streaming via running sums. Representative examples include Linear Trans-
+formers (Katharopoulos et al., 2020), Performer’s FAVOR" random features (Choromanski et al.,
+2020), and Random Feature Attention (Peng et al., 2021). Earlier work also proposed multiplicative
+rearrangements that yield linear-complexity-efficient attention (Shen et al., 2021). These meth-
+ods achieve O(ndr) time with r feature dimension but are typically first-order in the sense that
+they maintain only 3 ¢(k)v' and (optionally) a scalar denominator. By contrast, second-order
+HLA maintains the full key moment SX = doit kk together with query-value and query mass
+summaries and their masked cross-summaries, yielding strictly causal higher interactions while
+remaining streaming. Recent linear attention variants include Sun et al. (2023); Qin et al. (2023);
+Yang et al. (2023); Qin et al. (2024); Yang et al. (2024b); von Oswald et al. (2025).
+
+State Space Models. SSMs (e.g., S4) (Gu et al., 2021) and selective SSMs (e.g., Mamba) (Gu
+and Dao, 2023; Dao and Gu, 2024) realize O(1) per-token state updates via linear recurrences and
+convolutions. These architectures excel at long-range dependencies but express data-dependent
+mixing differently from attention. HLA sits in between: it is attention-like (data-dependent
+queries /keys) yet streams via compact prefix statistics like recurrent models.
+
+Modern RNNs. Recent modern RNN designs emphasize gating, decays, and associative scan—friendly
+recurrences that enable parallel training while preserving strictly constant per-token state at inference.
+Examples include gated linear mixers and decay-aware updates (Yang et al., 2023, 2024a), efficient
+gradient routing and training strategies for long sequences (Qin et al., 2024; Peng et al., 2024;
+Sun et al., 2024), and RWKV-style architectures that replace attention with learned decays and
+elementwise gating (Peng et al., 2025). These methods typically maintain first-order sufficient
+statistics and rely on fixed linear dynamics. In contrast, HLA retains attention-style, data-dependent
+metrics via SX and higher cross-summaries while keeping the same O(1) per-token state update
+
+14
+
+
+paradigm, offering a complementary inductive bias to RNNs and SSMs.
+
+Test Time Training and Memory Networks. Test-time adaptation and explicit long-term memory
+are emerging tools for extending context without quadratic cost. Test-time training variants adapt
+parameters from recent tokens to improve local coherence (Sun et al., 2024), whereas memory
+networks maintain external stores addressable by content keys (Behrouz et al., 2024, 2025a,b). The
+HLA view is orthogonal: it encodes higher interactions in compact prefix moments that are sufficient
+for exact masked streaming and scan-parallel training.
+
+Associative memory and Hopfield views. Modern Hopfield networks show that transformer
+attention is a single-step retrieval in an energy-based associative memory (Ramsauer et al., 2020;
+Zhong et al., 2025). While this perspective clarifies why attention uses content-addressable memory,
+standard Hopfield-style layers remain first-order in their sufficient statistics. HLA complements this
+view by providing explicit higher sufficient statistics with strict causality.
+
+9 Conclusion
+
+We introduced Higher-order Linear Attention (HLA), a causal higher attention mechanism with exact
+streaming updates, a strictly causal masked formulation via extended summaries, and associative
+scans for parallel training that provably match serial recurrences. At second order, HLA maintains
+O(d?) state per head and computes each token in O(d?) time, with optional normalization and
+decay that preserve associativity. We further developed an asymmetric variant (AHLA) and a
+complete third-order masked algebra with streaming formulas and scan operators.
+
+References
+
+Jimmy Ba, Geoffrey E Hinton, Volodymyr Mnih, Joel Z Leibo, and Catalin Ionescu. Using fast
+weights to attend to the recent past. Advances in neural information processing systems, 29, 2016.
+
+Ali Behrouz, Peilin Zhong, and Vahab Mirrokni. Titans: Learning to memorize at test time. arXiv
+preprint arXiv:2501.00663, 2024.
+
+Ali Behrouz, Zeman Li, Praneeth Kacham, Majid Daliri, Yuan Deng, Peilin Zhong, Meisam
+Razaviyayn, and Vahab Mirrokni. Atlas: Learning to optimally memorize the context at test
+time. arXiv preprint arXiw:2505.253735, 2025a.
+
+Ali Behrouz, Meisam Razaviyayn, Peilin Zhong, and Vahab Mirrokni. It’s all connected: A journey
+through test-time memorization, attentional bias, retention, and online optimization. arXiv
+preprint arXiv:2504.13173, 2025b.
+
+Christian Bischof and Charles Van Loan. The wy representation for products of householder matrices.
+SIAM Journal on Scientific and Statistical Computing, 8(1):s2-s13, 1987.
+
+Guy E Blelloch. Prefix sums and their applications. 1990.
+
+Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamas
+Sarlos, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, et al. Rethinking attention
+with performers. arXiv preprint arXiw:2009.14794, 2020.
+
+15
+
+
+Tri Dao and Albert Gu. Transformers are ssms: Generalized models and efficient algorithms through
+structured state space duality. arXiv preprint arXiv:2405.21060, 2024.
+
+Albert Gu and Tri Dao. Mamba: Linear-time sequence modeling with selective state spaces. arXiv
+preprint arXiv:2312.00752, 2023.
+
+Albert Gu, Karan Goel, and Christopher Ré. Efficiently modeling long sequences with structured
+state spaces. arXiv preprint arXiw:2111.00396, 2021.
+
+Geoffrey E Hinton and David C Plaut. Using fast weights to deblur old memories. In Proceedings
+of the ninth annual conference of the Cognitive Science Society, pages 177-186, 1987.
+
+Kazuki Irie, Imanol Schlag, Rébert Csordas, and Jiirgen Schmidhuber. Going beyond linear
+transformers with recurrent fast weight programmers. Advances in neural information processing
+systems, 34:7703-7717, 2021.
+
+Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and Francois Fleuret. Transformers are
+rnns: Fast autoregressive transformers with linear attention. In International conference on
+machine learning, pages 5156-5165. PMLR, 2020.
+
+Bo Peng, Daniel Goldstein, Quentin Anthony, Alon Albalak, Eric Alcaide, Stella Biderman, Eugene
+Cheah, Xingjian Du, Teddy Ferdinan, Haowen Hou, et al. Eagle and finch: Rwkv with matrix-
+valued states and dynamic recurrence. arXiv preprint arXiv:2404.05892, 2024.
+
+Bo Peng, Ruichong Zhang, Daniel Goldstein, Eric Alcaide, Xingjian Du, Haowen Hou, Jiaju Lin,
+Jiaxing Liu, Janna Lu, William Merrill, et al. Rwkv-7" goose” with expressive dynamic state
+evolution. arXiv preprint arXiv:2508.14456, 2025.
+
+Hao Peng, Nikolaos Pappas, Dani Yogatama, Roy Schwartz, Noah A Smith, and Lingpeng Kong.
+Random feature attention. arXiv preprint arXiv:2103.02143, 2021.
+
+Zhen Qin, Dong Li, Weigao Sun, Weixuan Sun, Xuyang Shen, Xiaodong Han, Yunshen Wei, Baohong
+Lv, Xiao Luo, Yu Qiao, et al. Transnormerllm: A faster and better large language model with
+improved transnormer. arXiv preprint arXiv:2307.14995, 2023.
+
+Zhen Qin, Weigao Sun, Dong Li, Xuyang Shen, Weixuan Sun, and Yiran Zhong. Lightning attention-
+2: A free lunch for handling unlimited sequence lengths in large language models. arXiv preprint
+arXiv:2401.04658, 2024.
+
+Hubert Ramsauer, Bernhard Schéafl, Johannes Lehner, Philipp Seidl, Michael Widrich, Thomas
+Adler, Lukas Gruber, Markus Holzleitner, Milena Pavlovié¢, Geir Kjetil Sandve, et al. Hopfield
+networks is all you need. arXiv preprint arXiv:2008.02217, 2020.
+
+Imanol Schlag, Kazuki Irie, and Jiirgen Schmidhuber. Linear transformers are secretly fast weight
+programmers. In International conference on machine learning, pages 9355-9366. PMLR, 2021.
+
+Jirgen Schmidhuber. Learning to control fast-weight memories: An alternative to dynamic recurrent
+networks. Neural Computation, 4(1):131-139, 1992.
+
+16
+
+
+Zhuoran Shen, Mingyuan Zhang, Haiyu Zhao, Shuai Yi, and Hongsheng Li. Efficient attention:
+Attention with linear complexities. In Proceedings of the IEEE/CVF winter conference on
+applications of computer vision, pages 3531-3539, 2021.
+
+Yu Sun, Xinhao Li, Karan Dalal, Jiarui Xu, Arjun Vikram, Genghan Zhang, Yann Dubois, Xinlei
+Chen, Xiaolong Wang, Sanmi Koyejo, et al. Learning to (learn at test time): Rnns with expressive
+hidden states. arXiv preprint arXiv:2407.04620, 2024.
+
+Yutao Sun, Li Dong, Shaohan Huang, Shuming Ma, Yuqing Xia, Jilong Xue, Jianyong Wang, and
+Furu Wei. Retentive network: A successor to transformer for large language models. arXiv
+preprint arXiv:2307.08621, 2023.
+
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Lukasz
+Kaiser, and Illia Polosukhin. Attention is all you need. Advances in neural information processing
+systems, 30, 2017.
+
+Johannes von Oswald, Nino Scherrer, Seijin Kobayashi, Luca Versari, Songlin Yang, Maximilian
+Schlegel, Kaitlin Maile, Yanick Schimpf, Oliver Sieberling, Alexander Meulemans, et al. Mesanet:
+Sequence modeling by locally optimal test-time training. arXiv preprint arXiv:2506.05233, 2025.
+
+Sinong Wang, Belinda Z Li, Madian Khabsa, Han Fang, and Hao Ma. Linformer: Self-attention
+with linear complexity. arXiv preprint arXiv:2006.04768, 2020.
+
+Songlin Yang, Bailin Wang, Yikang Shen, Rameswar Panda, and Yoon Kim. Gated linear attention
+transformers with hardware-efficient training. arXiv preprint arXiv:2312.06635, 2023.
+
+Songlin Yang, Jan Kautz, and Ali Hatamizadeh. Gated delta networks: Improving mamba2 with
+delta rule. arXiv preprint arXiv:2412.06464, 2024a.
+
+Songlin Yang, Bailin Wang, Yu Zhang, Yikang Shen, and Yoon Kim. Parallelizing linear transformers
+with the delta rule over sequence length. arXiv preprint arXiw:2406.06484, 2024b.
+
+Shu Zhong, Mingyu Xu, Tenglong Ao, and Guang Shi. Understanding transformer from the
+perspective of associative memory. arXiv preprint arXiv:2505.19488, 2025.
+
+17

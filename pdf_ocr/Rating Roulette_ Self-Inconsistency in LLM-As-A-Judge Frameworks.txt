@@ -1,0 +1,2132 @@
+arXiv:2510.27106v1 [cs.CL] 31 Oct 2025
+
+Rating Roulette: Self-Inconsistency in LLM-As-A-Judge Frameworks
+
+Rajarshi Haldar and Julia Hockenmaier
+University of Illinois Urbana-Champaign
+{rhaldar2, juliahmr}@illinois.edu
+
+Abstract
+
+As Natural Language Generation (NLG) con-
+tinues to be widely adopted, properly assessing
+it has become quite difficult. Lately, using large
+language models (LLMs) for evaluating these
+generations has gained traction, as they tend
+to align more closely with human preferences
+than conventional n-gram or embedding-based
+metrics. In our experiments, we show that LLM
+judges have low intra-rater reliability in their
+assigned scores across different runs. This vari-
+ance makes their ratings inconsistent, almost
+arbitrary in the worst case, making it difficult to
+measure how good their judgments actually are.
+We quantify this inconsistency across different
+NLG tasks and benchmarks and see if judicious
+use of LLM judges can still be useful following
+proper guidelines.
+
+1 Introduction
+
+As Natural Language Generation (NLG) becomes
+more prevalent in a wide variety of applications like
+automated journalism, customer service chatbots,
+language translation and content summarization,
+proper evaluation and measurement of alignment
+with human preference are critical to improve user
+trust and system utility. Although traditionally used
+automatic metrics like BLEU (Papineni et al., 2002)
+and BERTScore (Zhang* et al., 2020) work well
+with tasks like translation when multiple references
+are available, they fail to work in more open-ended
+tasks like summarization or general chatbot set-
+tings.
+
+To automatically evaluate LLMs in these set-
+tings, LLM-as-a-judge (Li et al., 2024; Gu et al.,
+2025) has emerged as an automatic, scalable alter-
+native to manual evaluation. The common practice
+is to prompt an LLM to evaluate natural language
+generations. The ratings obtained are then veri-
+fied by comparing with ratings assigned by human
+judges, which are taken as the gold standard. This
+comparison is commonly done through computing
+
+exact match for categorical labels or correlation for
+numeric or ordinal scales (Liu et al., 2023; Thakur
+et al., 2025a).
+
+However, what is often missing from these stud-
+ies is any measure of self-reliability or intra-rater
+reliability of both LLM and human judges. We
+define self-reliability as the agreement of a judge
+with itself over multiple runs with the same settings
+(prompt and hyperparameters in case of LLMs).
+
+Meanwhile, self-reliability data is completely
+missing from human annotations in existing bench-
+marks. In some cases, annotations from multiple
+human judges exist, but they only give us informa-
+tion about the inter-rater reliability instead, which
+is also frequently lower than the conventionally
+agreed upon agreement thresholds (Falke et al.,
+2019; Fabbri et al., 2021; Pagnoni et al., 2021).
+Meanwhile, agreement between LLM and human
+judges is usually computed using metrics like corre-
+lation and accuracy, instead of using metrics specif-
+ically designed for measuring agreement like Krip-
+pendorff’s Alpha. This can often lead to an over-
+estimation of agreement since those metrics do
+not account for chance agreement (Thakur et al.,
+2025b).
+
+NLG can be evaluated using different metrics
+on a variety of tasks such as machine translation,
+dialog generation and summarization. In our ex-
+periments, we first study the simplest case of eval-
+uating summarization — assigning a binary label
+to a summary in the SummaC benchmark (Laban
+et al., 2022). Next, we look at evaluating sum-
+maries in more complex scenarios, using a Likert
+rating scale of 1 to 5 to rate a summary on several
+metrics like coherence, consistency, fluency and
+relevance. We can use the SummEval benchmark
+for this purpose. Finally, we look at evaluating a
+different task of NLG, where we use a judge LLM
+to rank multi-turn conversations from two com-
+peting LLMs in the MT-bench benchmark (Zheng
+et al., 2023).
+
+
+In this work, we make several key contributions
+to understanding the reliability of LLM-generated
+ratings in NLG evaluation. First, show that ratings
+output by LLMs have low agreement over multiple
+runs with the same prompt. Second, we show that
+turning off any sampling to make an LLM always
+output the same rating hurts performance measured
+by agreement with human judgment. Third, we
+find that this phenomenon persists across multiple
+tasks and benchmarks related to NLG, indicating
+that this is a widespread problem that needs to be
+addressed. Finally, we discuss some recommenda-
+tions to conduct more robust NLG evaluations.
+
+2 Background
+
+Evaluating Natural Language Generation The
+gold standard for NLG evaluation has relied on
+human-centric evaluations, where human judges
+assess generated text. However, this is time
+and cost-intensive, prone to unreliability and bi-
+ases (Thomson et al., 2024), and existing stud-
+ies report low inter-annotator agreement or omit
+them altogether. For example, Celikyilmaz et al.
+(2021) found that only 18% of 135 surveyed
+papers included agreement analysis. Further-
+more, leaderboards like Chatbot Arena (Chiang
+et al, 2024) employing crowdsourced evalua-
+tions have inequities leading to an uneven play-
+ing field (Singh et al., 2025). Unlike human
+evaluations, automatic metrics like BLEU (Pap-
+ineni et al., 2002), ROUGE (Lin, 2004), and ME-
+TEOR (Banerjee and Lavie, 2005), and model-
+based metrics like BERTScore (Zhang* et al.,
+2020) and BLEURT (Sellam et al., 2020) are faster,
+less subjective and more scalable. However, these
+metrics often fail to fully capture human notions of
+quality, especially for subjective tasks.
+
+LLM-as-a-judge Large language models can
+serve as judges by assigning scores, rankings,
+or labels to generated outputs, a paradigm sur-
+veyed in recent works (Li et al., 2024; Gu et al.,
+2025). LLM judges have been applied across
+20 NLP tasks (Bavaresco et al., 2024) and inte-
+grated into Al-assisted human evaluation (Ashk-
+torab et al., 2024). Notably, GPT-4 with chain-
+of-thought prompts aligns more closely with hu-
+man judgments than conventional automatic met-
+rics on NLG tasks (Liu et al., 2023; OpenAl et al.,
+2024; Wei et al., 2022). Evaluation typically in-
+volves comparing LLM outputs to human judg-
+ments via correlation (Liu et al., 2023; Xiao et al.,
+
+2023; Bavaresco et al., 2024) or percentage agree-
+ment (Zheng et al., 2023) on benchmarks such as
+JudgeBench (Tan et al., 2024). Challenges include
+bias (Zheng et al., 2023; Li et al., 2025), uncer-
+tainity in judgments (Wagner et al., 2024), adver-
+sarial vulnerability (Gu et al., 2025), and domain-
+specific performance gaps (Tseng et al., 2024), in
+addition to existing problems of LLM generations
+like prompt sensitivity (Mizrahi et al., 2024). To
+enhance reliability, methods like panel-based eval-
+uation (PoLL) (Verga et al., 2024) and compara-
+tive studies of fine-tuning versus GPT-4 prompt-
+ing (Huang et al., 2024; OpenAl et al., 2024) have
+been proposed. There is another challenge, high
+variability in LLM outputs leading to inconsisten-
+cies in LLM judges.
+
+Variability in LLM Judgments Due to the
+stochastic nature of LLMs, they give different out-
+puts when run on the same prompt multiple times.
+While this is by design, it should not alter the rat-
+ings assigned by an LLM judge to the same rating.
+Chiang and Lee (2023) observed some variability
+in ratings produced by LLM judges on the Writing-
+Prompts (Fan et al., 2018) dataset. Liu et al. (2023)
+took advantage of this variability in GPT-4 by set-
+ting temperature to 1 and sampling 20 times to get
+multiple scores and then getting the final rating by
+normalizing all the scores by their probabilities. In
+our work, we go further to analyze the implications
+of high variability in assigned judgments, discuss
+metrics to measure this variability, study the extent
+of this issue across different tasks and benchmarks,
+and explore whether we would get better results by
+turning off the variability by setting the temperature
+to zero. We frame this variability as self-reliability
+or intra-rater reliability.
+
+Self-reliability Also called intra-rater reliability,
+this measures the consistency of a single evaluator’s
+judgments across repeated assessments, as opposed
+to inter-rater reliability. Common metrics include
+the intraclass correlation coefficient (ICC) for con-
+tinuous scales (Koo and Li, 2016; Bent et al., 2014),
+Cohen’s Kappa for categorical ratings, and Krip-
+pendorff’s Alpha for ordinal, interval, or ratio data
+with missing values (Krippendorff, 2011; Wiethdl-
+ter et al., 2023). Reporting intra-rater reliability
+is standard in domains like essay grading (Cohen,
+2017), physical therapy (Mischiati et al., 2015), and
+clinical diagnostics (Krélikowska et al., 2023), and
+its joint consideration with inter-rater reliability is
+urged by Harvey (2021). Yet, NLP annotation
+
+
+and LLM-evaluation studies frequently omit self-
+reliability metrics (Abercrombie et al., 2023a,b),
+a deficiency we confirm in our LLM-as-a-judge
+experiments, where models exhibit unstable self-
+judgments.
+
+3 Experiments
+
+We first consider a simple framework for NLG eval-
+uation, binary classification of machine-generated
+summaries. A good candidate for this is SummacC,
+a factual consistency detection benchmark.
+
+Following this, we make a deeper dive into the
+performance of LLM judges on the SummEval
+benchmark (Fabbri et al., 2021). Compared to the
+binary labels in the SummaC benchmark, the sum-
+maries in this benchmark are evaluated by multiple
+human raters on a Likert scale across multiple met-
+rics.
+
+Zheng et al. (2023) introduced the MT-bench
+benchmark, which evaluates an LLM’s multi-turn
+conversational and instruction-following ability.
+While related to NLG, it is a very different task
+compared to summarization.
+
+3.1 Datasets
+
+Evaluating A Summary From SummaC
+
+Article
+
+Migaloo is known for his distinctive colouring and for many years was the
+only documented all-white humpback whale in the world. He has been
+sighted off the coast of New South Wales state, including the resort town
+of Byron Bay. Migaloo’s journey up Australia’s east coast has attracted
+large numbers of whale enthusiasts. The 14m-long mammal was spotted
+with a companion during his venture north but now appears to be travelling
+solo. A Twitter account run by the White Whale Research Centre provides
+real-time updates of the whale’s whereabouts.
+
+Summary
+
+A humpback whale spotted off the coast of Australia has been captured off
+the coast of Western Isles, scientists have said.
+
+Label
+
+1 (inconsistent)
+
+Figure 1: Annotating a summary of an article in Sum-
+maC with 1 (inconsistent).
+
+SummaC The SummaC benchmark (Laban et al.,
+2022) evaluates factual consistency in text summa-
+rization by requiring judges to label summaries as
+either consistent or inconsistent with their source
+documents (example in Figure 1). It unifies six
+datasets, CoGenSumm (Falke et al., 2019), XSum-
+Faith (Maynez et al., 2020), Polytope (Huang et al.,
+2020), FactCC (Kryscinski et al., 2020), Sum-
+mEval (Fabbri et al., 2021), and FRANK (Pagnoni
+
+et al., 2021), into a binary classification task. Stan-
+dard validation/test splits are used where avail-
+able; otherwise, splits are created as needed. It
+is licensed under the Apache License Version 2.0.
+Dataset statistics are provided in Table 4 in Ap-
+pendix C.1.
+
+Evaluating a Summary from
+SummEval on Four Metrics
+Article
+
+Manchester City are keen to sign Anderlecht teenager Evangelos Patoulidis.
+The 14-year-old playmaker is regarded as one of the best talents to emerge
+from Anderlecht’s youth set-up and has also attracted attention from Ar-
+senal and Barcelona. The Belgian starlet rejected a move to Barcelona’s
+La Masia academy when he was 12 as his family wanted him to continue
+his studies. He has continued to impress and City have held discussions
+with Anderlecht chairman Roger Vanden Stock in the hope of agreeing a
+
+compensation package. Manuel Pellegrini is looked to build for the future
+by snapping up hot property Evangelos Patoulidis.
+
+Summary
+
+Evangelos Patoulidis is regarded as one of the best players to emerge
+from Anderlecht youth. He has also attracted attention from Arsenal
+and Barcelona. The Belgian starlet rejected a move to Barcelona’s La
+Masia academy. The 14-year-old has attracted interest from Barcelona to
+Barcelona.
+
+Annotation Scores
+
+Coherence:
+
+Consistency:
+Fluency:
+Relevance:
+
+Figure 2: Annotating a summary from the SummEval
+benchmark with scores ranging from 1 to 5 on the met-
+rics: coherence, consistency, fluency and relevance.
+
+SummkEval This is a summarization benchmark
+with 1700 examples where judges rate model-
+generated summaries of source documents on a
+1-5 scale across four metrics: coherence (how well
+the sentences in the summary fit together), consis-
+tency (the factual accuracy of the summary), flu-
+ency (grammatical correctness and stylistic quality
+of each sentence in the summary), and relevance
+(whether the summary accurately captures the ar-
+ticle’s main points without including unnecessary
+details). It is licensed under the MIT license. Each
+example includes scores from both 3 expert and 5
+crowd-sourced annotators. The authors presenting
+this benchmark reported some agreement metrics.
+They found the inter-annotator interval kappa to
+be below an acceptable range, 0.492 and 0.413
+for the crowd-sourced workers and the first round
+of expert annotations accordingly. However, the
+second round of expert annotations improved the
+inter-annotator agreement achieving a kappa coef-
+ficient of 0.7127.
+
+MT-Bench In a multi-turn conversation from this
+benchmark, a user prompts two LLMs with a ques-
+
+
+Ranking Two Conversations From MT-Bench
+User Prompt
+
+What is the capital of France?
+
+Model B Response
+
+Model A Response
+
+Paris is the capital and most pop-
+ulous city of France.
+
+The capital of France is Paris.
+User Follow-up
+
+Can you give a brief history of the city?
+
+Model B Follow-up Response
+
+Model A Follow-up Response
+
+Paris has a long history dating
+back to ancient times. It became
+the capital of France in the 10th
+century.
+
+Paris was founded in the 3rd cen-
+
+tury BC and became an important
+center during the Roman Empire.
+
+Rater Evaluation
+
+Figure 3: Ranking conversations from MT-bench with
+by indicating model_a, model_b or tie.
+
+tion, and after receiving their responses, asks a
+follow-up question, to which a second pair of re-
+sponses is generated. A rater (human or LLM) is
+shown this conversation and has to assign a label
+(model_a, model_b, tie) indicating model prefer-
+ence. Figure 3 shows an example of a conversation
+from this dataset getting rated.
+
+There are 80 questions that require an LLM to
+perform multi-turn conversations and follow in-
+structions on topics including reasoning and math.
+There are 30 examples for each question, where
+each example in the dataset comprises a question
+followed by responses from two models, model_a
+and model_b, for a total of 2.4k examples. Each
+example also contains a judgment assigned by GPT-
+4 and judgments from zero to five human raters.
+Since we cannot perform any agreement analysis
+between human raters for fewer than 2 raters, we
+create a smaller filtered subset of the data contain-
+ing 761 examples where each example contains two
+or more human ratings. Table 7 in Appendix E.1
+shows the distribution of the number of human rat-
+ings in the dataset that we use in our experiments.
+
+3.2 Experimental Settings
+
+For all three benchmarks, three Large Language
+Models (LLMs) are used as judges. We use the fol-
+lowing models across all benchmarks: Llama-3.1-
+70B-Instruct (Grattafiori et al., 2024), DeepSeek-
+R1-Distill-Qwen (DeepSeek-Al et al., 2025), and
+Qwen3-32B (Yang et al., 2025). Details of the hy-
+perparameter configurations and prompt templates
+are available in Appendix A.
+
+For all three benchmarks, we ran each judge
+LLM on the same set of generations independently
+
+for three runs. We used the same prompts and set-
+tings for each run to measure intra-rater variance
+under fixed conditions. For SummaC, we added
+the articles and the corresponding generated sum-
+maries from the test set to be rated by each model
+to the prompt. Once we had three sets of scores for
+a benchmark and for an LLM judge we computed
+intra-rater reliability using Krippendorff’s Alpha.
+In our initial experiments, we also tried running
+our LLM judges on additional runs (up to 10) but
+found no significant effect of the number of runs on
+self-reliability so ultimately, we kept the number
+of runs to 3.
+
+SummEval allows reliability analysis along spe-
+cific evaluation metrics: Coherence, Consistency,
+Fluency, and Relevance. We prompted each LLM
+judge to evaluate each metric on a scale of 1 to
+5 independently per run. That means for each of
+the three runs we prompted the LLM four times,
+once for each metric. To better align with ordinal
+rating behavior, we replace SummEval’s default
+interval-based distance metric with ordinal distance
+for computing agreement, as the ratings are on a
+1-5 Likert scale. This allows a more principled
+estimate of intra-rater reliability by accounting for
+ordinal semantics.
+
+For MTBench, we closely follow the setup
+from Zheng et al. (2023), with the addition of mea-
+suring judge consistency when evaluating chatbot
+responses over three runs per LLM judge. Each
+LLM judge scores the same prompts using the
+same interface scripts as the original benchmark.
+In addition to intra-rater reliability, we also analyze
+human-human and human-LLM agreement using
+the expert and crowd-sourced annotations provided
+in the benchmark, with human judgments from
+GPT-4 used as a reference point for LLM-human
+comparisons.
+
+The prompts used in each of these benchmarks
+are in Appendix.
+
+3.3 Agreement Metric
+
+As we have multiple independent ratings from an
+LLM judge on a single item, we can adapt existing
+agreement metrics to measure self-reliability of an
+LLM judge. For both self-reliability of an LLM
+judge and its agreement with other judges, we pri-
+marily use Krippendorff’s Alpha. We describe
+this metric and the choice of distance functions in
+Appendix B. Additionally, we also use this metric
+to report inter-rater agreement across categories of
+judges (e.g., LLM vs. human, or expert vs. crowd).
+
+
+Why Krippendorff’s Alpha Other works study-
+ing LLM-as-a-judge typically use different metrics
+for computing agreement between LLM and hu-
+man judges. For example, G-Eval (Liu et al., 2023)
+used correlation and MTBench (Zheng et al., 2023)
+used accuracy. So why go with a different metric?
+Artstein and Poesio (2008) discussed several draw-
+backs when metrics without chance-correction like
+accuracy and correlation. Despite being intuitive to
+understand, their values cannot be compared across
+studies, because some of the agreement will be due
+to chance, and that chance is affected by factors that
+vary from one study to another. One factor is that
+chance agreement is higher when there are fewer
+categories or labels. For example, in binary classifi-
+cation with uniformly distributed labels, the chance
+agreement will be 50%, whereas when we have
+three labels it will be 33%. Another reason these
+metrics cannot be trusted is that they do not correct
+for for the distribution of items across categories.
+For example, in binary classification, if one label
+appears 95% of the time, the chance agreement for
+that label will be 0.95 x 0.95 = 0.9025, and it will
+be 0.05 x 0.05 = 0.0025 for the other label. This
+would mean that two raters would be expected to
+agree 90.5% of the time, and an observed agree-
+ment of 90% may look high but is actually worse
+than what we would expect to get by chance. A
+chance-corrected metric like Krippendorff’s Alpha
+addresses these drawbacks. It also has advantages
+over other chance-corrected metrics like Cohen’s
+Kappa (Cohen, 1960) and Fleiss’ Kappa (Fleiss,
+1971) with more flexibility supporting varying num-
+bers of annotators, handling missing data, and ac-
+commodating different distance functions suited to
+the rating scale of each benchmark. Due to these
+reasons, we believe Krippendorff’s Alpha is appro-
+priate for measuring both self-reliability in LLM
+judges and their agreement with human judges.
+
+We adapt the underlying distance function for
+Krippendorff’s Alpha based on the nature of the
+ratings in each benchmark. In SummacC, labels
+are binary and categorical, so we use nominal
+distance, which treats all disagreements equally
+without assuming an ordering. We also report
+Balanced Accuracy—the mean of sensitivity and
+specificity—when comparing LLM and human
+judgments, following the benchmark’s original
+evaluation setup and accounting for class imbal-
+ance.
+
+In SummEval, ratings are ordinal, so we use
+ordinal distance to reflect varying degrees of dis-
+
+Model Self-Reliability
+Llama 3.1 0.3263
+Deepseek-R1 0.6278
+Qwen-3 0.7883
+
+Table 1: Self-reliability of different LLM judges on
+the SummaC benchmark across 3 runs measured by
+Krippendorff’s Alpha.
+
+agreement (e.g., a 1-point difference counts less
+than a 3-point difference). Agreement is computed
+between cross-category judge pairs only, excluding
+intra-category comparisons.
+
+For MTBench, we use two metrics: (1) Accu-
+racy, matching the original benchmark, measures
+agreement with the gold standard (majority human
+vote); (2) Krippendorff’s Alpha with ordinal dis-
+tance captures gradations in pairwise disagreement
+(e.g., model_a vs. tie vs. model_b). Both inter-rater
+(e.g., LLM vs. human) and intra-rater (across LLM
+runs) agreement are reported.
+
+4 Intra-Rater Reliability Results
+
+SummaC Table 1 shows the Krippendorff’s Al-
+pha computed for LLM judges over 3 runs. We
+see that the agreement value is low for all models
+for all runs, though it gets better for newer and
+larger models, with Qwen 3 getting close to 0.8,
+which is the commonly accepted threshold of good
+agreement. We tried repeating these experiments
+for up to 5 runs but found no significant difference
+in self-reliability, suggesting that this value is fairly
+static for a model on a specific test set, independent
+of the number of runs.
+
+SummkEval In Figure 4, we see that compared to
+human evaluators, the different runs in Deepseek-
+R1 and Qwen 3 show a high self-reliability on
+Coherence and Consistency, with very low self-
+reliability on Fluency. Not only does Fluency have
+low reliability for all our LLM judges, but it is also
+the only metric where Llama performs best. This
+suggests that an LLM judge’s ability to reliably
+produce ratings depends heavily on the metric.
+
+MTBench We found that the self-reliability of
+LLM raters is much lower on this benchmark com-
+pared to SummaC and SummEval. Llama 3.1 had
+a Krippendorff’s Alpha of 0.265 across its 3 runs,
+while for Deepseek-R1 it was 0.507. Qwen 3 was
+the most reliable with a Krippendorff’s Alpha of
+0.563. Even in the best case, these numbers are
+
+
+Intra-Rater Reliability of LLM Judges
+
+1.0
+2
+© 0.8
+<<
+wn
+§- 0.6 = Lama 3.1
+Ss [I Deepseek-R1
+° 0.4 [3 Qwen 3
+[%}
+Q
+S02
+—
+¥
+0.0
+
+erence
+
+: prsiste™ pend releV ance
+
+con
+Metrics
+
+Figure 4: Self-reliability of LLM judges on SummEval.
+
+much lower than the desired threshold of 0.8, show-
+ing that LLM raters are extremely volatile on this
+task, even more so than summarization. In fact,
+Qwen 3 gave the same judgment on all 3 runs for
+only 61.3% of cases.
+
+5 Are LLM Judges a Reliable Substitute
+for Human Judges?
+
+Our next set of experiments studies what this lack
+of self-reliability implies in terms of real-world
+performance, which for benchmarks usually means
+comparing with human annotations. In Summac,
+we measure the agreement of LLM judgments with
+human annotations, while in SummEval and MT-
+Bench, we have multiple human labels available
+per example, allowing us to compare the agree-
+ment between LLM judges and human judges with
+human-human agreement.
+
+5.1 SummaC
+
+«ef oe revo ger!
+B
+
+Datasets
+
+Bm summaC_ZS
+EE SummaC_CONV
+I Llama 3.1
+
+I Deepseek-R1
+3 Qwen 3
+
+Balanced Accuracy
+
+Figure 5: Balanced Accuracies of different LLM judges
+against human judgments on the datasets in SummacC.
+
+In Figure 5, we report the balanced accuracies
+of our three LLM judges on the different datasets
+within SummaC, along with the two baselines,
+SummaCzs and SummaCoony that were intro-
+duced by Laban et al. (2022). Since we had 3 runs
+for each LLM judge, we compute the consensus rat-
+ing between the 3 runs by taking a simple majority
+
+Model Single Run (Mean + Std) Majority No Sampling
+Llama 3.1 59.1 £2.06 61.4 58.4
+Deepseek-R1 69.8 £ 0.50 72.3 69.3
+Qwen 3 79.4 £0.32 80.6 79.2
+
+Table 2: Balanced accuracies of LLM judgments against
+human judgments under different experimental settings.
+
+vote and then find the agreement between it and the
+human label. We see that while Llama 3.1 has very
+low performance, Deepseek-R1 is competitive with
+the baselines and Qwen 3 significantly outperforms
+the baseline models overall. It is to be noted that the
+baselines SummaCzg and SummaCcony were
+fine-tuned on this task whereas in our experiments
+we prompted the instruction-tuned models off-the-
+shelf.
+
+Despite performing best overall, Qwen 3 is
+not the best at all datasets in the benchmark.
+Deepseek-R1 performs the best at XSumkFaith.
+SummaCcoony performs the best at FactCC,
+which is unsurprising since that baseline was specif-
+ically fine-tuned on training examples from that
+dataset (Laban et al., 2022). Therefore, how well
+an LLM can substitute a human judge varies greatly
+on the dataset in question, though in general, newer
+and larger models perform better.
+
+In Table 2, we see that accuracy varies between
+runs much more for Llama 3.1, while it is relatively
+stable for Deepseek-R1 and Qwen 3.
+
+Does Taking Majority Vote Help Performance?
+In Table 2, for each LL.M, we report the balanced
+accuracy of a single run, the accuracy we get if we
+take the consensus rating of the three runs instead,
+as well as the accuracy if we turn off sampling to
+ensure we get the same output every time. We see
+that accuracy is higher when computed via major-
+ity vote than the expected accuracy for a single
+run. In fact, for Deepseek-R1 and Qwen 3, taking
+the majority vote gives a higher balanced accu-
+racy than the maximum accuracy achieved by a sin-
+gle run. Not only does running the LLM multiple
+runs accounts for this variance between runs, but
+it also gives higher performance in terms of accu-
+racy against human judgments. This performance
+is also competitive with the baselines Summa Czg
+and SummaCcony (Laban et al., 2022), which
+were fine-tuned specifically for this task.
+
+Does disabling temperature sampling reduce
+variance without degrading performance? The
+main reason this issue exists is that these LLMs are
+
+
+designed to perform sampling to generate slightly
+different responses to the same prompt. Therefore,
+to remove variance in ratings, the most obvious
+answer is to run inference without any sampling
+to get the same output every time. However, in
+Table 2, we see that for both models, there is a
+degradation in performance if run without sam-
+pling. This shows that there is a trade-off between
+self-reliability and performance, and it is not trivial
+to address both issues simultaneously. We also ran
+additional experiments in Appendix C.2 to see if
+incorporating few-shot or chain-of-thought prompt-
+ing led to any reliability or agreement gains and
+found that to not be the case.
+
+Krippendorff's Alpha Between Human Raters
+
+\ Li
+
+0 enc Ve anc®
+c\S RS \eV
+
+Alph
+o ©
+[o)] [o]
+
+I Expert
+ Turker
+I Expert-Turker
+
+©
+>
+
+e
+[N]
+
+Krippendorff's
+
+e
+=)
+
+ef
+cone” Co ono
+
+Metrics
+
+Figure 6: Inter-rater reliability within and across both
+categories of human judges on SummEval.
+
+5.2 SummkEval
+
+Figure 6 presents Krippendorff’s Alpha agreement
+scores among human annotators. Experts show the
+highest agreement on consistency (0.798), moder-
+ate agreement on fluency (0.588), and the lowest
+on relevance (0.398), suggesting subjectivity in as-
+sessing relevance. In contrast, crowdworkers (Turk-
+ers) display uniformly lower agreement across all
+metrics (0.48—0.51), indicating more limited task
+comprehension. Agreement between experts and
+Turkers is drastically lower (maximum 0.247 for
+relevance), highlighting fundamental differences in
+the evaluation approaches of different populations
+of raters.
+
+While LLM judges show higher agreement with
+themselves than human judges do with each other,
+this does not guarantee they can fully replace hu-
+man judges. In Figure 7, we see that LLMs’ agree-
+ment with human experts varies significantly de-
+pending on the metric, dataset, and the expertise of
+the human judge.
+
+Agreement Between Different Categories of Judges
+1.0
+
+0.8
+
+I Expert-Turker
+Em Expert-Llama
+I Expert-Deepseek
+I Expert-Qwen3
+EE Turker-Llama
+[EE Turker-Deepseek
+[3 Turker-Qwen3
+
+0.6
+
+0.4
+
+0.2
+
+Krippendorff's Alpha
+
+0.01
+
+|
+at
+[N
+
+ncY cuendy
+
+ce . ce
+conere” consist peleva®
+
+Metrics
+
+Figure 7: Inter-rater reliability of LLM judges against
+both types of human judgments on SummEval.
+
+For instance, Turker ratings diverge from both
+experts and LLMs, indicating they use conflicting
+evaluation criteria. Experts and LLMs show some-
+what higher, but still modest agreement, especially
+on metrics like consistency and coherence, while
+agreement drops or even turns negative for subjec-
+tive metrics such as fluency.
+
+Model scaling (e.g., using larger models like
+Qwen 3) can improve agreement with experts for
+some metrics, but even the best observed agreement
+(0.726 for consistency) remains below the com-
+monly accepted threshold for substitution. More-
+over, score distributions differ across judge types
+and metrics, as reported in Appendix D.1, further
+complicating direct replacement.
+
+5.3 MTBench
+
+We observe a fairly low Krippendorff’s Alpha of
+0.478 between human judges. This follows from
+our results under SummkEval, where we find that
+crowdsourced judges tend to have very lower agree-
+ment. However, accuracy is comparatively much
+higher at 0.827, suggesting that it may be a mis-
+leading metric when showing agreement between
+multiple judges, since it does not take the proba-
+bility of chance agreement into account, leading to
+inflated scores. A complete breakdown of agree-
+ments of different judges against humans is shown
+in Table 3.
+
+Table 3 shows the agreement between different
+judge types on the MT-bench benchmark.
+
+Agreement between LLMs and humans Simi-
+lar to agreement between humans, we see that when
+we use Krippendorff’s alpha, we get much lower
+values of agreement than accuracy. We see that
+GPT-4 has higher values of agreement across both
+metrics, though it is still much lower than between
+humans. However, even for humans this is far lower
+
+
+Judges (Human vs.) Accuracy Krippendorff’s Alpha
+Human 0.827 0.478
+GPT-4 0.671 0.396
+Llama 3.1 0.556 0.239
+Deepseek-R1 0.668 0.385
+Qwen 3 0.719 0.426
+
+Table 3: Agreement of different judges against humans.
+
+than the accepted threshold of 0.8, and is much
+lower than the agreement we saw for SummEval,
+suggesting this task is even harder to consistently
+than summarization.
+
+6 Discussion
+
+6.1 Takeaways
+
+SummaC Even though simply prompting an
+LLM to score a generation can perform comparable
+to models specifically fine-tuned for this task (La-
+ban et al., 2022), it calls into question what high per-
+formance means in this context when there is high
+variance between runs. For example, what does an
+agreement of 0.8 between LLMs and human judges
+mean when the LLM has low agreement with it-
+self? We also do not know if this phenomenon
+was due to the limitations of the benchmark itself
+(e.g. noisy examples or a poorly defined task) or
+is more widespread across other benchmarks or
+tasks. More importantly, we do not know if human
+judgments, which are taken as the gold standard,
+suffer from the same consistency issues as LLMs,
+which should prompt further investigations. How-
+ever, SummacC contains only one human judgment
+per example, making such investigations impossi-
+ble, so we must look to other benchmarks and tasks.
+We saw the LLM judges struggle particularly with
+one of the datasets within this benchmark, Sum-
+mEval (Fabbri et al., 2021). In this dataset, we also
+have multiple human judgments for each example
+across multiple metrics, which would allow us to
+address a lot of these questions that so far remained
+unanswered.
+
+SummkEval We see that the problem of low intra-
+rater reliability of LLM judges is not just due to
+binary labels in the SummaC benchmark but also
+persists across other metrics and scoring scales.
+Not only does it make LL.M judges unreliable, but
+it also makes meta-evaluation of different evalua-
+tion frameworks difficult when the scores assigned
+by the same judge fluctuate over time. This raises
+
+another important question, is the low intra-rater re-
+liability due to limitations of the LLMs or is the task
+of summarization not well-defined even with dif-
+ferent metrics? It is possible that scoring the sum-
+maries in the SummEval benchmark along metrics
+like coherence or consistency is not a well-defined
+task, which causes the scores to fluctuate for both
+human and LLM judges. We need to study whether
+this phenomenon persists for benchmarks in other
+tasks.
+
+MT-Bench This confirms that it is not just single-
+turn tasks like summarization where intra-rater re-
+liability is an issue. It is a widespread phenomenon
+across benchmarks as well as tasks that involve text
+generation. We also observe that metrics like accu-
+racy inflate agreement values compared to metrics
+like Krippendorff’s Alpha.
+
+6.2 Recommendations
+
+Based on these findings, we can make the follow-
+ing recommendations to improve the state of NLG
+evaluation with LLM as well as human judges.
+
+Account For Possible Self-Reliability Issues
+Future work should incorporate intra-rater relia-
+bility information into evaluation frameworks and
+explore methods to improve LLM self-reliability
+without sacrificing agreement with human judg-
+ments. Existing NLG research already uses metrics
+like Cohen’s Kappa and Krippendorff’s Alpha
+for measuring inter-rater reliability, and these met-
+rics can be adapted to measure self-reliability as
+well. They should be preferred over metrics like
+accuracy, since as we saw in Table 3 that accuracy
+inflates agreement numbers because it does not take
+chance agreement into account.
+
+Reduce Variance in LLM Outputs We saw in
+Section 5.1 that taking an aggregate of the results
+of multiple runs, like a simple majority vote, can
+improve agreement with human judgment. On the
+other hand, trying to eliminate variance entirely by
+turning off variance hurts performance.
+
+Collect Data on Self-Reliability of Human
+Judges When collecting human evaluations on
+NLG tasks, it is important to also measure self-
+reliability data on those evaluations. This is be-
+cause although we saw self-reliability is a problem
+in LLM judges, we did not explore how prevalent
+this problem is in human judges. As we consider
+human judgments the gold standard in NLG eval-
+uation, the self-reliability of human judges would
+
+
+serve as an upper bound of the self-reliability we
+should reasonably expect from LLM judges. It is
+also important to explore how much of an effect
+training or expertise has on self-reliability, since
+we saw in Section 5.2 that expert and crowdsourced
+workers assign very different ratings.
+
+7 Conclusion
+
+We present a comprehensive analysis of intra-rater
+reliability in LLM-as-a-judge frameworks, reveal-
+ing key challenges for evaluation in this domain.
+Our experiments show that LLMs display low self-
+reliability when evaluating the same content across
+multiple runs, even with identical prompts and hy-
+perparameters. This inconsistency persists across
+various tasks and metrics. Although newer, larger
+models like Qwen 3 are more consistent than mod-
+els such as Llama 3.1, they still often fall short of
+standard reliability thresholds.
+
+Our work carries some potential risks. We have
+measured the performance of LLM judges by their
+agreement with human judges, which can be noisy
+depending on the inter-annotator agreement of the
+human labels. LLM judgments could also poten-
+tially have biases for certain linguistic styles which
+could influence the scores presented in this paper.
+Despite these risks, our findings have important
+implications for LLM-as-a-judge research. Report-
+ing single-run LLM judgments without consistency
+metrics can be misleading, and certain aspects of
+text quality, such as fluency, remain difficult to as-
+sess reliably for both humans and machines. Also,
+the pronounced disagreement between expert and
+crowdsourced judges highlights the need to clarify
+which human preferences LLMs should model.
+
+While LLLM-as-a-judge approaches offer scala-
+bility, they face significant reliability challenges.
+Addressing these issues is essential for developing
+evaluation frameworks that meaningfully capture
+distinctions in text quality.
+
+Limitations
+
+Recent research has looked at analyzing reasoning
+traces of LLM judges (Wang et al., 2023), whether
+these reasoning traces are useful and how their per-
+formance is affected by supervised fine-tuning or
+reinforcement learning (Chen et al., 2025). While
+we leveraged reasoning models like Deepseek R1
+and Qwen 3 in our experiments, we have not ex-
+plored any relationships between their reasoning
+traces and their self-reliability. And while prompt-
+
+ing LLM judges on benchmarks like SummaC sur-
+passes baselines in terms of agreement with human
+judgments, we have not looked at the effect of fine-
+tuning on further improving performance as that is
+beyond the scope of the paper. Beyond fine-tuning,
+there are other potential avenues worth exploring
+like investigating the impact of prompt structure on
+reliability and applying probing the model internals
+to study if a specific layer leads to the divergence in
+assigned scores in conflicting runs. Finally, though
+we identified that the subjectivity of summarization
+or multi-turn conversation evaluation potentially ex-
+acerbates the self-reliability issue of LLM judges,
+we have not quantified this subjectivity through
+comparison with self-reliability on other, more ob-
+jective tasks. Nevertheless, this work highlights
+an important issue in evaluating generation tasks
+and discusses different experimental methods and
+data collection principles that would allow us to
+conduct more robust evaluations.
+
+Finally, we limited our choice of models to those
+with open weights, as this gave us the freedom to
+run our experiments locally and with full access to
+the model weights. However, the latest proprietary
+models such as GPT-5 (OpenAl, 2025) and Claude-
+4 (Anthropic, 2025) have made great strides in vari-
+ous reasoning and agentic benchmarks. Along with
+the aforementioned future directions suggested, a
+comparison of the self-reliability in these models
+with the models in our study would give additional
+insights into the prevalence of this phenomenon.
+
+Acknowledgments
+
+This research used the Delta advanced computing
+and data resource which is supported by the Na-
+tional Science Foundation (award OAC 2005572)
+and the State of Illinois. Delta is a joint effort of the
+University of Illinois Urbana-Champaign and its
+National Center for Supercomputing Applications.
+
+References
+
+Gavin Abercrombie, Dirk Hovy, and Vinodkumar Prab-
+hakaran. 2023a. Temporal and second language in-
+fluence on intra-annotator agreement and stability in
+hate speech labelling. In Proceedings of the 17th
+Linguistic Annotation Workshop (LAW-XVII), pages
+96-103, Toronto, Canada. Association for Computa-
+tional Linguistics.
+
+Gavin Abercrombie, Verena Rieser, and Dirk Hovy.
+2023b. Consistency is key: Disentangling label
+variation in natural language processing with intra-
+annotator agreement. Preprint, arXiv:2301.10684.
+
+
+Anthropic. 2025. Introducing Claude 4: Claude Opus
+
+4 and Claude Sonnet 4. https://www.anthropic.
+
+com/news/claude-4. Accessed: 2025-09-19.
+
+Ron Artstein and Massimo Poesio. 2008. Survey article:
+Inter-coder agreement for computational linguistics.
+Computational Linguistics, 34(4):555-596.
+
+Zahra Ashktorab, Michael Desmond, Qian Pan,
+James M. Johnson, Martin Santillan Cooper, Eliz-
+abeth M. Daly, Rahul Nair, Tejaswini Pedapati,
+Swapnaja Achintalwar, and Werner Geyer. 2024.
+Aligning human and llm judgments: Insights
+from evalassist on task-specific evaluations and ai-
+assisted assessment strategy preferences. Preprint,
+arXiv:2410.00873.
+
+Satanjeev Banerjee and Alon Lavie. 2005. METEOR:
+An automatic metric for MT evaluation with im-
+proved correlation with human judgments. In Pro-
+ceedings of the ACL Workshop on Intrinsic and Ex-
+trinsic Evaluation Measures for Machine Transla-
+tion and/or Summarization, pages 65-72, Ann Arbor,
+Michigan. Association for Computational Linguis-
+tics.
+
+Anna Bavaresco, Raffaella Bernardi, Leonardo Berto-
+lazzi, Desmond Elliott, Raquel Ferndndez, Albert
+Gatt, Esam Ghaleb, Mario Giulianelli, Michael
+Hanna, Alexander Koller, André F. T. Martins,
+Philipp Mondorf, Vera Neplenbroek, Sandro Pezzelle,
+Barbara Plank, David Schlangen, Alessandro Sug-
+lia, Aditya K Surikuchi, Ece Takmaz, and Alberto
+Testoni. 2024. Llms instead of human judges? a
+large scale empirical study across 20 nlp evaluation
+tasks. Preprint, arXiv:2406.18403.
+
+N. P. Bent, A. B. Rushton, C. C. Wright, E. J. Petherick,
+and M. E. Batt. 2014. Intrarater and interrater reli-
+ability of the anteromedial reach test in healthy par-
+ticipants. Open Access Journal of Sports Medicine,
+5:1-10.
+
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, Sandhini Agarwal, Ariel Herbert-Voss,
+Gretchen Krueger, Tom Henighan, Rewon Child,
+Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu,
+Clemens Winter, and 12 others. 2020. Language
+models are few-shot learners. In Proceedings of the
+34th International Conference on Neural Information
+Processing Systems, NIPS °20, Red Hook, NY, USA.
+Curran Associates Inc.
+
+Asli Celikyilmaz, Elizabeth Clark, and Jianfeng Gao.
+2021. Evaluation of text generation: A survey.
+Preprint, arXiv:2006.14799.
+
+Nuo Chen, Zhiyuan Hu, Qingyun Zou, Jiaying Wu,
+Qian Wang, Bryan Hooi, and Bingsheng He. 2025.
+Judgelrm: Large reasoning models as a judge.
+Preprint, arXiv:2504.00050.
+
+10
+
+Cheng-Han Chiang and Hung-yi Lee. 2023. Can large
+language models be an alternative to human evalua-
+tions? In Proceedings of the 61st Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 15607-15631, Toronto,
+Canada. Association for Computational Linguistics.
+
+Wei-Lin Chiang, Lianmin Zheng, Ying Sheng, Anasta-
+sios Nikolas Angelopoulos, Tianle Li, Dacheng Li,
+Hao Zhang, Banghua Zhu, Michael Jordan, Joseph E.
+Gonzalez, and Ion Stoica. 2024. Chatbot arena: An
+open platform for evaluating lms by human prefer-
+ence. Preprint, arXiv:2403.04132.
+
+Jacob Cohen. 1960. A coefficient of agreement for
+nominal scales. Educational and Psychological Mea-
+surement, 20(1):37-46.
+
+Yoav Cohen. 2017. Estimating the intra-rater reliability
+of essay raters. Frontiers in Education, 2.
+
+DeepSeek-Al, Daya Guo, Dejian Yang, Haowei Zhang,
+Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu,
+Shirong Ma, Peiyi Wang, Xiao Bi, Xiaokang Zhang,
+Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhi-
+hong Shao, Zhuoshu Li, Ziyi Gao, and 181 others.
+2025. Deepseek-rl: Incentivizing reasoning capa-
+bility in lms via reinforcement learning. Preprint,
+arXiv:2501.12948.
+
+Lance Eliot. 2025. Why doing chain-of-thought prompt-
+ing in reasoning llms gums up the works.
+
+Alexander R. Fabbri, Wojciech Kry{cifiski, Bryan Mc-
+Cann, Caiming Xiong, Richard Socher, and Dragomir
+Radev. 2021. Summeval: Re-evaluating summariza-
+tion evaluation. Preprint, arXiv:2007.12626.
+
+Tobias Falke, Leonardo F. R. Ribeiro, Prasetya Ajie
+Utama, Ido Dagan, and Iryna Gurevych. 2019. Rank-
+ing generated summaries by correctness: An interest-
+ing but challenging application for natural language
+inference. In Proceedings of the 57th Annual Meet-
+ing of the Association for Computational Linguistics,
+pages 2214-2220, Florence, Italy. Association for
+Computational Linguistics.
+
+Angela Fan, Mike Lewis, and Yann Dauphin. 2018.
+Hierarchical neural story generation. In Proceedings
+of the 56th Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers),
+pages 889-898, Melbourne, Australia. Association
+for Computational Linguistics.
+
+Joseph L. Fleiss. 1971. Measuring nominal scale agree-
+ment among many raters. Psychological Bulletin,
+76.
+
+Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri,
+Abhinav Pandey, Abhishek Kadian, Ahmad Al-
+Dahle, Aiesha Letman, Akhil Mathur, Alan Schel-
+ten, Alex Vaughan, Amy Yang, Angela Fan, Anirudh
+Goyal, Anthony Hartshorn, Aobo Yang, Archi Mi-
+tra, Archie Sravankumar, Artem Korenev, Arthur
+Hinsvark, and 542 others. 2024. The llama 3 herd of
+models. Preprint, arXiv:2407.21783.
+
+
+Jiawei Gu, Xuhui Jiang, Zhichao Shi, Hexiang Tan,
+Xuehao Zhai, Chengjin Xu, Wei Li, Yinghan Shen,
+Shengjie Ma, Honghao Liu, Saizhuo Wang, Kun
+Zhang, Yuanzhuo Wang, Wen Gao, Lionel Ni,
+and Jian Guo. 2025. A survey on llm-as-a-judge.
+Preprint, arXiv:2411.15594.
+
+Naomi Harvey. 2021. A simple guide to inter-rater,
+intra-rater and test-retest reliability for animal be-
+haviour studies.
+
+Dandan Huang, Leyang Cui, Sen Yang, Guangsheng
+Bao, Kun Wang, Jun Xie, and Yue Zhang. 2020.
+What have we achieved on text summarization? In
+Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP),
+pages 446-469, Online. Association for Computa-
+tional Linguistics.
+
+Hui Huang, Yingqi Qu, Xingyuan Bu, Hongli Zhou,
+Jing Liu, Muyun Yang, Bing Xu, and Tiejun Zhao.
+2024. An empirical study of llm-as-a-judge for llm
+evaluation: Fine-tuned judge model is not a general
+substitute for gpt-4. Preprint, arXiv:2403.02839.
+
+K. Koo and M. Y. Li. 2016. A guideline of selecting
+and reporting intraclass correlation coefficients for re-
+liability research. Journal of Chiropractic Medicine,
+15(2):155-163. Erratum in: J Chiropr Med. 2017
+Dec;16(4):346. doi: 10.1016/j.jcm.2017.10.001.
+
+Klaus Krippendorff. 2011. Computing krippendorft’s
+alpha-reliability.
+
+Wojciech Kryscinski, Bryan McCann, Caiming Xiong,
+and Richard Socher. 2020. Evaluating the factual
+consistency of abstractive text summarization. In
+Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP),
+pages 9332-9346, Online. Association for Computa-
+tional Linguistics.
+
+A. Krélikowska, P. Reichert, J. Karlsson, C. Mou-
+ton, R. Becker, and R. Prill. 2023. Improving
+the reliability of measurements in orthopaedics and
+sports medicine. Knee Surgery, Sports Traumatology,
+Arthroscopy, 31(12):5277-5285.
+
+Philippe Laban, Tobias Schnabel, Paul N. Bennett, and
+Marti A. Hearst. 2022. SummaC: Re-visiting NLI-
+based models for inconsistency detection in summa-
+rization. Transactions of the Association for Compu-
+tational Linguistics, 10:163—-177.
+
+Dawei Li, Bohan Jiang, Liangjie Huang, Alimohammad
+Beigi, Chengshuai Zhao, Zhen Tan, Amrita Bhat-
+tacharjee, Yuxuan Jiang, Canyu Chen, Tianhao Wu,
+Kai Shu, Lu Cheng, and Huan Liu. 2025. From gen-
+eration to judgment: Opportunities and challenges of
+Ilm-as-a-judge. Preprint, arXiv:2411.16594.
+
+Haitao Li, Qian Dong, Junjie Chen, Huixue Su, Yu-
+jia Zhou, Qingyao Ai, Ziyi Ye, and Yiqun Liu.
+2024. Llms-as-judges: A comprehensive sur-
+vey on llm-based evaluation methods. Preprint,
+arXiv:2412.05579.
+
+11
+
+Chin-Yew Lin. 2004. ROUGE: A package for auto-
+matic evaluation of summaries. In Text Summariza-
+tion Branches Out, pages 74-81, Barcelona, Spain.
+Association for Computational Linguistics.
+
+Yang Liu, Dan Iter, Yichong Xu, Shuohang Wang,
+Ruochen Xu, and Chenguang Zhu. 2023. G-eval:
+NLG evaluation using gpt-4 with better human align-
+ment. In Proceedings of the 2023 Conference on
+Empirical Methods in Natural Language Processing,
+pages 2511-2522, Singapore. Association for Com-
+putational Linguistics.
+
+Joshua Maynez, Shashi Narayan, Bernd Bohnet, and
+Ryan McDonald. 2020. On faithfulness and factu-
+ality in abstractive summarization. In Proceedings
+of the 58th Annual Meeting of the Association for
+Computational Linguistics, pages 1906-1919, On-
+line. Association for Computational Linguistics.
+
+R. Mischiati, M. Comerford, E. Gosford, J. Swart,
+S. Ewings, N. Botha, M. Stokes, and S. L. Mottram.
+2015. Intra and inter-rater reliability of screening
+for movement impairments: Movement control tests
+from the foundation matrix. Journal of Sports Sci-
+ence and Medicine, 14(2):427-440.
+
+Moran Mizrahi, Guy Kaplan, Dan Malkin, Rotem Dror,
+Dafna Shahaf, and Gabriel Stanovsky. 2024. State
+of what art? a call for multi-prompt LLM evaluation.
+
+Transactions of the Association for Computational
+Linguistics, 12:933-949.
+
+Harsha Nori, Naoto Usuyama, Nicholas King, S. McK-
+inney, Xavier Fernandes, Sheng Zhang, and Eric
+Horvitz. 2024. From medprompt to ol: Exploration
+of run-time strategies for medical challenge problems
+and beyond.
+
+OpenAl. 2025. Introducing GPT-5.
+openai.com/index/introducing-gpt-5/.
+cessed: 2025-09-19.
+
+https://
+Ac-
+
+OpenAl, Josh Achiam, Steven Adler, Sandhini Agarwal,
+Lama Ahmad, Ilge Akkaya, Florencia Leoni Ale-
+man, Diogo Almeida, Janko Altenschmidt, Sam Alt-
+man, Shyamal Anadkat, Red Avila, Igor Babuschkin,
+Suchir Balaji, Valerie Balcom, Paul Baltescu, Haim-
+ing Bao, Mohammad Bavarian, Jeff Belgum, and
+262 others. 2024. Gpt-4 technical report. Preprint,
+arXiv:2303.08774.
+
+Artidoro Pagnoni, Vidhisha Balachandran, and Yulia
+Tsvetkov. 2021. Understanding factuality in abstrac-
+tive summarization with FRANK: A benchmark for
+factuality metrics. In Proceedings of the 2021 Con-
+ference of the North American Chapter of the Asso-
+ciation for Computational Linguistics: Human Lan-
+guage Technologies, pages 4812-4829, Online. As-
+sociation for Computational Linguistics.
+
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-
+Jing Zhu. 2002. Bleu: a method for automatic evalu-
+ation of machine translation. In Proceedings of the
+40th Annual Meeting of the Association for Compu-
+tational Linguistics, pages 311-318, Philadelphia,
+
+
+Pennsylvania, USA. Association for Computational
+Linguistics.
+
+Thibault Sellam, Dipanjan Das, and Ankur Parikh. 2020.
+BLEURT: Learning robust metrics for text genera-
+tion. In Proceedings of the 58th Annual Meeting of
+the Association for Computational Linguistics, pages
+7881-7892, Online. Association for Computational
+Linguistics.
+
+Shivalika Singh, Yiyang Nan, Alex Wang, Daniel
+D’Souza, Sayash Kapoor, Ahmet Ustiin, Sanmi
+Koyejo, Yuntian Deng, Shayne Longpre, Noah A.
+Smith, Beyza Ermis, Marzieh Fadaee, and Sara
+Hooker. 2025. The leaderboard illusion. Preprint,
+arXiv:2504.20879.
+
+Sijun Tan, Siyuan Zhuang, Kyle Montgomery,
+William Y. Tang, Alejandro Cuadron, Chenguang
+Wang, Raluca Ada Popa, and Ion Stoica. 2024.
+Judgebench: A benchmark for evaluating llm-based
+judges. Preprint, arXiv:2410.12784.
+
+Aman Singh Thakur, Kartik Choudhary, Venkat Srinik
+Ramayapally, Sankaran Vaidyanathan, and Dieuwke
+Hupkes. 2025a. Judging the judges: Evaluating align-
+ment and vulnerabilities in 1lms-as-judges. Preprint,
+arXiv:2406.12624.
+
+Aman Singh Thakur, Kartik Choudhary, Venkat Srinik
+Ramayapally, Sankaran Vaidyanathan, and Dieuwke
+Hupkes. 2025b. Judging the judges: Evaluating
+alignment and vulnerabilities in LLMs-as-judges. In
+Proceedings of the Fourth Workshop on Generation,
+Evaluation and Metrics (GEM?), pages 404-430, Vi-
+enna, Austria and virtual meeting. Association for
+Computational Linguistics.
+
+Craig Thomson, Ehud Reiter, and Anya Belz. 2024.
+Common flaws in running human evaluation experi-
+ments in nlp. Computational Linguistics, 50(2):795—
+805.
+
+Yu-Min Tseng, Wei-Lin Chen, Chung-Chi Chen,
+and Hsin-Hsi Chen. 2024. Are expert-level lan-
+guage models expert-level annotators? Preprint,
+arXiv:2410.03254.
+
+Pat Verga, Sebastian Hofstatter, Sophia Althammer, Yix-
+uan Su, Aleksandra Piktus, Arkady Arkhangorodsky,
+Minjie Xu, Naomi White, and Patrick Lewis. 2024.
+Replacing judges with juries: Evaluating lm gen-
+erations with a panel of diverse models. Preprint,
+arXiv:2404.18796.
+
+Nico Wagner, Michael Desmond, Rahul Nair, Zahra
+Ashktorab, Elizabeth M. Daly, Qian Pan, Martin San-
+tillin Cooper, James M. Johnson, and Werner Geyer.
+2024. Black-box uncertainty quantification method
+for llm-as-a-judge. Preprint, arXiv:2410.11594.
+
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le,
+Ed Chi, Sharan Narang, Aakanksha Chowdhery, and
+Denny Zhou. 2023. Self-consistency improves chain
+of thought reasoning in language models. Preprint,
+arXiv:2203.11171.
+
+12
+
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le,
+and Denny Zhou. 2022. Chain-of-thought prompt-
+ing elicits reasoning in large language models. In
+Proceedings of the 36th International Conference on
+Neural Information Processing Systems, NIPS ’22,
+Red Hook, NY, USA. Curran Associates Inc.
+
+M. Wietholter, D. Akgiin, F. Plachel, M. Minkus, D. Kar-
+czewski, K. Braun, K. Thiele, L. Becker, U. Stockle,
+and P. Moroder. 2023. Inter-observer and intra-
+observer reliability assessment of the established clas-
+sification systems for periprosthetic shoulder frac-
+tures. Journal of Clinical Medicine, 12(9):3168.
+
+Thomas Wolf, Lysandre Debut, Victor Sanh, Julien
+Chaumond, Clement Delangue, Anthony Moi, Pier-
+ric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz,
+Joe Davison, Sam Shleifer, Patrick von Platen, Clara
+Ma, Yacine Jernite, Julien Plu, Canwen Xu, Teven Le
+Scao, Sylvain Gugger, and 3 others. 2020. Hugging-
+face’s transformers: State-of-the-art natural language
+processing. Preprint, arXiv:1910.03771.
+
+Ziang Xiao, Susu Zhang, Vivian Lai, and Q. Vera Liao.
+2023. Evaluating evaluation metrics: A framework
+for analyzing NLG evaluation metrics using measure-
+ment theory. In Proceedings of the 2023 Conference
+on Empirical Methods in Natural Language Process-
+ing, pages 10967-10982, Singapore. Association for
+Computational Linguistics.
+
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+Chengen Huang, Chenxu Lv, Chujie Zheng, Day-
+iheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao
+Ge, Haoran Wei, Huan Lin, Jialong Tang, and 41
+others. 2025. Qwen3 technical report. Preprint,
+arXiv:2505.09388.
+
+Tianyi Zhang*, Varsha Kishore*, Felix Wu*, Kilian Q.
+Weinberger, and Yoav Artzi. 2020. Bertscore: Eval-
+uating text generation with bert. In International
+Conference on Learning Representations.
+
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin,
+Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang,
+Joseph E. Gonzalez, and Ion Stoica. 2023. Judg-
+ing llm-as-a-judge with mt-bench and chatbot arena.
+Preprint, arXiv:2306.05685.
+
+A More Details About Experimental
+Setup
+
+For all three benchmarks and all three LLMs in
+our experiments, we used a 4xA100 GPU server
+and the transformers library (Wolf et al., 2020) to
+run our experiments. Unless specified otherwise,
+we used the recommended defaults for each model.
+This means that for Llama 3.1 and DeepSeek-R1,
+we used a temperature of 0.6 and top_p of 0.9. For
+
+
+Qwen 3, we used a temperature of 0.6 and top_p of
+0.95.
+
+For the SummaC benchmark, we used the fol-
+lowing prompt to get a binary label representing
+whether the article is consistent or inconsistent. Fig-
+ure 8 shows the prompt used for evaluating items
+in this benchmark.
+
+Task: Analyze the summary for factual incon-
+
+sistencies against the source document. Incon-
+
+sistencies can be due to:
+1. Hallucinations: Information added not in
+the source.
+
+. Contradictions:
+source content.
+
+. Entity Errors:
+names/roles/locations.
+
+Statements opposing
+
+Incorrect
+
+4. Omissions: Key points missing from the
+summary.
+5. Temporal Errors: Wrong ~~ se-
+
+quence/timeframe of events.
+Output: A single number 0 for consistent sum-
+mary and 1 for inconsistent summary.
+Document: { {Full source text} }
+Summary: {{Generated Summary} }
+
+Figure 8: Prompt used for each run in SummaC bench-
+mark.
+
+For SummkEval, there are four different metrics,
+coherence, consistency, fluency and relevance. For
+each run, we prompted the LLM judge four times
+independently, once for each metric. The prompts
+are in Figure 9.
+
+For MTBench, we used a single prompt that
+asked an LLM judge to choose between two gen-
+erations, or assign the label tie if it was unable to
+choose a clear favorite. Items in this datasets are
+divided into two types, math and general, with the
+difference being that conversations labeled math
+also contain reference answers to the user query.
+Figure 10 shows the prompt used for items labeled
+math, while Figure 11 shows the prompt used for
+items labeled general.
+
+B Agreement Metric: Krippendorff’s
+Alpha
+
+Krippendorff’s alpha (a) is a chance-corrected re-
+liability coefficient used to quantify agreement
+among two or more coders (observers, raters) as-
+signing values to a set of units. In other words,
+
+13
+
+it measures how consistently multiple annotators
+code the same items. Developed by Klaus Krip-
+pendorff in the context of content analysis, a gen-
+eralizes many classical agreement statistics (such
+as Cohen’s (Cohen, 1960) or Fleiss’ (Fleiss, 1971)
+Kappa) and applies to any number of coders, any
+number of categories or scale values, and any mea-
+surement level (nominal, ordinal, interval, ratio,
+etc.)
+
+Krippendorff’s alpha accommodates any num-
+ber of raters (two or more) and any measurement
+level, from nominal categories up through interval
+(or ratio) scales. It can handle missing data (by sim-
+ply omitting those cases when counting pairwise
+judgments), and it yields comparable reliability co-
+efficients even for unequal sample sizes or many
+categories. This flexibility allows it to remain valid
+for more than two raters or for ordered categories
+where partial agreements matter. Overall, Krippen-
+dorff’s alpha is valued for its broad applicability
+and its principled treatment of chance agreement,
+making it suitable for diverse rating and annotation
+tasks.
+
+B.1 Mathematical Notation
+
+Mathematically, Krippendorff’s Alpha follows the
+general form:
+
+D
+a=1-=>2
+
+D. ©)
+
+Here, D, = > 0(vi, v;) sums the pairwise dis-
+tances between raters’ values v;, v; on each item.
+
+The denominator D, is computed by summing
+d over all possible pairs of values (weighted by
+the frequency of each value) as if the assignments
+were randomly permuted among raters. In other
+words, D, reflects the average disagreement ex-
+pected purely by chance given the observed distri-
+bution of categories. The expected disagreement
+D. is what separates Krippendorff’s Alpha from
+other metrics like correlation for percentage agree-
+ment, since it accounts for chance agreement to pre-
+vent inflation of agreement values. To understand
+how D. is calculated, let us take the following ex-
+ample where we have
+
+1. V which is the set of all possible values that
+coders can assign (e.g., V = {1,2,3,4,5}
+for a 5-point scale).
+
+2. mn, which is the number of times value v € V'
+was assigned, across all units and coders.
+
+
+Instructions: You will be given one summary written for a news article. Instructions: You will be given one summary written for a news article.
+Your task is to rate the summary on one metric. Your task is to rate the summary on one metric.
+Evaluation Criteria: Coherence (1-5) — how well the summary is structured and Evaluation Criteria: Consistency (1-5) — the summary should not contradict the
+logically organized. source; penalize hallucinated facts.
+Evaluation Steps: Evaluation Steps:
+1. Read article and identify key points. 1. Read article and summary.
+2. Check if summary presents them clearly and logically. 2. Identify any factual errors.
+3. Score 1-5. 3. Score 1-5.
+Example: Example:
+News Article: News Article:
+{{Source Text} } { {Source Text} }
+Summary: Summary:
+{{Summary} } {{Summary} }
+Evaluation Form (scores ONLY): Evaluation Form (scores ONLY):
+Coherence: Consistency:
+(a) Coherence (b) Consistency
+
+Instructions: You will be given one summary written for a news article.
+Your task is to rate the summary on one metric.
+Evaluation Criteria: Relevance (1-5) — includes only important information from the
+source; penalize redundancy.
+Evaluation Steps:
+1. Read summary and article.
+2. Assess coverage of key points.
+
+Instructions: You will be given one summary written for a news article.
+Your task is to rate the summary on one metric.
+Evaluation Criteria: Fluency (1-5) — grammar, spelling, punctuation, word choice,
+and sentence structure.
+Evaluation Steps:
+1. Read the summary.
+
+2. Identify language issues affecting readability. ——
+3. Si 1-5. 2
+Example: News Article:
+Summary: A }
+S 2 :
+el Porm (scores ONLY): { {Summary} }
+Fluency: Evaluation Form (scores ONLY):
+’ Relevance:
+(c) Fluency (d) Relevance
+
+Figure 9: Prompts For Evaluating Generated Summaries From SummEval Using Four Metrics
+
+Please act as an impartial judge and evaluate the quality of the responses provided by two Al assistants to the user questions. Your evaluation should consider correctness and helpfulness.
+You will be given reference answers, the assistant A’s answers, the ant B’s answers. Your job is to determine which a nt provides correct and helpful answers to the second user
+question. Begin your evaluation by comparing both assistants’ answers with the reference answers. Identify and correct any mistakes. Avoid any position biases and ensure that the order in
+which the responses were presented does not influence your decision. Do not allow the length of the responses to influence your evaluation. Do not favor certain names of the assistants. Be
+as objective as possible. After providing your explanation, output your final verdict by strictly following this format: "[[A]]" if assistant A is better, "[[B]]" if assistant B is better, and
+"[[C]]" for a tie.
+
+<|The Start of Reference Answer |>
+
+User:
+{{question_1}}
+Reference answer:
+{{ref_answer_1}}
+User:
+{{question_2}}
+Reference answer:
+{{ref_answer_2}}
+
+<|The End of Reference Answer |>
+<|The Start of Assistant A’s Conversation with User|>
+
+User:
+{{question_1}}
+Assistant A:
+{{answer_a_1}}
+User:
+{{question_2}}
+Assistant A:
+{{answer_a_2}}
+
+<|The End of Assistant A’s Conversation with User|>
+<|The Start of Assistant B’s Conversation with User|>
+
+User:
+{{question_1}}
+Assistant B:
+{{answer_b_1}}
+User:
+{{question_2}}
+Assistant B:
+{{answer_b_2}}
+
+<|The End of Assistant B’s Conversation with User|>
+
+Figure 10: Prompt for Evaluating Two Generated Responses to Queries Labeled math in MTBench Dataset
+
+14
+
+
+
+Please act as an impartial judge and evaluate the quality of the responses provided by two Al assistants to the user questions. You should choose the assistant that follows the user’s
+instructions and answers the user’s questions better. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of their
+responses. You should focus on who provides a better answer to the second user question. Begin your evaluation by comparing the responses of the two assistants and provide a short
+explanation. Avoid any position biases and ensure that the order in which the responses were presented does not influence your decision. Do not allow the length of the responses to
+influence your evaluation. Do not favor certain names of the assistants. Be as objective as possible. After providing your explanation, output your final verdict by strictly following this
+format: "[[A]]" if assistant A is better, "[[B]]" if assistant B is better, and "[[C]]" for a tie.
+
+<|The Start of Assistant A’s Conversation with User|>
+
+User:
+{{question_1}}
+Assistant A:
+{{answer_a_1}}
+User:
+{{question_2}}
+Assistant A:
+{{answer_a_2}}
+
+<|The End of Assistant A’s Conversation with User|>
+<|The Start of Assistant B’s Conversation with User|>
+
+User:
+{{question_1}}
+Assistant B:
+{{answer_b_1}}
+User:
+{{question_2}}
+Assistant B:
+{{answer_b_2}}
+
+<|The End of Assistant B’s Conversation with User|>
+
+Figure 11: Prompt for Evaluating Two Generated Responses to Queries Labeled general in MTBench Dataset
+
+3. N =}, cy no Which is the total number of When observers agree perfectly, D, = 0 and
+value assignments. a = 1, indicating perfect reliability. When ob-
+servers agree only by chance, D, = D, and a = 0,
+From this, we can compute the relative frequen- indicating absence of reliability.
+cies (probabilities):
+B.2 Distance Functions
+Ud (2) A crucial aspect of Krippendorft’s alpha is the dis-
+N tance function §(v, v'), which quantifies how much
+Now we compute the expected disagreement two coded values disagree. The choice of ¢ reflects
+by summing over all unordered pairs of values the measurement level of the data and fundamen-
+(v,v") € V x V, weighted by how frequently those tally affects the computation of disagreement. In
+value pairs would co-occur by chance if coder as- ~~ general § must satisfy §(v, v') = 0 when two raters
+signments were independent. agree and 0(v,v’) > 0 otherwise. Different stan-
+We define a weighting term: dard choices of § are used for nominal, ordinal, and
+interval data. Each distance function changes how
+* If v # ¢/, the probability of randomly drawing ~~ disagreement is accumulated in D, and De.
+the pair (v,v’) is 2 - py - py. The factor of 2
+ensures we're counting both (v, v') and (v/, v)
+as one unordered pair.
+
+Dv =
+
+B.2.1 Nominal Distance
+For nominal (categorical) data with no inherent or-
+der, the standard distance function is the discrete
+
+e If v = ¢/, the probability of drawing (v, v) is (binary) metric. In this case, any two different cate-
+p? gories are simply considered maximally different.
+
+Formally, one sets
+Using a distance function 6(v, v'), the expected
+
+disagreement is: 0, v="1
+8 nominal (V, v') = , 4)
+1, v#w
+J , /
+De = >. >. Pup 6(v,v') 3) Therefore, exact matches incur zero distance and
+
+eV'eV . . . .
+verve any mismatch contributes a distance of 1. Using
+
+Conceptually, this represents the expected value this means the observed disagreement D, is effec-
+of the disagreement between two randomly se- tively the count (or weighted count) of all pairwise
+lected values from the overall distribution. coding disagreements among raters.
+
+15
+
+
+To calculate D,, using nominal distance,
+
+D, = > Snominal (Vis vj) (5)
+
+pairs
+
+So D, is essentially the count of mismatches.
+
+Nominal distance is appropriate when values
+are simply labels or categories (e.g. color names,
+types of object, or coding categories like “yes/no”,
+“red/green/blue” etc.). Here there is no notion of
+“how different” two distinct categories are, only
+that they are different. In effect, a with nominal ¢
+reduces to a chance-corrected proportion of exact-
+agreement (similar in spirit to kappa). All disagree-
+ments are weighted equally, so a mild coding error
+(“cat” vs “dog”) counts the same as a gross one
+(“cat” vs “car”) in D,,. This is the metric we used
+in the SummaC benchmark, since the items there
+have binary labels.
+
+B.2.2 Ordinal Distance
+
+For ordinal data (ranked categories, e.g. survey re-
+sponses “low/medium/high” or Likert scales), the
+distance function must respect the ordering of val-
+ues. A common choice is to use the squared dif-
+ference in ranks (or a formula based on cumulative
+frequencies of ranks). Krippendorff’s original for-
+mulation defines the ordinal distance as
+
+max (v,v’) 2
+
+>.
+
+g=min(v,v’)
+
+O ordinal (v y v') =
+
+(6)
+Here, n,, is the frequency of category v. In sim-
+pler terms, this usually reduces to the squared dif-
+ference in rank position between vv and v’v’, pos-
+sibly standardized by category frequencies. The
+key effect is that ginal (v, v') increases as the cat-
+egories are farther apart in rank.
+For ordinal §, if INV units are coded and unit j
+
+has my; coders giving values vy, ...,Vp,;, then
+the total number of coder-pairs is
+No
+J
+n= 7
+2 ( 5 ) (7)
+J=
+
+Using the ordinal distance d,,4, Krippendorft’s
+D,, can be written as
+
+N
+D, = - > > Sord (Vij, Virj)
+
+Jj=1i<i
+
+®)
+
+16
+
+Here each inner sum runs over all (") dis-
+tinct pairs of coders (¢,4') within unit j. Equiv-
+alently (and as shown by Krippendorff), this is the
+weighted average of within-unit disagreements. In
+other words, D, is the mean of all squared ordinal
+distances between pairs of ratings of the same unit.
+
+Each category has arank (e.g. 1,2,3,...). The
+standard ordinal distance (squared) between two
+categories c and k is defined by how far apart their
+ranks lie in the observed data distribution. Specifi-
+cally
+
+2
+
+max(c,k)
+Ne +n
+bora(c,K) =D mg— =m | ©)
+g=min(c,k)
+
+where n, is the frequency of category g in the
+pooled data. Intuitively, d,.q(c, k) counts the total
+number of cases between c and k (plus half-counts
+of the endpoints), then squares that gap. Plugging
+this into D, means each pair of ratings contributes
+the square of the rank-gap between their categories.
+
+Ordinal distance is appropriate when categories
+are ordered but not equally spaced (e.g. ratings
+like "good, better, best" or "strongly agree, agree,
+neutral, disagree, strongly disagree"). Using this
+distance in a means that two raters who give ad-
+jacent ranks (e.g. 2 vs. 3 on a five-point scale)
+incur less disagreement than two raters who give
+opposite ends (e.g. 1 vs. 5). In formula terms,
+D,, will sum the squared rank differences for each
+pair. Thus « will penalize large rank disagreements
+more heavily. In practice, this often yields a larger
+D, (hence smaller «) than the nominal distance
+would, because it encodes more information about
+how coders differ, not just that they differ. (One can
+also standardize ordinal distances to lie between
+0 and 1, but the relative weighting is what mat-
+ters for «.) This is the distance we used in the
+SummEval and MTBench benchmarks, since the
+former has labels on a Likert Scale, and the latter
+has three labels, model,, model, and tie, allowing
+us to distinguish between disagreements where get
+(modely, tie) versus (model,, model).
+
+B.2.3 Interval Distance
+
+For interval data (quantitative values on a scale with
+equal intervals), the usual choice is the squared-
+difference distance. That is, one sets
+
+interval (V, v') = (v - v')? (10)
+
+
+This simply treats the numerical values as points
+on the real line and measures squared distance be-
+tween them.
+
+To calculate D,, from interval distance,
+
+> (vi — vy)?
+
+pairs
+
+D, = Oy
+
+So D, is the sum of squared deviations across
+all coder pairs.
+
+Interval distance is used when the data are mea-
+sured on an interval scale (e.g. temperature in Cel-
+sius, or any numeric rating where differences are
+meaningful). For example, if raters assign values
+3.0 and 4.5 to an item, § = (3.0 — 4.5)? = 2.25.
+In o’s computation, each such pairwise difference
+contributes to the total disagreement. The squared
+form makes « analogous to a variance-based agree-
+ment measure: larger numerical discrepancies in-
+flate D,. In effect, with interval J, Krippendorff’s
+alpha becomes sensitive to the magnitude of dis-
+agreements. Two coders who differ by 1 unit vs.
+two coders who differ by 5 units will have drasti-
+cally different contributions to D,. This is appro-
+priate when numerical differences carry substantive
+meaning. We do not use this metric in this paper,
+since none of the datasets in our studies contain
+numerical labels, however, we are still including
+this distance function in our explanation for the
+sake of completeness.
+
+C More Details on SummaC Benchmark
+
+C.1 Dataset Statistics of SummaC Benchmark
+
+Table 4 shows the number of test examples in each
+of the six datasets in the SummaC benchmark.
+
+Dataset Test Examples
+CoGenSumm (Falke et al., 2019) 400
+XSumPFaith (Maynez et al., 2020) 1250
+
+Polytope (Huang et al., 2020) 634
+
+FactCC (Kryscinski et al., 2020) 503
+SummEval (Fabbri et al., 2021) 850
+
+FRANK (Pagnoni et al., 2021) 1575
+
+Table 4: Number of Test Examples in Each Dataset in
+the SummaC Benchmark
+
+C.2 Impact of CoT and Few-shot Prompting
+on Intra-Rater Reliability and Accuracy
+on SummaC
+
+Two breakthrough advances in the use of language
+models are few-shot prompting (Brown et al., 2020)
+and chain-of-thought (CoT) prompting (Wei et al.,
+
+17
+
+Setting Llama 3.1 Deepseek-R1 ~~ Qwen 3
+Default 0.3263 0.6278 0.7883
+w/ Few-shot 0.3245 0.6166 0.7804
+w/ CoT 0.3219 0.6132 0.7796
+w/ Both 0.3206 0.6134 0.7801
+
+Table 5: Self-Reliability of LLM judges on SummaC for
+the default setting, as well as when few-shot and chain-
+of-thought prompting are used together and separately.
+
+Setting Llama 3.1 Deepseek-R1 ~~ Qwen 3
+Default 61.4 72.3 80.6
+w/ Few-shot 62.9 72.8 80.6
+w/ CoT 60.8 71.6 80.4
+w/ Both 60.1 72.1 80.3
+
+Table 6: Balanced Accuracy (majority-vote) between
+the LLM and human judgments for the default setting, as
+well as when few-shot and chain-of-thought prompting
+are used together and separately.
+
+2022). Few-shot prompting refers to providing the
+model with a few labeled examples demonstrating
+how to perform a desired task with higher accuracy.
+On the other hand, CoT prompting enables lan-
+guage models to generate intermediate reasoning
+steps that lead to the desired answer. They repre-
+sent different facets of in-context learning, and can
+be combined or used independently.
+
+In our next set of experiments, we investigate
+whether leveraging these techniques addresses self-
+reliability. In the few-shot setting, we add 5 pos-
+itive and 5 negative examples in the prompt. In
+the chain-of-thought setting, we prompt the model
+to think step by step before answering. Under the
+Both setting, we employ both few-shot and chain-
+of-thought prompting.
+
+Table 5 shows the self-reliability of LLM judges
+measured by Krippendorff’s Alpha over 3 runs. We
+see that few-shot prompting does not appreciably
+change the self-reliability of the models, and leads
+to a slight decrease in consistency. This change
+is not significant and shows that one cannot eas-
+ily address the self-reliability issue with different
+prompting strategies.
+
+Table 6 shows the accuracy of LLM judges
+against human judgments. While few-shot prompt-
+ing does lead to a small improvement in Llama 3.1
+and Deepseek-R1, there is no significant jump in
+performance for either prompting strategy. This
+could be because, as previously observed, few-
+shot prompting does not always work well with
+reasoning models like Deepseek-R1, Qwen 3 and
+
+
+ol (DeepSeek-Al et al., 2025; Nori et al., 2024),
+while chain-of-thought prompting does not neces-
+sarily improve the accuracy of a reasoning model
+since it already performs chain-of-thought implic-
+itly (Eliot, 2025). Interestingly, Qwen 3 shows the
+least change under these new settings, suggesting
+newer reasoning models are fairly robust to differ-
+ent prompts.
+
+D Additional Analysis of Agreement
+Between Judges in SummEval
+
+D.1 Distributions of Scores in SummEval
+From Different Populations of Raters
+
+In Figure 12, we see the distributions of scores as-
+signed by different categories of raters across all
+four metrics on the SummEval benchmark. We
+see that for Turkers the distributions do not change
+appreciably across metrics, indicating that human
+judges without proper expertise do a poor job of
+differentiating between different metrics. While
+the other four categories of judges do discern be-
+tween metrics, they all have very different distribu-
+tions of scores for a specific metric. Even though
+Deepseek R1 and Qwen 3 showed much higher
+agreement with experts compared to LLama 3.1
+and Turkers, we see that their distributions are very
+different. This implies that each category of judge
+follows their own internal definition of a given met-
+ric, which puts a strict cap on how high their agree-
+ment can be.
+
+E Additional Details on MT-Bench
+Benchmark
+
+E.1 Breakdown of Examples in MT-Bench
+
+2 3 4 5
+599 132 24 6
+
+Table 7: Number of examples with 2, 3, 4, or 5 judg-
+ments from human annotators in MT-bench.
+
+Table 7 shows how many examples had 2, 3, 4,
+or 5 human judgments in the MT-Bench dataset.
+These are the examples we used in our experiments
+since we filtered out examples that had only one
+human judgment.
+
+18
+
+
+Coherence Coherence Coherence Coherence Coherence
+
+Consistency Consistency Consistency Consistency Consistency
+Fluency Fluency Fluency Fluency Fluency
+Relevance Relevance Relevance Relevance Relevance
+
+0 02 07 3 B23 To
+
+0 02 oa Eg B23 To
+
+0 02 oa 3 Eg To
+
+0 02 07 E3 B23 To
+
+(a) Experts (b) Turkers (c) Llama 3.1 (d) Deepseek R1 (d) Qwen 3
+
+Figure 12: Distributions of scores assigned by different raters across all metrics in the SummEval dataset.
+
+19

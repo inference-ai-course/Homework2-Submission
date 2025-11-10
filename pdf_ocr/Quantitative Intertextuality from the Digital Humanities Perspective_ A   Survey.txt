@@ -1,0 +1,2621 @@
+2510.27045v1 [cs.CL] 30 Oct 2025
+
+arxiv
+
+Journal Title Here, 2025, 1-22
+doi: DOI HERE
+
+Advance Access Publication Date: Day Month Year
+
+Paper
+
+Quantitative Intertextuality from the Digital
+Humanities Perspective: A Survey
+
+Siyu Duanl*
+
+School of Foreign Languages, Shanghai Jiao Tong University, 800 Dongchuan Road, Minhang District,
+
+200240, Shanghai, China
+
+*Corresponding author. duansiyu@pku.edu.cn
+
+FOR PUBLISHER ONLY Received on Date Month Year; revised on Date Month Year; accepted on Date Month Year
+
+Abstract
+
+The connection between texts is referred to as intertextuality in literary theory, which served as an important
+
+theoretical basis in many digital humanities studies. Over the past decade, advancements in natural language
+
+processing have ushered intertextuality studies into the quantitative age. Large-scale intertextuality research
+
+based on cutting-edge methods has continuously emerged. This paper provides a roadmap for quantitative
+
+intertextuality studies, summarizing their data, methods, and applications. Drawing on data from multiple
+languages and topics, this survey reviews methods from statistics to deep learning. It also summarizes their
+
+applications in humanities and social sciences research and the associated platform tools. Driven by advances in
+
+computer technology, more precise, diverse, and large-scale intertext studies can be anticipated. Intertextuality
+
+holds promise for broader application in interdisciplinary research bridging Al and the humanities.
+
+Key words: Intertextuality, Digital Humanities, Natural Language Processing, Text Similarity
+
+1. Introduction
+
+Intertextuality refers to the connection between
+texts, a concept introduced by French literary critic
+Julia Kristeva [Kristeva, 1980]. It plays an important
+role in literary studies and textual analysis.
+Intertextuality can occur across different textual
+levels, such as words, sentences, and documents, and
+take various forms, including semantic connections,
+rhythmic similarities, or shared themes and narrative
+structures. Initially confined to textual connections,
+the concept has expanded to include relationships
+across other modalities, such as sound and image.
+Nevertheless, text-based intertextuality research
+remains dominant.
+
+Before the formal introduction of intertextuality,
+studies of textual connections were already underway
+
+in literary scholarship. As early as 1818, Chinese
+
+scholars attempted to list textual parallels between
+Han Shi Wai Zhuan and several major works from
+the Axial Age [Chen, 1818]. Such manual efforts
+continued into the 21st century [Ho Che Wah,
+2004]. Western literary studies followed a similar
+path, with extensive work on allusions and influences
+in Latin literature. For instance, the enduring
+analysis of how Virgil’s Aeneid influenced Lucan’s
+Pharsalia. Despite considerable humanistic efforts to
+exhaustively trace intertextual links, only a small
+fraction of possible connections were uncovered.
+The digital methods have brought unprecedented
+advances to intertextuality research. With the
+advance of natural language processing, quantitative
+in both
+
+breadth and depth. Computers can now identify
+
+intertextuality studies have expanded
+
+millions of textual parallels within hours. In 2018,
+one study reported around 200,000 intertextual
+
+(© The Author 2025. Published by Oxford University Press. All rights reserved. For permissions, please e-mail: journals.permissions@oup.com
+
+1
+
+
+Siyu Duan
+
+Data Method Application
+Language 1. Data Processing 2. Feature 3. Intertextuality Detection Research
+» Chinese > Root Mapping > Overlap » Text Matching >» Influence
+» English » Meaningless Text Character Overlap » Preference
+» Latin Word * Word Overlap >» Similarity
+» Greek N-gram * Sequence Matching » Writing Habits
+> Finnish 4. Further Modeling Sequence «Entity Matching » Cultural Evolution
+> Arabic Normalization Entity Vector Similarity
+> » Min-Max >» Vector * Word Vector Platforms and Tools
+» Unilateral Word Sentence Vector > Browse
+Theme > Bilateral Sentence + Topic Vector > Detection
+> History Feature Similarity TF-IDF LLMs
+> Religion Intertextual Network Topic » Threshold Prospect
+» Law > Sentence-Level Document | | » Evaluation Metric
+» News » Book-Level >» SeqLab >» Acceleration > Cross-Lingual
+> Poetry » Temporal Info » Stylistic » Meaningful Intertext > Multimodal
+toe » Geographic Info > Metadata » Narrative Structure
+
+Fig. 1: Technical framework of quantitative intertextuality
+
+pairs (66,000 sub-clusters, 202,000 texts) [Sturgeon,
+2018b).
+scale vector retrieval engines, this number grew
+to 2.6 million pairs in 2023 [Duan et al, 2023]
+and 14 million by 2024 [Wang et al, 2024].
+Methodologically, early studies (pre-2020) largely
+
+Using deep learning models and large-
+
+relied on character overlap to detect observable
+textual similarities. More recent approaches employ
+deep neural networks to match texts in high-
+dimensional vector spaces, capturing more abstract
+intertextual relationships. These modeling results
+provide quantitative evidence for humanities and
+social sciences studies. Today, digital platforms for
+intertext browsing and detection, which are often
+enhanced by information retrieval and visualization
+tools, enable deeper reader engagement.
+
+A book named Quantitative Intertextuality
+[Forstall and Scheirer, 2019] offers a systematic
+overview of this field. However, its focus is primarily
+on Western literature, and it was published before
+the widespread adoption of deep learning—thus
+limited in both scope and technical currency. This
+paper surveys quantitative intertextuality research
+across multiple languages, including Chinese,
+English, and Latin, and spans disciplines such as
+history, religion, literature, law, and journalism. The
+technical framework for quantitative intertextuality
+research is summarized in the Fig. 1. This paper
+summarizes the data, methods, and applications of
+
+these studies, highlights their commonalities and
+
+distinctive features, and discusses challenges and
+future directions for intertextuality research.
+
+2. Data
+
+Quantitative intertextuality has been applied to
+literature in various languages, as categorized by
+language in Table 1. It is evident that quantitative
+intertextuality is popular in the study of ancient
+the
+inherent limitations of
+
+literature. Compared to modern literature,
+
+distinctive features and
+ancient texts make them especially suitable for
+
+intertextual research:
+
+eo Lack of writing conventions. Modern literary
+works adhere to established standards such as
+quotation marks and reference lists, which are
+often absent in ancient literature.
+
+e Missing metadata. For some ancient texts, author
+identities, places of origin, and dates of creation
+are unknown and difficult to verify.
+
+e Missing media information. Modern publications
+often come with contextual information provided
+by media channels, such as location, publisher,
+online attention, and sharing data. In contrast,
+the dissemination pathways of ancient documents
+recorded on materials like paper, bamboo, or
+stone are challenging to reconstruct.
+
+Due to these limitations, the analysis of ancient
+literature often depends primarily on the text itself.
+Since intertextuality is a universal feature across all
+
+
+Quantitative Intertextuality
+
+Table 1. Literature categorized by language
+
+Language | Literature
+
+Chinese Classical Chinese:
+
+Modern Chinese: Bothwell et al. [2023]
+
+Xiao and Chen [2010], Sturgeon [2018a], Sturgeon [2018b], Sturgeon [2019],
+
+Nehrdich [2020], Liang et al. [2021], Zhou et al. [2021], Shuiqing Huang and Wang [2021],
+Deng et al. [2022], Li et al. [2022], Cheng [2023], Duan et al. [2023],
+
+Wang et al. [2024], McManus et al. [2025], Fu and Wang [2025]
+
+Classical and Modern Chinese: Yu et al. [2022]
+
+English Modern English:
+Smith et al. [2013], Smith et al. [2014], Biichler et al. [2014], Wilkerson et al. [2015],
+Smith et al. [2015], Cordell [2015], Williams [2015], Romanello [2016], Burgess et al. [2016],
+Duhaime [2016], Cordell and Mullen [2017], Hartberg and Wilson [2017],
+Chaturvedi et al. [2018], Linder et al. [2020], O'neill et al. [2021], Shang and Underwood [2021],
+Hatzel and Biemann [2024b], Hatzel and Biemann [2024a], Karjus [2025]
+Old English: Neidorf et al. [2019]
+Latin Forstall et al. [2011], Coffee et al. [2012b], Coffee et al. [2012a], Scheirer et al. [2014],
+Forstall et al. [2014], Bernstein et al. [2015], Moritz et al. [2016], Dexter et al. [2017],
+Gawley and Diddams [2017], Manjavacas et al. [2019], Burns et al. [2021], Bothwell et al. [2023]
+Greek Lee [2007], Biichler et al. [2013], Moritz et al. [2016], Umphrey et al. [2024]
+Finnish Vesanto et al. [2017b], Vesanto et al. [2017a], Salmi et al. [2020], Janicki et al. [2023]
+Other Mohammad et al. [2017] (Arabic), Ganascia et al. [2014] (French),
+
+Shmidman et al. [2018] (Hebrew/Aramaic), Karjus [2025] (Russian)
+
+texts, it offers a compatible framework for studying
+ancient works.
+
+Previous studies have explored intertextual
+connections around various themes, as summarized
+in Table 2. Some studies utilize multiple types
+of source materials, which are listed separately
+under each relevant category. Ancient Roman
+
+epic, for instance, possesses both historical and
+poetic qualities; this paper classifies it under the
+“history” theme. For corpora that incorporate five
+or more thematic types, they are grouped under the
+“comprehensive” category.
+
+It can be observed that texts suitable for
+quantitative intertextuality research share a common
+characteristic: different versions address the same
+content. For example, multiple newspapers may
+cover the same news story; different countries or
+regions may enact similar laws; various historians
+may chronicle the same historical period; different
+translators may render the same religious text; and
+multiple scholars may provide distinct annotations
+
+for the same book. When texts exhibit such
+
+characteristics, researchers can prioritize the use of
+intertextuality modeling analysis.
+
+3. Calculation Method
+
+This section outlines the computational methodology
+for quantitative intertextuality research. It addresses
+the following key questions: 1) How should textual
+data be preprocessed to facilitate intertextual
+modeling? 2) How can appropriate intertextual
+data? 3) How
+
+can parallel intertextuality detection be performed
+
+features be selected from the
+
+efficiently and accurately? 4) How can similarity
+be measured based on intertextual features? 5)
+How can an intertextual network be constructed?
+This section presents the complete computational
+pipeline, thereby clarifying the technical framework
+of this research paradigm.
+
+3.1. Data Processing
+
+The
+intertextuality research should be tailored according
+
+data processing pipeline in quantitative
+
+
+Table 2. Literature categorized by theme
+
+Siyu Duan
+
+Theme Literature
+History Coffee et al. [2012b], Biichler et al. [2013], Coffee et al. [2012a], Scheirer et al. [2014],
+Forstall et al. [2014], Bernstein et al. [2015], Dexter et al. [2017], Neidorf et al. [2019],
+Burns et al. [2021], Deng et al. [2022], Yu et al. [2022]
+Religion Lee [2007], Biichler et al. [2014], Moritz et al. [2016], Hartberg and Wilson [2017],
+Manjavacas et al. [2019], Nehrdich [2020], Bothwell et al. [2023],
+McManus et al. [2025], Umphrey et al. [2024]
+Law Smith et al. [2014], Wilkerson et al. [2015], Burgess et al. [2016],
+Linder et al. [2020], Gava et al. [2021]
+News Smith et al. [2013], Smith et al. [2014], Smith et al. [2015], Cordell [2015],
+Cordell and Mullen [2017], Vesanto et al. [2017b], Vesanto et al. [2017a),
+Mohammad et al. [2017], Salmi et al. [2020]
+Poetry Forstall et al. [2011], Williams [2015], Shang and Underwood [2021],
+Janicki et al. [2023], Cheng [2023]
+Annotation Xiao and Chen [2010], Shuiging Huang and Wang [2021],
+Liang et al. [2021], Zhou et al. [2021]
+Summary Chaturvedi et al. [2018], Hatzel and Biemann [2024b], Hatzel and Biemann [2024a]
+Comprehensive | Biichler et al. [2013], Gawley and Diddams [2017], Sturgeon [2018b],
+Shmidman et al. [2018], Sturgeon [2019], O'neill et al. [2021], Li et al. [2022],
+Duan et al. [2023], Wang et al. [2024], Fu and Wang [2025]
+Other Bothwell et al. [2023] (Composition), Romanello [2016] (Catalogue),
+Dexter et al. [2017] (Drama), Sturgeon [2018a] (Philosophy),
+Duhaime [2016], Ganascia et al. [2014] (Fiction), Karjus [2025] (Blog)
+
+to the specific research questions and linguistic
+features involved. Beyond standard data cleaning
+and preprocessing, two critical steps for ensuring the
+accuracy of subsequent intertextuality calculations
+are root mapping and the handling of meaningless
+text.
+
+3.1.1. Root Mapping
+
+Due to factors such as historical period, geographic
+region, and inherent language properties, the same
+semantic unit can appear in different surface forms.
+a single word may
+
+For example, in English,
+
+have variations in capitalization, tense, number
+(singular /plural), or composition (e.g., hyphenation,
+affixes). In Chinese, a character might have multiple
+variant forms, and there is a complex mapping
+relationship between simplified and traditional
+characters. In intertextuality research, it is often
+
+necessary to normalize these variants back to a
+
+common root word or character. For digitally well-
+resourced languages like English and Chinese, open-
+source external toolkits can be employed to perform
+root mapping. For low-resource languages, acquiring
+or creating relevant linguistic resources is necessary.
+
+3.1.2. Meaningless Text
+
+When the focus is on ideological connections, such
+as tracing the dissemination of ideas through texts,
+researchers prioritize intertextual links involving
+meaningful content. Therefore, meaningless words
+often receive special treatment, such as being deleted
+entirely or having texts with an excessive proportion
+of them filtered out. These words can be identified
+using existing external resources, like publicly
+through methods
+including part-of-speech tagging and frequency
+
+available stop-word lists, or
+
+analysis.
+
+
+Quantitative Intertextuality
+
+Table 3. Feature selection in intertextual computation
+
+Feature Literature
+Character | Vesanto et al. [2017b], Vesanto et al. [2017a], Shmidman et al. [2018],
+Salmi et al. [2020], Janicki et al. [2023]
+Word Xiao and Chen [2010], Coffee et al. [2012b], Coffee et al. [2012a],
+Forstall et al. [2014], Williams [2015], Moritz et al. [2016],
+Mohammad et al. [2017], Chaturvedi et al. [2018], Manjavacas et al. [2019]
+Overlap N-gram Smith et al. [2013], Smith et al. [2014], Biichler et al. [2014], Wilkerson et al. [2015],
+Williams [2015], Burgess et al. [2016], Duhaime [2016], Mohammad et al. [2017],
+Sturgeon [2018a], Sturgeon [2018b], Sturgeon [2019], Linder et al. [2020],
+O'neill et al. [2021], Li et al. [2022], McManus et al. [2025]
+Sequence | Xiao and Chen [2010], Ganascia et al. [2014]
+Entity Chaturvedi et al. [2018], Mohammad et al. [2017], Deng et al. [2022]
+Word Manjavacas et al. [2019], Nehrdich [2020], Burns et al. [2021], Li et al. [2022]
+Sentence | Duan et al. [2023], Wang et al. [2024], Liang et al. [2021], Li et al. [2022],
+Cheng [2023], Yu et al. [2022], Fu and Wang [2025]
+Vector ~~ TF-IDF Lee [2007], Sturgeon [2018a], Manjavacas et al. [2019],
+Deng et al. [2022], Shang and Underwood [2021]
+Topic Scheirer et al. [2014], Mohammad et al. [2017]
+Document | Hatzel and Biemann [2024a], Hatzel and Biemann [2024b],
+Umphrey et al. [2024], Karjus [2025]
+SeqLab Zhou et al. [2021], Bothwell et al. [2023]
+Other Stylistic Neidorf et al. [2019], Forstall et al. [2011], Dexter et al. [2017]
+Metadata | Shuiqing Huang and Wang [2021], Romanello [2016]
+
+3.2. Intertextual Feature
+
+Intertextuality is a broad and multifaceted concept.
+It operates across multiple dimensions, such as
+
+semantics, literary style, and metadata, and
+
+manifests at various levels, including words,
+sentences, paragraphs, and documents. Researchers
+have studied
+
+perspectives, and the table 3 categorizes literature
+
+intertextual features from diverse
+
+by feature type.
+
+3.2.1. Overlap Feature
+
+Overlap features refer to directly observable identical
+elements between two texts, such as matching
+characters, words, n-grams, sequences, and entities.
+These features are visually identifiable and highly
+interpretable.
+
+Here, “characters” refer to those in alphabetic
+writing systems. The smallest semantic unit is the
+word, which is composed of characters; characters
+themselves carry no inherent meaning. When text
+
+data quality is low, for instance, too many OCR
+errors [Vesanto et al., 2017b, Salmi et al., 2020,
+Vesanto et al., 2017a], unordered character-based
+features are more suitable. Using ordered character
+sequences under such conditions may result in poor
+matching performance due to frequent character-
+level errors. Many languages exhibit orthographic
+variations, such as character variants in Chinese or
+differences in capitalization and number in English.
+For well-resourced languages, external toolkits can
+normalize such variations by mapping words to their
+root forms. However, for languages with limited
+resources, such as Finnish [Janicki et al., 2023] and
+Hebrew-Aramaic [Shmidman et al., 2018], which
+also exhibit significant spelling variations, overlap
+measures at the character level are more appropriate.
+
+Word overlap, n-gram overlap, and sequence
+matching are highly generalizable methods that have
+been successfully applied across many languages.
+The minimal unit for these features is a word in
+
+alphabetic systems or a character in logographic
+
+
+systems. While word overlap ignores word order, n-
+gram matching introduces limited order constraints.
+An n-gram is a short consecutive sequence of words
+(or characters in logographic systems), where n
+typically ranges from 2 to 5 and seldom exceeds
+10. A common strategy is to first detect text
+pairs sharing the same n-grams (often accelerated
+via hashing algorithms) and then apply sequence
+scoring rules for finer filtering. This two-step process
+balances efficiency and accuracy. Sequence features,
+in contrast, are derived directly from full-sequence
+
+alignment.
+Texts rich in named entities, such as historical
+documents [Deng et al, 2022] or narratives
+
+[Chaturvedi et al., 2018], are well-suited for entity
+overlap measures, as they contain many proper
+nouns that are not adequately handled by standard
+
+semantic matching approaches.
+
+3.2.2. Vector Feature
+
+Vector features convert discrete characters
+mapping
+high-dimensional space to capture more abstract
+
+into
+
+continuous vectors, semantics into a
+
+semantic representations. Commonly used vector
+types include word vectors, sentence vectors, and
+paragraph- or document-level vectors.
+
+Word vectors generally cannot be used in
+isolation; they require additional rule design to
+measure text similarity at the n-gram level and
+above [Burns et al., 2021, Li et al., 2022]. Sentence
+vectors encapsulate more complex semantics and
+can help identify richer, more abstract intertextual
+connections. Both word and sentence vectors can
+be obtained by using pre-trained language models.
+Alternatively, these models can be further fine-
+tuned on a specific target corpus to produce vector
+representations that are better suited to particular
+research needs.
+
+TF-IDF and topic vectors are appropriate for
+matching longer texts, such as paragraph or
+document. Topic vectors can be generated using
+models like LDA or LSI, which capture implicit
+connections through thematic features [Scheirer
+et al., 2014]. Document-level vector features are
+suitable for capturing linkages in narrative structures
+[Hatzel and Biemann, 2024a, Shuiqing Huang and
+Wang, 2021], or for processing entire texts through a
+generative LLM [Umphrey et al., 2024].
+
+The disadvantage of vector-based features is
+their The
+
+calculated in a latent space,
+
+poor interpretability. semantics are
+
+a characteristic
+
+Siyu Duan
+
+that may be unsatisfactory to traditional scholars.
+Nevertheless, it is undeniable that vector methods
+have significantly expanded the depth and breadth
+of intertextuality research, enabling the detection of
+more complex and diverse intertextual relationships.
+
+3.2.3. Stylistic Feature
+
+Stylistics emphasizes the form of text rather than
+the meaning. Related studies [Dexter et al., 2017,
+Neidorf et al., 2019, Forstall et al., 2011] have
+employed stylistic features including textual cadence,
+sentence structure, entity distribution, and patterns
+of function word usage, etc. When different texts
+display intentional or unintentional resemblances
+in formal aspects, a subtle relationship emerges
+between them. In genres with strict rhythmic
+demands, like poetry and drama, stylistic features
+are particularly useful.
+
+Using stylistic features for intertextual research
+offers two main advantages: non-sparsity and
+diversity. Semantically similar parallel texts are
+relatively scarce in literature: two documents may
+share only a few parallel intertexts, which is often
+insufficient for rigorous quantitative analysis. In
+contrast, stylistic features are inherent to the text
+and exhibit a denser distribution. Moreover, they
+can be tailored to specific languages and genres,
+yielding a wide variety of measurable traits. For a
+given research question, the convergence of multiple
+stylistic indicators strengthens the credibility of the
+findings.
+
+A limitation of stylistic features is their strong
+dependence on language type. It is often challenging
+to transfer stylistic criteria from one language to
+another or to draw inspiration from studies in
+non-target languages. Consequently, the design
+of stylistic features must be dynamically adapted
+
+according to variations in language type and genre.
+
+3.2.4. Metadata
+
+Metadata refers to data that describes other data,
+offering contextual details such as format, author,
+creation time, and location. Modern scholarly
+texts follow standardized citation formats, and
+citation analysis builds upon these established
+citation networks. For example, Citron and Ginsparg
+[2015] detected text reuse in contemporary academic
+literature and performed further analysis using
+metadata such as author, references, topic, and
+
+national affiliation of the paper.
+
+
+Quantitative Intertextuality
+
+In contrast, ancient literature lacks a
+standardized citation format, which requires
+citation identification. Citations appear in two
+
+forms: one involves restating or paraphrasing the
+original content, while the other merely mentions
+the name of an author or a document without
+quoting the content directly. The former can be
+identified through semantic similarity, whereas the
+latter requires tailored approaches.
+
+For the latter type of citation, Named Entity
+(NER) is
+Shuiqing Huang and Wang [2021] extracted citation
+
+Recognition useful. For instance,
+relationships from annotated ancient Chinese books
+by recognizing book titles via NER. Similarly,
+Romanello [2016] identified citation relationships
+in catalog books using author names and citation
+scopes (such as volume and page numbers). Since
+entities like personal names and book titles often
+have multiple aliases, entity disambiguation should
+be performed after NER to achieve more accurate
+citation analysis.
+
+3.2.5. Sequence Labeling
+
+Sequence tagging is not used for matching intertexts,
+but for identifying the presence of certain types
+of intertexts in text. For example, identifying the
+location of quoted text in a text [Zhou et al., 2021],
+or identifying rhetorical texts in a parallel pattern
+[Bothwell et al., 2023].
+
+3.3. Parallel Intertextuality Detection
+
+Listing texts with intertextual connections is an
+important component of traditional intertextuality
+research. Originally reliant on extensive manual
+effort, this process has undergone transformative
+advances within computer technology. Researchers
+have explored many computational approaches for
+detecting parallel intertexts, evolving from rule-
+based matching to deep learning models, significantly
+improving the accuracy and diversity of detection.
+This section reviews existing methodologies from
+threshold
+
+computational
+
+five key perspectives: text matching,
+
+determination, evaluation metrics,
+acceleration, and the identification of meaningful
+
+intertexts.
+
+3.3.1. Text Matching
+This paper
+techniques into two main types:
+
+categorizes intertext recognition
+those based
+on lexical overlap and those based on vector
+
+similarity. Overlap-based methods can be further
+
+divided according to whether they account for word
+order: these include word overlap and sequence
+In addition,
+
+integrated with both types to enhance performance.
+
+matching. entity matching can be
+
+‘Word Overlap. Methods based on word overlap
+ignore word order and typically identify parallel text
+pairs that contain at least n identical words or
+shared n-grams. For instance, some studies directly
+retrieve texts that share two or more identical
+words [Coffee et al., 2012b,a, Forstall et al., 2014].
+While straightforward, this approach often requires
+secondary filtering to eliminate unqualified matches.
+Matching.
+methods take word order into account. Researchers
+
+Sequence Sequence matching
+
+typically define sequence similarity based on
+data characteristics and research objectives. For
+example, Sturgeon [2018b] first identified all strings
+sharing identical 4-grams, then examined their
+contexts to refine match boundaries and filter
+low-quality alignments. Li et al. [2022] designed
+scoring functions grounded in n-gram matching
+to quantify sequence similarity. Wilkerson et al.
+[2015], Linder et al. [2020], Smith et al. [2013,
+2014] employed the Smith—Waterman algorithm,
+a dynamic programming technique, to compute
+alignment scores. Methods from bioinformatics for
+gene sequence alignment have also been adapted for
+intertextuality detection [Vesanto et al., 2017b].
+Entity matching. In some types of literature,
+such as historical books, entities appear frequently
+Named
+
+information can be integrated to further optimize
+
+and play an important role. entity
+text similarity algorithms. Deng et al. [2022] employs
+a NER model to extract named entities from two
+books, and incorporates the overlap of entities into
+the text similarity calculation.
+
+While highly
+
+interpretable, they struggle with non-literal linguistic
+
+overlap-based methods are
+relationships like synonymy and paraphrasing.
+Although they may seem outdated in the age of
+deep learning, these methods remain valuable in
+specific scenarios. Examples include low-resource
+languages, where training data for deep models is
+scarce, and damaged documents, where missing
+characters prevent the generation of meaningful
+vector representations.
+
+Using advanced NLP techniques, discrete text can
+be transformed into dense vector representations,
+which help capture more complex and diverse
+intertextual relationships. This paper examines
+
+three types of vector similarity—word vector
+
+similarity, sentence vector similarity, and topic
+
+
+vector similarity—and discusses the application of
+generative large language models in intertextual
+detection.
+
+Word Vector Similarity. This method employs
+language models to extract word vectors and then
+designs n-gram or sequence matching rules based
+on these vectors. Matching rules often need to be
+dynamically adjusted depending on the language
+and data type. For example, Burns et al. [2021]
+used word vectors extracted from language models
+to perform intertextual matching of bigrams in Latin
+literature. Specifically, for the four words across two
+bigrams, it computes the cosine similarity of their
+word vectors in a crosswise manner, then takes a
+secondary average based on the maximum similarity
+value and the average of the other three.
+
+Sentence Vector Similarity. A sentence
+conveys a complete thought and is often used as
+a matching unit. Sentence vectors are typically
+extracted using deep neural networks. There are
+two primary methods for comparing sentences: one
+encodes each sentence separately to obtain its vector
+before calculating similarity [Cheng, 2023, Duan
+et al., 2023]; the other feeds both sentences into a
+model that directly outputs a similarity score [Liang
+et al., 2021, Yu et al., 2022]. The latter allows for
+richer interaction between sentences but demands
+labeled data for training and is more computationally
+intensive. Therefore, for large-scale corpora, the
+separate encoding approach is more suitable and
+practical, as it can readily leverage open-source
+sentence representation models.
+
+Topic Vector Similarity. Modeling at the topic
+level aids in detecting broad, implicit intertextual
+connections. For instance, Scheirer et al. [2014]
+applied topic modeling to capture this type of overall
+intertextuality. TF-IDF serves as a classical method
+for textual similarity at the topic level. Deng et al.
+[2022], for example, used n-grams as features to
+construct TF-IDF vectors.
+
+Furthermore, some studies combine multiple
+These
+
+sequence
+
+approaches by designing hybrid metrics.
+
+include: blending n-gram overlap,
+
+matching, and semantic similarity to enhance
+metaphor recognition [Manjavacas et al., 2019];
+integrating TF-IDF with entity matching [Deng
+et al., 2022]; and deriving an intertextuality metric
+
+from a weighted sum of n-gram rules, character-
+
+level, and sentence-level semantic matching [Li
+et al., 2022].
+Generative Large Language Models.
+
+Generative LLMs have achieved notable success
+
+Siyu Duan
+
+across various text-related tasks, yet their use in
+The
+Can prompt
+
+intertextuality computation is still nascent.
+potential of LLMs is considerable:
+learning enable unsupervised, customized detection
+of intertextual links? How can their generative
+abilities be applied in innovative ways? For example,
+Hatzel and Biemann [2024a] utilized prompted
+LLMs to derive text intended
+to capture narrative structure. Umphrey et al.
+
+representations
+
+[2024] proposed an approach where documents are
+input into an LLM, which then outputs detected
+intertextual pairs in natural language. This output
+is subsequently analyzed by domain experts. In
+this framework, the LLM serves as an intelligent
+assistant that generates a preliminary analysis,
+while experts apply their specialized knowledge to
+validate the findings. However, this method is not
+suitable for large-scale applications and is confined
+to case-specific studies. Karjus [2025] uses LLMs
+dialogically to determine whether a given text
+is related to a specific concept, which resembles
+rather
+
+concept-specific tracking than detecting
+
+intertextuality between two documents.
+
+3.3.2. Threshold
+
+The threshold is used to filter out intertextual pairs
+When annotated
+intertextual data is available, a supervised model
+
+that satisfy similarity criteria.
+can automatically determine an appropriate
+threshold. However, in most intertextuality studies,
+constructing an annotated dataset is costly.
+There are two main approaches for setting the
+threshold:
+
+evaluation-assisted determination.
+
+empirical determination and manual
+
+The empirical method is simple and convenient:
+researchers design similarity scoring rules and set
+a threshold based on observation of the data. For
+example, Cheng [2023] retained intertextual pairs
+with a sentence vector cosine similarity greater
+than 0.9. Duan et al. [2023] first recalled the
+top 100 candidate sentences for each sentence and
+pooled them together, then filtered out the top 1%
+most similar sentence pairs. The drawback of this
+approach is its reliance on the researcher’s subjective
+judgment. The manual evaluation-assisted method is
+more rigorous. For instance, Wilkerson et al. [2015]
+had human evaluators classify the intertextuality of
+retrieved pairs into six levels, and then trained a
+classifier to identify a suitable threshold.
+
+Research objectives should also be taken into
+account. In general, if the goal is to review retrieved
+
+
+Quantitative Intertextuality
+
+parallel intertexts case by case, then recall is more
+important, and a more lenient threshold should be
+chosen to yield more results. If the aim is to use the
+identified results for quantitative cultural analysis,
+then precision is prioritized, and a stricter threshold
+should be adopted to ensure more accurate retrieval.
+
+3.3.3. Evaluation Metric
+
+Parallel intertext detection is related to fields such
+as information retrieval, text matching, and text
+similarity; accordingly, its automatic evaluation
+metrics are also similar, including Recall, Precision,
+Fl-score, and AUC/ROC curves.
+
+In studies that focus on the effectiveness of
+intertext detection algorithms—especially when a
+benchmark exists with all intertexts in the dataset
+annotated, as in Ganascia et al. [2014], Moritz et al.
+[2016], Burns et al. [2021], Scheirer et al. [2014],
+Li et al. [2022] —standard methods can be used to
+compute these metrics. However, when the emphasis
+shifts to applying intertext algorithms to entirely
+new data, the calculation scheme for evaluation
+metrics must be designed. This section explains how
+to design such a scheme for recall and precision in the
+absence of gold-standard labels. The Fl-score and
+AUC/ROC curves can then be derived from these
+two metrics.
+
+Recall
+intertexts that the algorithm successfully retrieves.
+This
+intertext pairs are available; the annotations need
+
+measures the proportion of known
+
+metric is applicable whenever annotated
+
+not cover the entire dataset, as recall can be
+computed on the annotated subset. Such annotations
+may come from existing humanities research. For
+instance, Forstall et al. [2014] used a set of intertexts
+between two Latin epics (Virgil's Aeneid and Lucan’s
+Pharsalia) compiled by scholars to evaluate recall,
+calculating how many of these known intertexts were
+retrieved by the algorithm.
+
+of the
+algorithm’s detected intertexts that are correct. In
+
+Precision measures the proportion
+large-scale experiments, which may yield millions of
+candidate pairs, it is common to sample a subset for
+manual evaluation. When comparing the precision
+of different algorithms, the total number of retrieved
+intertexts should be kept the same. This can be
+achieved by taking the top-k results by similarity
+score or by adjusting the detection threshold. For
+example, Duan et al. [2023] used three retrieval
+methods to obtain the same number of intertext
+pairs and then compared their precision manually.
+
+As the threshold for intertext retrieval changes,
+there is a trade-off between recall and precision,
+making it essential to control relevant variables
+Additionally,
+across
+
+to prevent misleading conclusions.
+
+intertextuality can manifest multiple
+
+dimensions, such as semantics, syntax, prosody,
+and themes. During annotation, the specific type
+of intertextuality to focus on should be determined
+
+according to the research question.
+
+3.3.4. Acceleration
+
+Since intertextuality detection is an O(n?) problem,
+it faces a challenge of computational consumption.
+When dealing with large datasets, the computational
+cost becomes prohibitively high. To mitigate this
+issue, prior studies have introduced various strategies
+to reduce memory consumption and improve runtime
+efficiency. In n-gram matching, hashing is a widely
+adopted and effective technique. It converts text
+strings into hash values, thereby lowering memory
+requirements [Wilkerson et al., 2015, Linder et al.,
+2020, Smith et al., 2013, 2014]. These hash values
+can then be specific rules—such
+TF-IDF
+weighting, and Winnowing—to exclude texts that
+
+filtered using
+as maximum and minimum pruning,
+
+are clearly not parallel intertexts.
+
+For vector matching algorithms, integrating
+specialized vector retrieval acceleration tools has
+proven effective. A notable example is Faiss
+[Johnson et al., 2019],
+
+designed for large-scale vector similarity search.
+
+an industrial-grade tool
+
+It employs dimensionality reduction techniques to
+speed up the matching process while preserving high
+accuracy. With such tools, intertext detection
+can be
+2023]
+2024]
+
+resources.
+
+[Duan et al,
+[Wang et al,
+consumer-grade
+
+performed at millions
+or even tens of millions
+level,
+
+using computing
+
+Furthermore, methodologies from
+Retrieval-Augmented Generation (RAG), such as
+text chunking, embedding, and efficient large-
+scale retrieval, also offer valuable approaches for
+
+intertextuality detection.
+
+3.3.5. Meaningful Intertext
+Research on intertextuality often focuses on
+intertexts that convey substantive meaning, while
+disregarding those that are meaningless or overly
+commonplace. In this process, stop word lists are
+commonly employed, and word frequency serves
+
+as a key criterion for filtering out high-frequency
+
+
+10
+textual elements. Several representative methods are
+summarized as follows:
+
+e Rule-based Filtering. A
+strategy involves establishing explicit rules to
+
+straightforward
+
+exclude texts that do not meet predefined criteria.
+For instance, Ganascia et al. [2014] requires the
+number of high-frequency words in a sequence to
+exceed a set threshold.
+
+e Scoring Function. A scoring function can be
+designed to evaluate the quality of intertexts.
+For example, in the case of parallel intertexts,
+methods may involve up-weighting rarer shared
+words [Forstall et al., 2014],
+stop words [Li et al., 2022], or combining both
+
+down-weighting
+
+strategies [Sturgeon, 2018b].
+
+e Additional Discriminator. Introducing newly
+annotated data and training a separate model to
+assist in judgment can be effective, though often
+costly. For example, Burgess et al. [2016] used
+annotated data to train a model for predicting
+whether a text is meaningful.
+
+The of these
+to disregard high-frequency,
+
+underlying aim approaches is
+meaningless textual
+
+content.
+
+3.4. Normalization
+
+The count of detected parallel intertexts cannot
+be directly used to compare the strength of
+intertextuality across different text sets, because
+they are influenced by total text length: longer texts
+naturally yield higher counts, making comparisons
+invalid. Using unnormalized intertext counts to
+lead to
+
+erroneous conclusions. Therefore, normalization is
+
+measure preferences or influence can
+essential during intertextuality analysis to obtain
+comparable metrics. This section outlines three
+commonly used normalization techniques.
+Min-Max Normalization. This approach is
+often applied in one-to-many scenarios. It subtracts
+then divides by the
+
+difference between the maximum and minimum
+
+the minimum value first,
+
+values. For example, Hartberg and Wilson [2017]
+used Min—Max normalization on text reuse counts
+between text from one church’s website to various
+parts of the Bible, thereby measuring differences
+in preference among books of the Bible. The
+
+normalization formula is:
+
+100(z — A)
+
+B_Aa (1)
+
+Siyu Duan
+
+where x is the count of text reuse and A and B are the
+minimum and maximum of the counts, respectively.
+Cheng [2023] used a similar approach to compare the
+preferences of poets Li Bai and Du Fu for different
+authors in the poetry anthology Wen Xuan.
+
+Unilateral Normalization. This method is
+suitable for analyzing intertextuality within one set
+of texts, or for comparing multiple text sets against
+a single reference set. Sturgeon [2018b] used the
+ratio of characters involved in parallels to the total
+characters in a book to measure its intertextual
+strength:
+
+characters of A in A : B parallels
+
+(2)
+
+Biichler et al. [2013] applied a similar ratio at
+
+par(A, B) =
+
+characters in A
+
+the sentence level to measure intertextual strength
+between ancient Greek philosophical and historical
+works (e.g., by Aristotle and Plato) and later texts.
+
+Bilateral Normalization. This method uses
+the length of two texts involved in intertextual
+computation to standardize the intertext quantity.
+This is suitable for all scenarios. Sturgeon [2018a]
+incorporated the lengths of both texts into the
+denominator to derive a more general intertextuality
+metric:
+
+n-grams ,p
+
+length , + length
+
+similarity |, nm = (3)
+This method uses character counts rather than
+intertext pairs, hence the additive denominator.
+Modeling results in the form of intertextual pairs
+can be adapted to other methods. Studies in both
+Chinese [Duan et al., 2023] and Latin [Gawley and
+Diddams, 2017] have used a normalization method
+based on the number of sentences in both texts.
+When measuring the intertextuality between two
+books, assuming the number of sentences in the
+two books is m; and nj, and x;; intertextual
+pairs are detected between them, the normalized
+intertextuality I;; is:
+
+Lj = (4)
+
+Ng * Ny
+
+This scaling method is highly versatile: it can
+
+measure intertextuality between any two texts
+and supports cross-text comparisons. It is also
+mathematically sound: if intertexts are uniformly
+distributed,
+
+proportional to the product of the text lengths.
+
+the number of detected pairs is
+
+The inherent characteristics of the data must
+be considered before normalization. For example,
+
+
+Quantitative Intertextuality
+
+differences in punctuation conventions and linguistic
+expression across genres can affect sentence or
+character counts used in normalization; special
+handling may be needed when such differences
+significantly influence results. Additionally, when
+intertextual links are stored pairwise, duplicate
+texts can cause the number of detected pairs
+to grow exponentially. Thus, it is advisable to
+deduplicate texts beforehand. In summary, the
+selection and adjustment of normalization methods
+in intertextual analysis should be guided by the
+data properties, methodological assumptions, and
+
+the specific analytical task.
+
+3.5. Intertextual Feature Similarity
+
+Methods for detecting parallel intertextuality are
+more effective when analyzing textual content
+features and less suitable for capturing stylistic
+features. In such cases, machine learning-based
+anomaly detection algorithms provide a practical
+[2017]
+
+trained one-class Support Vector Machine (SVM)
+
+alternative. For example, Dexter et al.
+anomaly detection models to distinguish between
+quoted material and original writing in the historical
+works of Livy. The original texts served as positive
+training examples. After training, recognized quoted
+passages were input into the model to measure their
+Another SVM model was trained to
+
+evaluate which texts resemble Livy’s original writing,
+
+divergence.
+
+using his authentic works as positive instances and
+other Latin prose as negative instances. Similarly,
+Forstall et al. [2011] employed a similar approach by
+treating the works of the Roman poet Catullus as
+positive examples to assess his similarity to other
+poets, thereby measuring his influence on later
+
+generations.
+
+3.6. Intertextual Network
+
+Intertextual connections among a large number of
+which
+is a common framework for intertextual analysis
+
+texts naturally form a network structure,
+and visualization. Intertextual networks can be
+constructed along multiple dimensions.
+
+Sentence-level intertextual networks help identify
+clusters of similar texts and support the analysis of
+specific events, concepts, and topics. For example,
+Cheng [2023] built a sentence-level intertextual
+network of classical Chinese poetry and analyzed its
+subgraphs.
+
+Book-level intertextual networks facilitate the
+level of
+
+study of cultural phenomena at the
+
+11
+
+individuals or cultural groups. For instance, Duan
+et al. [2023], Sturgeon [2018b] constructed book-
+level intertextual networks for classical Chinese texts,
+performing clustering and information diffusion
+analysis based on the network topology to explore
+questions related to scholars and schools of thought.
+Romanello [2016] investigated composite intertextual
+networks by building and visualizing networks at the
+author, book, and passage levels.
+
+When temporal information is incorporated,
+intertextual networks become directed graphs. For
+example, Rockmore et al. [2018] constructed a
+chronological directed graph using topic modeling of
+constitutions from various countries and time
+then
+
+algorithms to partition the graph.
+
+periods, applied community detection
+
+Methods from social network analysis can be
+adapted for intertextual network analysis. Cordell
+[2015], for instance, built a text reuse network of
+newspapers and computed metrics such as degree,
+betweenness centrality, and eigenvector centrality to
+quantitatively uncover dissemination patterns and
+influence within communities.
+
+An intertextual network can be analyzed
+alongside external connections. For example, Smith
+et al. [2013] combined the news text reuse network
+with geographic information. By overlaying the text
+reuse network on a map with newspaper locations,
+the study enabled discussions about the paths,
+and intensity of news dissemination.
+Linder [2020]
+
+intertextual network with a policy diffusion network,
+
+directions,
+Similarly, et al. integrated an
+building an undirected network of U.S. states (nodes
+representing state-level bills) connected by text
+reuse links, alongside a directed network from prior
+research where edges indicated policy diffusion.
+By uncovering associations between the text reuse
+network and the actual policy diffusion network, the
+study validated the use of text reuse as a measure of
+policy similarity.
+
+4. Application
+
+Intertextuality modeling provides quantitative
+evidence to support research in the humanities
+and social sciences, helping to address abstract
+questions with data-driven insights. In what types
+of applications are intertextual connections utilized,
+and what kinds of research questions can they help
+answer? This article outlines five common scenarios:
+
+influence measurement, preference measurement,
+
+
+12
+
+similarity measurement, writing habit analysis, and
+the analysis of cultural dissemination and evolution.
+
+4.1. Influence Measurement
+
+In literary creation, authors consciously or
+unconsciously draw on earlier texts. Intertextuality
+is frequently employed as an indicator of influence,
+helping assess the impact of individuals, works,
+
+schools, or social groups. When measuring the
+influence of one set of texts on another, the two sets
+generally need to follow a chronological sequence:
+the influencing texts are produced earlier, while the
+influenced texts are composed concurrently or later.
+
+Biichler et al. [2013] identified intertexts between
+12 major ancient Greek philosophical and historical
+works and 7,200 other ancient Greek texts, using
+intertextuality to gauge the influence of these 12
+This study examined both the breadth
+and depth of influence, that is, the coverage and
+Aristotle’s
+
+On the Soul showed the highest intertext coverage,
+
+classics.
+
+frequency of intertexts. For instance,
+indicating its content was widely adopted. Certain
+
+passages in Plato's Timaeus were cited very
+
+frequently, reflecting the profound impact of its
+core ideas. The study also revealed how genre and
+time affect intertextual patterns: philosophical texts,
+exhibited higher
+
+intertext coverage and stayed closer to original
+
+being dense in argumentation,
+
+wording, whereas historical narratives had sparser
+intertext distributions, though hotspot events were
+often mentioned. And older texts generally had
+greater intertext coverage.
+
+[2017]
+compared the intertextuality of two key Roman
+
+Gawley and Diddams calculated and
+authors, Cicero and Caesar, with texts from the
+This allowed them to
+quantify the relative influence of these two authors
+
+Early and Late Empire.
+
+across different time periods and genres. The results
+aligned with philological hypotheses: Late Empire
+authors cited Caesar more frequently, reflecting his
+stronger influence in historical epic and prose. Cicero
+was cited more often by Early Empire authors,
+especially in genres such as love poetry.
+[2023] use the
+
+intertextuality to compare the influence of two
+
+Duan et al. strength of
+philosophical school, Confucianism and Taoism. The
+findings suggested a clear Confucian influence in the
+political domain, while Confucianism and Taoism
+were more comparable in diverse literary works.
+O'neill et al. [2021] used John Stuart Mill's
+borrowing and donation records from the London
+
+Siyu Duan
+Library, then quantified text reuse between
+those sources and his published works, offering
+
+quantitative confirmation of the library’s specific
+influence on the development of his ideas.
+
+Beyond content-based intertextuality, stylistic
+similarity can also reflect influence. For example,
+Dexter et al. [2017] used stylistic feature similarity
+to measure the influence of the historian Livy on
+later literary works. Similarly, Forstall et al. [2011]
+applied stylistic similarity to assess the influence
+of the Roman poet Catullus on Paul the Deacon’s
+8th-century Latin poem Angustae Vitae.
+
+The use of intertextuality to measure influence is
+also common in legal and political studies. Burgess
+et al. [2016] collected 550,000 bills and 200,000
+resolutions from all 50 U.S. states, along with model
+They
+identified reused text between these bills and model
+
+bills from political lobbying organizations.
+
+bills. For different political groups, they calculated
+the rate at which their model bills were enacted into
+law in each state, visualizing the results on maps
+to reveal regional variations in political influence.
+Wilkerson et al. [2015], Smith et al. [2014] traced
+how policy ideas moved from proposals to formal
+laws, using the volume of text reuse to quantify the
+influence of Democratic and Republican parties on
+legislation.
+
+4.2. Preference Measurement
+
+Preference measurement can be understood as the
+inverse of influence measurement along a timeline.
+While
+preference measurement looks backward.
+
+Hartberg and Wilson [2017] collected texts from
+the websites of six churches representing different
+
+influence measurement looks forward,
+
+denominations. By calculating the frequency of
+citations to the 66 books of the Bible in their
+sermons, they measured the citation preferences of
+conservative and progressive churches for various
+parts of the Bible.
+
+Duan et al. [2023] employed intertext distribution
+divergence to address controversial questions of
+authorship attribution. They computed the intertext
+distributions of both disputed and accepted sections
+of the Collected Works of Tao Yuanming. The
+differences in how these sections are intertextual with
+Confucian and Taoist texts revealed distinctions in
+their underlying ideological preferences.
+
+
+Quantitative Intertextuality
+
+4.3. Similarity Measurement
+
+Intertextuality can serve as an indicator of similarity
+in ideas, concepts, or writing styles. In studies of
+disputed authorship, analyzing intertextual features
+to measure the differences between authentic and
+spurious works can reveal distinctions in thought
+and composition. Dexter et al. [2017] examined
+stylistic differences between eight tragedies written
+The study
+also applied anomaly detection to automatically
+
+by Seneca and two disputed works.
+
+separate original writing from quoted material. For
+instance, the Roman historian Livy extensively
+incorporated early historical sources through direct
+quotation, paraphrase, and vague allusion, making
+identify which
+passages were original and which were borrowed or
+
+it challenging to systematically
+adapted. A stylistic feature-based anomaly detection
+algorithm successfully distinguished Livy’s original
+content from quoted material, confirming observable
+differences between the two.
+
+The similarity between chapters within a book
+can help analyze its structure. Sturgeon [2018a]
+visualized similarities among chapters of the Mozi
+based on intertextual links.
+
+Additionally, Linder et al. [2020]
+text reuse to assess policy consistency. Using a
+dataset of U.S. state bills, the study identified
+text reuse across state legislation. By distinguishing
+
+employed
+
+bills introduced by Democrats and Republicans, it
+measured cross-state policy similarity within each
+party. Results showed that Republican legislators
+tended to promote a highly consistent conservative
+agenda across states, whereas policies proposed by
+Democratic legislators exhibited greater diversity.
+
+4.4. Writing Habits Analysis
+
+When authors quote or paraphrase earlier texts, they
+often modify the language and syntax. Examining
+the patterns of variation between detected intertexts
+can help interpret an author’s rewriting tendencies.
+For example, the Chinese history book the Book
+of Han directly incorporated material about the
+early Western Han from the Records of the Grand
+Historian, while also making revisions and additions.
+Deng et al. [2022] quantitatively validated the
+traditional view that the Book of Han tends to delete
+characters by statistically analyzing differences in
+character counts between intertextual pairs.
+
+Moritz et al. [2016] identified textual reuse of the
+Bible in Latin and Greek texts and studied the kinds
+of changes that occurred in these reused passages.
+
+13
+
+Their research found that in Bernard of Clairvaux’s
+Latin works, capitalizing the first letter of words at
+the start of a reused segment often corresponded to
+the original Biblical text, suggesting the author’s
+tendency to use vocabulary from the Bible as a
+“lead-in” to introduce a reused segment.
+
+of different data
+processing and intertext detection methods applied
+
+Comparing the outcomes
+
+to the same text can reveal variations in intertextual
+Biichler [2014]
+applied different preprocessing techniques (such as
+
+patterns. For instance, et al.
+case normalization, similar character replacement,
+lemmatization, and synonym substitution) and text
+representation models (like unordered bag-of-words
+and ordered n-grams) to detect intertexts across
+different versions of the Bible. They observed
+that bag-of-words models are more effective at
+identifying semantically similar passages, while n-
+gram models perform better at detecting direct
+quotations. By comparing the recall rates of
+intertexts identified under different computational
+the study
+
+evaluated the writing habits of various translators.
+
+approaches across scriptural versions,
+
+For example, Young’s Literal Translation showed
+very low n-gram similarity with other translations
+but relatively high bag-of-words similarity. This
+indicates that its translation adheres closely to
+Hebrew syntax rather than restructuring the text
+As a
+it yields different results under n-gram
+
+into fluent English, as other versions do.
+result,
+detection, yet still shares core vocabulary at the
+lexical level, allowing the bag-of-words model to
+
+capture similarities.
+
+4.5. Cultural Evolution Analysis
+
+Intertextuality provides a valuable framework for
+tracing the dissemination and transformation of
+ideas and cultures across time. The connection
+between texts can serve as microevidence to quantify
+the intensity of ideological dissemination.
+
+Rockmore et al. [2018] employed topic links
+to connect a corpus of over 500 constitutions
+from diverse regions and historical periods. This
+approach facilitated an analysis of issues such as the
+periodization of constitutional development and the
+typical lifespan of constitutions.
+
+Duan et al. [2023] measured the rise and fall
+of philosophical influence over two millennia by
+analyzing the intertextuality between foundational
+texts from China’s Hundred Schools of Thought
+
+(Axial Age) and later writings. The study also
+
+
+14
+
+explored patterns of imitation and integration during
+the introduction of Buddhism into China.
+
+Smith et al. [2013] integrated intertextual
+with spatiotemporal data to
+how information diffusion is shaped by physical
+
+networks reveal
+infrastructure (e.g., transport networks) and social
+dynamics. A key finding was the correlation between
+content type and dissemination speed: breaking news
+spread rapidly, whereas content with enduring value,
+such as poetry and philosophical works, exhibited a
+slower, more sustained spread pattern.
+
+5. Related Fields
+
+Intertextuality computation intersects with several
+related research areas. Text similarity represents a
+significant form of intertextuality, and citation is
+one of the concrete manifestations of intertextuality.
+While
+their respective fields, certain distinctions remain
+
+both have been extensively studied in
+
+between these concepts and the broader notion of
+intertextuality.
+
+Text Similarity. Text similarity in natural
+language processing typically focuses on semantic
+similarity. Text Reuse and Text Alignment are
+two downstream tasks, and parallel intertextuality
+detection often adopts their methods. The difference
+is that,
+textual
+
+intertextuality includes any form of
+
+connection, such as semantics, style,
+theme, and structure. As a comprehensive concept,
+intertextuality allows for the incorporation of
+diverse computational techniques and analytical
+perspectives.
+
+Citation. in the field of
+
+informetrics primarily focuses on explicit citation
+
+Citation analysis
+
+markers (direct citations), such as those in modern
+academic papers. Intertextuality research, however,
+concerns itself not only with direct citations but also,
+and more importantly, with unattributed borrowings
+(indirect citations) without bibliographic references.
+Research on citation recognition in ancient texts
+[Shuiqing Huang and Wang, 2021],
+identifies specific cited works, can be said to identify
+
+because it
+
+citation relationships. If similar intertextual pairs are
+merely detected in parallel intertext detection, one
+cannot directly claim a citation relationship exists
+between them—they might be coincidentally similar
+without intentional citation.
+
+Siyu Duan
+
+6. Platforms and Tools
+
+Online open-access projects have become a crucial
+While
+
+traditional intertextuality research culminated in
+
+medium for presenting intertextuality.
+printed documents for reading, digital intertextuality
+studies are more readily transformed into online
+intertextual
+
+platforms. By presenting detected
+
+links via online platforms, these systems offer
+readers a more accessible and convenient reading
+integrate functions
+
+experience. These platforms
+
+such as data retrieval, filtering, analysis, and
+visualization, allowing users to interact with the
+data.
+
+algorithms into reusable computational tools enables
+
+Meanwhile, packaging intertext detection
+other researchers to apply these methods directly,
+greatly facilitating the adoption of the intertextuality
+research paradigm among scholars. Platformization
+helps attract both academic and general-interest
+audiences, while tool-based digital intertextuality
+outputs create efficient bridges for interdisciplinary
+collaboration.
+
+This section surveys browsing platforms and
+detection tools developed for Chinese, English,
+Latin, The
+review focuses specifically on platforms and tools
+
+and Finnish intertextuality studies.
+
+designed for humanities and social sciences research;
+general-purpose text similarity detection tools from
+the computer science field are beyond its scope.
+Chinese. Digital platform for intertextuality
+is most extensive for Chinese, including intertext
+browsing and detection functions. The CTEXT
+1 2018b,a, 2019]
+
+provides online browsing of detected
+
+platform! [Sturgeon, not only
+intertexts
+within its digital library but also offers an online
+interactive interface for text reuse detection?. Users
+can paste their own text into the interface, and
+the platform returns all similar intertexts within
+the input text. It operates based on n-gram
+matching, allowing users to adjust hyperparameter
+settings. The Evol project? [Duan et al., 2023,
+Wang et al., 2024] provides online browsing and
+analysis for 14 million pre-detected intertextual
+pairs within the built-in corpus. It provides further
+analysis and visualization functions at levels like
+book, but is limited to
+
+the built-in corpus. The project has open-sourced
+
+chapter, and sentence,
+the training and detection code based on deep
+neural networks?, enabling training and detection on
+users’ own data. The Knowledge Graph platform?
+provides an online interactive interface for poetry-
+oriented intertext detection. Users paste their text,
+
+
+Quantitative Intertextuality
+
+and the platform returns similar texts from its
+Chinese Text Reuse®
+[Vierthaler and Gelein, 2019] is an open-source
+detection tool based on the BLAST algorithm. It
+provides Python code requiring local deployment.
+Additionally, BERT-CCPoem” is an open-source
+poetry sentence embedding model. Based on this
+
+built-in poetry database.
+
+model, methods for detecting similar poetry lines can
+be easily developed [Cheng, 2023].
+
+English. Viral Texts® [Smith et al., 2013, 2014,
+2015] is a visualization platform for 19th-century
+American newspaper data. It visualizes pre-detected
+text reuse results using a graph structure and
+supports simple interactions on the graph. Clicking
+a node displays the names, links, and statistical
+information of other newspapers with intertextual
+links to it,
+content. The team also open-sourced a similar text
+
+but does not show the reused text
+
+detection toolkit, passim®, which can be installed
+for use on one’s own data. TextPAIR!® [Tharsen
+and Gladstone, 2022] is a similar text detection
+toolkit supporting multiple languages. It operates
+based on n-gram similarity matching and requires
+local installation. It has been successfully applied
+in humanities research involving both Chinese and
+English texts.
+
+Latin & Greek. The Tesserae platform!! [Coffee
+et al., 2012b, Forstall et al., 2014, 2011, Scheirer
+et al, 2014, Coffee et al., 2012a] supports the
+identification and filtering of intertextual parallels
+
+across Latin and Greek corpora. It allows users
+to select a specific subset of the built-in corpus
+to examine intertextual connections within that
+selection. The platform also offers various filtering
+and sorting functions, enabling customized research
+workflows. Tesserae has facilitated many scholarly
+investigations: some researchers have used its
+detected intertexts as a basis for further analysis
+[Bernstein et al., 2015, Gawley and Diddams, 2017],
+while others have treated its outputs as a baseline for
+evaluating new computational methods [Shang and
+Underwood, 2021, Burns et al., 2021].
+
+Finnish. A Finnish platform!2 [Vesanto et al.,
+2017b, Salmi et al., 2020, Vesanto et al., 2017a]
+focuses on browsing and retrieving intertexts in
+Finnish newspapers from 1771-1910. It allows users
+to search for individual matches and clusters of
+texts, and can be saved in TSV format for continued
+
+13 [Janicki et al.,
+
+analysis. The Runoregi Platform
+2023] can be used to browse intertexts in Finnish
+
+tetrametric poetry. It provides visualization tools
+
+15
+
+allowing users to quickly read similar texts, finding
+corresponding lines and paragraphs.
+
+As the number of intertextual links grows
+exponentially with the number of texts, developing
+face
+
+and maintaining intertextuality platforms
+
+challenges. For platforms displaying up to a
+million intertextual links, operational costs remain
+acceptable. Displaying larger-scale data not only
+incurs potentially prohibitive costs but also affects
+the response speed of calculations like filtering
+and analysis. Since intertext detection is an O(n)
+problem, providing free, full-scale intertext detection
+for large-scale texts is infeasible. Consequently,
+existing platforms either restrict the scale of
+detection or provide only toolkits. Despite these
+limitations, these platforms and tools have played
+
+a vital role in promoting this field.
+
+7. Challenge and Prospect
+
+Computational methods have markedly increased the
+efficiency of intertextual links detection, marking
+traditional manual
+
+a substantial advance over
+
+extraction. Nevertheless, limitations persist in
+methodology, data, and evaluation. To establish a
+rigorous framework for quantitative intertextuality
+
+research, these shortcomings must be addressed.
+
+First, current techniques for detecting
+intertextuality remain imperfect. Some forms
+of intertextuality—such as direct semantic
+
+similarity—are readily observable. Others, including
+
+allusions and metaphors, are more abstract
+and elusive, posing continued challenges for
+automated identification. Furthermore, deep
+
+learning methods have broadened the potential of
+intertext detection, but their black-box nature often
+lacks interpretability.
+
+Second, the
+ambiguous.
+
+evaluation criteria are often
+Intertextuality is an inherently fluid
+concept with diverse forms of textual relationships
+that may be prioritized differently depending on
+the research focus. For example, stylistic analysis
+may emphasize functional words, while studies
+on idea dissemination may prioritize meaningful
+content, requiring filtering out irrelevant functional
+words. Given the wide range of research purposes,
+establishing unified evaluation standards remains
+difficult.
+
+Third, there is a shortage of reliable benchmark
+datasets. While small-scale, domain-specific datasets
+have been annotated for particular studies, the
+
+absence of clear and consistent evaluation standards
+
+
+16
+
+complicates the creation of comprehensive, large-
+scale benchmarks. Moreover, because intertextuality
+manifests differently across research contexts, strong
+performance on one dataset does not guarantee
+effectiveness in others. Fu and Wang [2025] leveraged
+the generative power of LLMs to create positive
+and negative training samples for text representation
+models, thereby constructing a benchmark for
+intertextuality detection. Karjus [2025] used LLMs
+to generate test data for calculating the accuracy
+of intertextual detection. The collaboration between
+LLM generation and expert verification significantly
+enhanced the efficiency of benchmark development,
+presenting a promising paradigm.
+
+field
+promising. This paper contends that quantitative
+
+Despite these challenges, the remains
+intertextuality research is poised for breakthroughs
+
+in the next five years, particularly in three
+
+areas: cross-lingual intertextuality, multimodal
+intertextuality, and narrative structure analysis.
+Cross-lingual Intertextuality. Current
+research in digital intertextuality is largely confined
+to a single language. Investigations into cross-lingual
+intertextuality can connect different cultural systems
+by tracking the dissemination and transformation
+of ideas across languages. Initial investigations have
+explored cross-linguistic methods. For example,
+[2025]
+
+the ability of generative LLMs in cross-language
+
+Karjus conducted preliminary tests on
+
+intertextuality detection. But in-depth research
+is still rare. In the field of machine translation,
+cross-lingual sentence alignment methods are used
+to build parallel corpora, which can be transferred
+to cross-lingual intertextuality studies. For instance,
+Liu and Zhu [2023]
+alignment using a high-quality, manually aligned
+
+studied cross-lingual text
+
+Chinese-English literary corpus.
+
+Multimodal
+of intertextuality can be generalized to images
+[2021]
+employed Convolutional Neural Networks (CNNs) to
+
+Intertextuality. The concept
+
+and audio. For example, Resler et al.
+extract features from images of artifacts to identify
+
+similar items, assisting archaeological research.
+The multimodal deep learning model provides the
+technical foundation for cross-modal intertextuality
+studies, which is still a largely open field.
+Narrative Structure. Methods for quantifying
+narrative similarity remain limited. Some studies
+have explored story embeddings and established
+benchmarks. Chaturvedi et al. [2018] constructed a
+
+dataset of 577 movie summaries, assessing narrative
+
+Siyu Duan
+
+similarity from plot-related angles (using bag-of-
+words models for events and entities) and character
+perspectives (aligning attributes such as gender and
+role relationships). Hatzel and Biemann [2024a,b]
+dataset
+summaries representing 29,505 stories.
+
+assembled a larger comprising 96,831
+However,
+these benchmarks rely on summary texts rather
+than complete stories, and the datasets mainly
+include different versions of the same story (e.g.,
+translations or remakes), as opposed to identifying
+shared narrative structures across different stories
+(e.g., Hamlet and The Lion King). The methods
+also tend to focus heavily on semantic similarity,
+with inadequate modeling of narrative architecture.
+Modeling narrative intertextuality continues to be an
+
+unresolved challenge.
+
+8. Conclusion
+
+This paper presents a review of quantitative
+
+intertextuality research, synthesizing existing
+studies from three key perspectives: research data,
+computational methods, and applications.
+
+In terms of data, this paper highlights two
+scenarios particularly suitable for intertextuality
+analysis: ancient texts, which often lack consistent
+writing conventions and background information;
+and texts with similar content that exist in multiple
+versions, which can be used to investigate variations
+between different versions. Intertextuality analysis
+applied to such materials has proven to be an
+effective research methodology.
+
+Regarding methods, this paper provides a detailed
+overview of the technical pipeline for intertextuality
+modeling. This includes data preprocessing, the
+selection of appropriate intertextual features, the
+detection of parallel intertextual pairs, and several
+advanced modeling techniques such as normalization,
+intertextual feature similarity measurement, and
+intertextual network modeling. These approaches
+quantify intertextuality from various perspectives
+and reflect an evolution from classical statistical
+methods to deep learning.
+
+For applications, this paper summarizes the
+types of research questions that can be investigated
+through quantitative intertextuality modeling. These
+include using intertextual strength to measure
+
+influence, preference, and similarity; analyzing
+writing habits through variations in intertextuality;
+and employing intertextual links as clues to trace
+cultural dissemination and evolution. Additionally,
+
+this paper investigates available online platforms
+
+
+Quantitative Intertextuality
+
+and computational tools that support intertextual
+browsing and detection.
+
+Finally, this paper outlines current limitations
+of quantitative intertextuality studies, such as
+technological constraints, ambiguous evaluation
+standards, and the lack of benchmark datasets, along
+with promising future research directions, including
+cross-lingual studies, multimodal intertextuality, and
+narrative structure similarity analysis.
+
+This paper provides a roadmap for quantitative
+intertextuality research. Driven by advances in
+computer technology, quantitative intertextuality
+studies hold significant potential for methodological
+and applicational development. More precise,
+diverse, and large-scale intertext detection methods
+can be anticipated, and intertextuality modeling
+approaches are expected to be transferable to various
+types of humanities and social sciences research.
+
+9. Competing Interests
+
+No competing interest is declared.
+
+10. Author Contributions Statement
+
+Siyu Duan is the sole contributor to this work.
+
+11. Data Availability Statement
+
+No new data were generated or analysed in support
+of this research.
+
+17
+
+
+18
+
+Notes
+
+LCTEXT Platform: https://ctext.org/
+2CTEXT Text Reuse Detection: https://ctext.or
+g/plugins/texttools/#similarity
+3Evol Platform. V1: http://evolution.pkudh.xyz/
+book; V2: https://ca.pkudh.net/
+4Evol Code: https: //github.com/CissyDuan/Evol
+5Knowledge Graph Platform: https://cnkgraph.c
+om/Tool/Referring
+6Chinese Text Reuse Code: https: //github.com/v
+ierthaler/chinesetextreuse
+"BERT-CCPoem Model: https: //github.com/THU
+NLP-AIPoet/BERT-CCPoem
+8Viral Texts Platform: https: //viraltexts.org/
+9passim: https: //github.com/dasmiq/passim
+10TextPAIR, Code: https: //github.com/ARTFL-Pro
+ject/text-pair
+HTesserae Platform: https: //tesserae.caset.buffa
+lo.edu/, https://tesseraev3.caset.buffalo.edu/
+12Finnish newspapers: http: //comhis.fi/clusters
+I3Runoregi Platform: https: //runoregi.rahtiapp.
+fi
+
+Siyu Duan
+
+
+Quantitative Intertextuality
+
+References
+
+N. Bernstein, K. Gervais, and W. Lin. Comparative
+rates of text reuse in classical latin hexameter poetry.
+DHQ: Digital Humanities Quarterly, 9(3), 2015.
+URL https://www.proquest.com/openview/47efb6
+6c3c2ceb40d38b8dc20144d904/17pg-origsite=gscholar
+&cbl1=5124193.
+
+S. Bothwell, J. DeBenedetto, T. Crnkovich, H. Miller,
+and D. Chiang. Introducing rhetorical parallelism
+detection: A new task with datasets, metrics, and
+baselines. In Proceedings of the 2023 Conference on
+
+Empirical Methods in Natural Language Processing,
+pages 5007-5039, 2023. URL https://aclanthology
+.org/anthology-files/anthology-files/pdf/emnlp/2
+023.emnlp-main.305.pdf.
+M. Biichler, P. R. Burns,
+and G. Franzini.
+
+M. Miller, E. Franzini,
+
+Towards a historical text re-use
+detection. In Text Mining, Theory and Applications
+of Natural Language Processing, pages 221-238.
+Springer, 2014. URL https://doi.org/10.1007/97
+8-3-319-12655-5_11.
+
+M. Burgess, E. Giraudy, J. Katz-Samuels, J. Walsh,
+D. Willis, L. Haynes, and R. Ghani. The legislative
+influence detector: Finding text reuse in state
+legislation. In Proceedings of the 22nd ACM
+SIGKDD International Conference on Knowledge
+Discovery and Data Mining, pages 57-66, 2016.
+URL https: //doi.org/10.1145/2939672.2939697.
+
+P. J. Burns, J. A. Brofos, K. Li, P. Chaudhuri, and J. P.
+Dexter. Profiling of intertextuality in latin literature
+using word embeddings. In Proceedings of the
+2021 Conference of the North American Chapter
+of the Association for Computational Linguistics:
+Human Language Technologies, pages 4900-4907,
+
+2021. URL https://aclanthology.org/2021.naac
+1-main.389.
+M. Biichler, A. Geflner, M. Berti, and T. Eckart.
+
+Measuring the influence of a work by text reuse.
+Bulletin of the Institute of Classical Studies.
+Supplement, (122):63-79, 2013. URL http://www.
+jstor.org/stable/44216323.
+
+S. Chaturvedi, S. Srivastava, and D. Roth. Where
+have i heard this story before? identifying narrative
+similarity in movie remakes. In Proceedings of the
+2018 Conference of the North American Chapter
+of the Association for Computational Linguistics:
+Human Language Technologies, Volume 2 (Short
+Papers), pages 673-678, 2018. URL https://acla
+nthology.org/N18-2106/.
+
+S. Chen. Han Shi Wai Zhuan Shu Zheng. 1818.
+
+N. Cheng. The intertextual space between wenxuan
+and the tang poetry from the perspective of digital
+humanities. Journal of Tsinghua University
+(Philosophy and Social Sciences), 38(06):75—
+884-222, 2023. ISSN 1000-0062. doi: 10.13613/j.c
+nki.qhdz.003308.
+
+D. T. Citron and P. Ginsparg. Patterns of text reuse
+in a scientific corpus. Proceedings of the National
+Academy of Sciences, 112(1):25-30, 2015. URL http
+
+19
+
+s://www.pnas.org/doi/abs/10.1073/pnas. 1415135111.
+
+N. Coffee, J.-P. Koenig, S. Poornima, C. W. Forstall,
+R. Ossewaarde, and S. L. Jacobson.
+Project: intertextual analysis of Latin poetry.
+Literary and Linguistic Computing, 28(2):221-228,
+07 2012a. ISSN 0268-1145. URL https://doi.org/10
+.1093/11c/£qs033.
+
+N. Coffee, J.-P. Koenig, S. Poornima, R. Ossewaarde,
+C. Forstall, and S. Jacobson.
+the digital age.
+
+The Tesserae
+
+Intertextuality in
+
+Transactions of the American
+Philological Association, pages 383-422, 2012b.
+URL https://www. jstor.org/stable/23324457.
+
+R. Cordell. Reprinting, circulation, and the network
+author in antebellum newspapers. American
+Literary History, 27(3):417-445, 2015. URL https:
+//doi.org/10.1093/alh/ajv028.
+
+R. Cordell and A. Mullen. 7” fugitive verses”: The
+circulation of poems in nineteenth-century american
+newspapers. American Periodicals, 27(1):29-52,
+2017. URL https://wuw.jstor.org/stable/44630696.
+
+Z. Deng, H. Yang, and J. Wang. A comparative study
+of shiji and hanshu from the perspective of digital
+
+In Proceedings of the 21st Chinese
+National Conference on Computational Linguistics,
+pages 656-670, Nanchang, China, Oct. 2022. Chinese
+Information Processing Society of China. URL https:
+//aclanthology.org/2022.ccl-1.59.
+
+J. P. Dexter, T. Katz, N. Tripuraneni, T. Dasgupta,
+A. Kannan, J. A. Brofos, J. A. Bonilla Lopez,
+L. A. Schroeder, A. Casarez, M. Rabinovich,
+et al. Quantitative criticism of literary relationships.
+
+humanities.
+
+Proceedings of the National Academy of Sciences,
+114(16):E3195-E3204, 2017. URL https://doi.org/
+10.1073/pnas. 1611910114.
+
+S. Duan, J. Wang, H. Yang, and Q. Su. Disentangling
+the cultural evolution of ancient china: a digital
+humanities perspective. Humanities and Social
+Sciences Communications, 10(1):1-15, 2023. URL
+https://doi.org/10.1057/s41599-023-01811-x.
+
+D. E. Duhaime. Textual reuse in the eighteenth century:
+Mining eliza haywood’s quotations. DHQ: Digital
+Humanities Quarterly, 10(1), 2016. URL https:
+//www.proquest.com/openview/0516439£707£d10e9d05
+1db87320a007/1?pq-origsite=gscholar&cbl=5124193.
+
+C. Forstall, N. Coffee, T. Buck, K. Roache, and
+S. Jacobson. Modeling the scholars: Detecting
+intertextuality through enhanced word-level n-gram
+matching. Digital Scholarship in the Humanities,
+30(4):503-515, 05 2014. ISSN 2055-7671. URL
+https://doi.org/10.1093/11c/fqu0i4.
+
+C. W. Forstall and W. J. Scheirer. Quantitative
+Intertextuality. Springer, 2019. doi: https://doi.
+org/10.1007/978-3-030-23415-7.
+
+C. W. Forstall, S. L. Jacobson, and W. J. Scheirer.
+Evidence of intertextuality: investigating Paul the
+Deacon’s Angustae Vitae. Literary and Linguistic
+Computing, 26(3):285-296, 05 2011. ISSN 0268-1145.
+URL https://doi.org/10.1093/11c/£qr029.
+
+
+20
+
+B. Fu and J. Wang. Ancienttrd: A novel text
+reuse detection method for ancient chinese literature.
+Applied Sciences, 15(19), 2025. ISSN 2076-3417.
+URL https: //www.mdpi.com/2076-3417/15/19/10475.
+
+P. Glaudes, and A. Del Lungo.
+
+Automatic detection of reuses and citations in
+
+J.-G. Ganascia,
+
+literary texts. Literary and Linguistic Computing,
+
+29(3):412-421, 06 2014. ISSN 0268-1145. URL
+https://doi.org/10.1093/11c/£fqu020.
+R. Gava, J. M. Jaquet, and P. Sciarini. Legislating
+
+or rubber-stamping? assessing parliament’s influence
+on law-making with text reuse. European Journal of
+Political Research, 60(1):175-198, 2021.
+
+J. O. Gawley and A. C. Diddams. Comparing the
+intertextuality of multiple authors using tesserae: A
+new technique for normalization. Digital Scholarship
+in the Humanities, 32(suppl_2):ii53-ii59, 2017. URL
+https://doi.org/10.1093/11c/£fqx038.
+
+Y. M. Hartberg and D. S. Wilson. Sacred text
+as cultural genome: an inheritance mechanism and
+method for studying cultural evolution. Religion,
+Brain € Behavior, 7(3):178-190, 2017. URL https:
+//doi.org/10.1080/2153599X.2016.1195766.
+
+H. O. Hatzel and C. Biemann. Story
+embeddings—narrative-focused representations
+of fictional stories. In Proceedings of the 2024
+
+Conference on Empirical Methods in Natural
+Language Processing, pages 5931-5943, 2024a. URL
+https://aclanthology.org/2024.emnlp-main.339/.
+
+H. O. Hatzel and C. Biemann.
+a large-scale
+
+Tell me again!
+dataset of multiple summaries for
+In Proceedings of the 2024
+Joint International Conference on Computational
+
+the same story.
+
+Linguistics, Language Resources and Evaluation
+
+(LREC-COLING 2024), pages 15732-15741, 2024b.
+
+URL https://aclanthology.org/2024.1rec-main. 1366
+
+/.
+
+F. S. P. Ho Che Wah, Chu Kwok Fan.
+Passages from Pre-Han and Han Texts.
+Chinese University Press, 2004.
+
+M. Janicki, K. Kallio, and M. Sarv.
+written oral folk poetry through string similarity.
+Digital Scholarship in the Humanities, 38(1):180—
+194, 2023. URL https://doi.org/10.1093/11c/fqac03
+4.
+
+J. Johnson, M. Douze, and H. Jegou.
+
+Parallel
+The
+
+Exploring finnic
+
+Billion-scale
+similarity search with gpus. [IEEE Transactions
+on Big Data, 7(3):535-547, 2019. URL https:
+//doi.org/10.1109/TBDATA.2019.2921572.
+
+A. Karjus. Machine-assisted quantitizing designs:
+augmenting humanities and social sciences with
+artificial intelligence. Humanities and Social
+Sciences Communications, 12(1):1-18, 2025. URL
+https://doi.org/10.1057/s41599-025-04503-w.
+
+J. Kristeva. Word, Dialogue and Novel. The Kristeva
+Reader, ed. Toril Moi, Oxford: Basil Blackwell, 1980.
+
+J. Lee. A computational of text reuse
+in ancient literary texts.
+the 45th Annual Meeting
+
+model
+In Proceedings of
+of the Association
+
+Siyu Duan
+
+of Computational Linguistics, pages 472-479,
+Prague, Czech Republic, June 2007. Association for
+Computational Linguistics. URL https://aclantholo
+gy .org/P07-1060.
+W. Li, Y. Shao, and M. Bi.
+matching method for the task of ancient classics
+In Proceedings of the 21st
+Chinese National Conference on Computational
+
+Data construction and
+reference detection.
+
+Linguistics, pages 600-610, Nanchang, China, Oct.
+
+2022. Chinese Information Processing Society of
+China. URL https://aclanthology.org/2022.cc
+1-1.54.
+
+Y. Liang, D. Wang, and S. Huang. Research on
+
+automatic mining of variants expressing the same
+event in the ancient books. Library And Information
+Service, 65(9):97, 2021.
+
+F. Linder, B. Desmarais, M. Burgess, and E. Giraudy.
+Text as policy: Measuring policy similarity through
+bill text reuse. Policy Studies Journal, 48(2):546—
+574, 2020. URL https://onlinelibrary.wiley.com/do
+i/abs/10.1111/psj.12257.
+
+L. Liu and M. Zhu. Bertalign: Improved word
+embedding-based sentence alignment for chinese—
+english parallel corpora of literary texts. Digital
+Scholarship in the Humanities, 38(2):621-634, 2023.
+URL https://doi.org/10.1093/11c/fqac089.
+
+E. Manjavacas, B. Long, and M. Kestemont. On the
+
+feasibility of automated detection of allusive text
+
+NAACL HLT 2019, page 104, 2019. URL
+https://doi.org/10.18653/v1/W19-2514.
+
+S. M. McManus, Y. Li, L. Tam, S. Qiu, S. Liu, D. Ng,
+W. Wong, and L. Yu.
+a quantitative text-reuse analysis of matteo ricci’s
+
+reuse.
+
+Measuring accommodation:
+
+International Journal
+of Digital Humanities, pages 1-33, 2025. URL
+https://doi.org/10.1007/s42803-025-00104-w.
+
+A.-S. Mohammad, Z. Jaradat, A.-A. Mahmoud,
+and Y. Jararweh. Paraphrase identification and
+
+reliance on chinese classics.
+
+semantic text similarity analysis in arabic news
+tweets using lexical, syntactic, and semantic features.
+Information Processing & Management, 53(3):640—
+652, 2017. URL https://doi.org/10.1016/j.ipm.2017
+.01.002.
+
+M. Moritz, A. Wiederhold, B. Pavlek, Y. Bizzoni, and
+M. Buchler. Non-literal text reuse in historical texts:
+
+An approach to identify reuse transformations and
+its application to Bible reuse. In Proceedings of the
+
+2016 Conference on Empirical Methods in Natural
+Language Processing, pages 1849-1859, Austin,
+Texas, Nov. 2016. Association for Computational
+Linguistics. URL https://aclanthology.org/D16
+-1190.
+
+S. Nehrdich. A method for the calculation of parallel
+passages for buddhist chinese sources based on
+million-scale nearest neighbor search. Journal of the
+Japanese Association for Digital Humanities, 5(2):
+132-153, 2020. URL https://doi.org/10.17928/jja
+dh.5.2_132.
+
+
+Quantitative Intertextuality
+
+L. Neidorf, M. S. Krieger, M. Yakubek, P. Chaudhuri,
+and J. P. Dexter. Large-scale quantitative profiling
+of the old english verse tradition. Nature Human
+Behaviour, 3(6):560-567, 2019. URL https://www.na
+ture.com/articles/s41562-019-0570-1.
+
+H. O'neill, A. Welsh, D. A. Smith, G. Roe, and
+M. Terras. Computationally
+detecting influence in the writings of john stuart mill
+from library records. Digital Scholarship in the
+Humanities, 36(4):1013-1029, 2021. URL https:
+//doi.org/10.1093/11c/£qab010.
+
+A. Resler, R. Yeshurun, F. Natalio, and R. Giryes. A
+deep-learning model for predictive archaeology and
+archaeological community detection.
+
+Text mining mill:
+
+Humanities
+and Social Sciences Communications, 8(1):1-10,
+2021. URL https://doi.org/10.1057/s41599-021
+-00970-z.
+
+D. N. Rockmore, C. Fang, N. J. Foti, T. Ginsburg,
+and D. C. Krakauer.
+national constitutions. Journal of the Association
+for Information Science and Technology, 69(3):483—
+494, 2018. URL https://doi.org/10.1002/asi.2397
+1.
+
+M. Romanello. Exploring citation networks to study
+
+The cultural evolution of
+
+intertextuality in classics. DHQ: Digital Humanities
+Quarterly, 10(2), 2016. URL https://wuw.proquest
+.com/openview/e7742£704e39a2cc76£4a93809420bdb/ 1
+?pq-origsite=gscholar&cbl=5124193.
+
+H. Salmi, P. Paju, H. Rantala, A. Nivala, A. Vesanto,
+and F. Ginter.
+newspapers and journals,
+
+The reuse of texts in finnish
+
+1771-1920: A digital
+
+perspective. Historical Methods:
+A Journal of Quantitative and Interdisciplinary
+History, 54(1):14-28, 2020. URL https://doi.or
+g/10.1080/01615440.2020.1803166.
+
+‘W. Scheirer, C. Forstall, and N. Coffee. The sense of a
+connection: Automatic tracing of intertextuality by
+
+humanities
+
+meaning. Digital Scholarship in the Humanities, 31
+(1):204-217, 10 2014. ISSN 2055-7671. URL https:
+//doi.org/10.1093/11c/fqu058.
+
+W. Shang and T. Underwood. Improving measures
+of text reuse in english poetry: A tf—idf based
+method. In Diversity, Divergence, Dialogue:
+16th International Conference, iConference 2021,
+Beijing, China, March 17-81, 2021, Proceedings,
+Part I 16, pages 469-477. Springer, 2021. URL
+https://doi.org/10.1007/978-3-030-71292-1_36.
+
+A. Shmidman, M. Koppel, and E. Porat. Identification
+of parallel passages across a large hebrew/aramaic
+corpus. Journal
+humanities, 2018.
+ces.org/4175/pdf.
+
+Q. P. Shuiqing Huang,
+
+of data mining & digital
+URL https://jdmdh.episcien
+
+Hao Zhou and D. Wang.
+Automatic recognition and bibliometric analysis of
+cited books. Journal of the China Society for
+Scientific and Technical Information, 40(12):1325—
+1337, 2021.
+
+21
+
+D. A. Smith, R. Cordell, and E. M. Dillon.
+Infectious texts: Modeling text reuse in nineteenth-
+century newspapers. In 2013 IEEE International
+Conference on Big Data, pages 86-94. IEEE, 2013.
+URL https://doi.org/10.1109/BigData.2013.66916
+75.
+
+D. A. Smith, R. Cordel, E. M. Dillon, N. Stramp,
+and J. Wilkerson. Detecting and modeling local
+text reuse. In IEEE/ACM Joint Conference on
+Digital Libraries, pages 183-192. IEEE, 2014. URL
+https://doi.org/10.1109/JCDL.2014.6970166.
+
+D. A. Smith, R. Cordell, and A. Mullen. Computational
+methods for uncovering reprinted texts in antebellum
+newspapers. American Literary History, 27(3):E1-
+E15, 2015. URL https://doi.org/10.1093/alh/ajv0
+29.
+
+D. Sturgeon. Digital approaches to text reuse in the
+early chinese corpus. Journal of Chinese Literature
+and Culture, 5(2):186-213, 2018a. URL https://re
+ad.dukeupress.edu/jclc/article-abstract/5/2/186/
+138151/Digital-Approaches-to-Text-Reuse-in-the-E
+arly.
+
+D. Sturgeon. Unsupervised identification of text reuse
+in early chinese literature. Digital Scholarship in
+the Humanities, 33(3):670-684, 2018b. URL https:
+//doi.org/10.1093/11c/fqx024.
+
+D. Sturgeon. Chinese Text Project: A dynamic digital
+library of premodern Chinese. Digital Scholarship
+in the Humanities, 36(Supplement_1):i1101-i112, 08
+2019. ISSN 2055-7671. URL https://doi.org/10.109
+3/11c/£qz046.
+
+J. Tharsen and C. Gladstone. Textpair viewer (tpv) 1.0:
+An interactive visual toolkit for exploring networks
+of textual alignments and text reuse. Digital
+Humanities (Shu Zi Ren Wen), (01):116-122, 2022.
+
+R. Umphrey, J. Roberts, and L. Roberts. Investigating
+expert-in-the-loop llm discourse patterns for ancient
+intertextual analysis. In Proceedings of the 4th
+International Conference on Natural Language
+Processing for Digital Humanities, pages 31-40,
+2024. URL https://aclanthology.org/2024.nlp4
+dh-1.4/.
+
+A. Vesanto, F. Ginter, H. Salmi, A. Nivala, and
+T. Salakoski. A system for identifying and exploring
+text repetition in large historical document corpora.
+In Proceedings of the 21st Nordic Conference on
+Computational Linguistics, pages 330-333, 2017a.
+URL https://aclanthology.org/W17-0249.pdf.
+
+A. Vesanto, A. Nivala, H. Rantala, T. Salakoski,
+H. Salmi, and F. Ginter. Applying blast to text
+reuse detection in finnish newspapers and journals,
+1771-1910. In Proceedings of the NoDaLiDa 2017
+Workshop on Processing Historical Language, pages
+54-58, 2017b. URL https://aclanthology.org/Wi7-0
+510. pdf.
+
+P. Vierthaler and M. Gelein. A Dblast-based,
+language-agnostic text reuse algorithm with a markus
+implementation and sequence alignment optimized
+for large chinese corpora. Journal of Cultural
+
+
+22
+
+Analytics, 4(2), 2019. URL https://culturalanal
+ytics.org/article/11054.pdf.
+
+J. Wang, S. Duan, B. Fu, L. Gao, and Q. Su.
+Evol project: a comprehensive online platform
+for quantitative analysis of ancient literature.
+Humanities and Social Sciences Communications,
+11(1):1-13, 2024. URL https://doi.org/10.1057/s4
+1599-024-02763-6.
+
+J. Wilkerson, D. Smith, and N. Stramp. Tracing the
+flow of policy ideas in legislatures: A text reuse
+approach. American Journal of Political Science,
+59(4):943-956, 2015. URL https://onlinelibrary.wi
+ley.com/doi/abs/10.1111/ajps.12175.
+
+D.-A. Williams. Method as tautology in the digital
+humanities. Digital Scholarship in the Humanities,
+30(2):280-293, 2015.
+
+L. Xjao and X. Chen. Automatic detection of version
+differences among ancient chinese texts. Journal of
+Chinese Information Processing, 24(5):50-56, 2010.
+
+K. Yu, Y. Shao, and W. Li. Research on sentence
+alignment of ancient and modern chinese based on
+reinforcement learning. In Proceedings of the 21st
+Chinese National Conference on Computational
+Linguistics, pages 704-715, Nanchang, China, Oct.
+2022. Chinese Information Processing Society of
+China. URL https://aclanthology.org/2022.cc
+1-1.63.
+
+H. Zhou, D. Wang, and S. Huang. Automatic
+recognition citation context in early chinese
+literature: Take the annotated literature as
+an example. Information studies: Theory &
+Application, 44(9):169, 2021.
+
+Siyu Duan

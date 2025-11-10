@@ -1,0 +1,2874 @@
+arXiv:2510.27176v1 [cs.Al] 31 Oct 2025
+
+Glia: A Human-Inspired Al for Automated Systems Design and Optimization
+
+Pouya Hamadanian™" Pantea Karimi" Arash Nasr-Esfahany™'
+
+Kimia Noorbakhsh™
+
+Joseph Chandler’ Ali ParandehGheibi® Mohammad Alizadeh” Hari Balakrishnan’
+
+“Equal contribution (alphabetical order)
+
+"MIT CSAIL  SIndependent Researcher
+
+October 2025
+
+Abstract
+
+Can an Al autonomously design mechanisms for computer
+systems on par with the creativity and reasoning of human
+experts? We present Glia, an Al architecture for networked
+systems design that uses large language models (LLMs)
+in a human-inspired, multi-agent workflow. Each agent
+specializes in reasoning, experimentation, and analysis,
+collaborating through an evaluation framework that
+grounds abstract reasoning in empirical feedback. Unlike
+prior ML-for-systems methods that optimize black-box
+policies, Glia generates interpretable designs and exposes
+its reasoning process. When applied to a distributed GPU
+cluster for LLM inference, it produces new algorithms
+for request routing, scheduling, and auto-scaling that
+perform at human-expert levels in significantly less time,
+while yielding novel insights into workload behavior. Our
+results suggest that by combining reasoning LL.Ms with
+structured experimentation, an Al can produce creative and
+understandable designs for complex systems problems.
+
+1 Introduction
+
+Can we develop an Al to tackle the design and optimization
+
+of networked systems and produce solutions on par with,
+
+or even surpass, those of PhD-level system engineers?
+This question motivates our work. It matters because:
+
+1. AI may soon be essential to manage complexity. Mod-
+ern computer systems are extraordinarily complex. This
+complexity arises from massive scale, rapidly evolving
+hardware technologies, dynamic workloads, stringent
+performance demands, and escalating costs. Many orga-
+nizations struggle to keep pace, with engineers stretched
+thin to deliver improvements. On the research front,
+understanding the intricate interactions within systems
+
+takes longer than ever, slowing innovation. We believe
+today’s systems have reached a level of sophistication
+that makes traditional, human-centric R&D insufficient
+for continued progress.
+
+2. The need for design velocity in the age of AL. A
+central systems challenge of our time is building in-
+frastructure capable of efficiently delivering Al applica-
+tions. These workloads consume enormous computing
+resources, process vast amounts of data, and often op-
+erate under strict latency constraints. While Al models
+advance at a breathtaking pace, the systems that support
+them lag behind [2, 26, 29], creating a growing gap be-
+tween what Al demands and what current infrastructure
+can supply.
+
+3. Intellectual curiosity and the nature of design it-
+self. Given the remarkable progress of Al in many do-
+mains [6, 11, 31, 51], can it also produce good sys-
+tem designs? Hallmarks of good design such as sim-
+plicity, clarity, and robustness [17, 77, 78] are difficult
+to quantify, unlike objective performance metrics. Our
+goal is thus twofold: to test whether an Al can generate
+high-performing designs that optimize specific perfor-
+mance objectives, and to examine whether its designs
+are understandable and insightful in the way that human-
+engineered designs often are.
+
+For over a decade, researchers have explored the use
+of AI and machine learning (AI/ML) for systems [25, 30,
+45, 48-50, 62, 63, 68, 91]. Yet despite hundreds of papers,
+real-world deployments remain rare. As we discuss in §2,
+these approaches have often been incomprehensible, e.g.,
+relying on opaque neural policies often developed with
+reinforcement learning (RL) [42, 45, 46, 50], and fragile,
+failing outside their training regimes [10, 12, 21, 44, 82].
+
+
+Researchers and practitioners alike have thus had little con-
+fidence that such systems will behave reliably in unforeseen
+situations. There is, therefore, good reason to be skeptical
+of the real-world impact of efforts in AI/ML for systems.
+
+But this time is different. Large Language Models
+(LLMs) now excel at code generation, dramatically
+accelerating software development. They can ingest and
+synthesize vast amounts of text, identifying what matters
+and what does not, a hallmark of “understanding.” They can
+also solve mathematical and analytical problems, including
+those requiring symbolic reasoning and logical synthesis.
+
+Learning from prior ML-for-systems experience, our
+goal for the proposed Al is not to merely produce the
+“best possible” design on a fixed set of benchmarks or
+traces. Instead, our aim is to build an Al that generates
+system designs and insights that impress human experts.
+Performance improvements are important and a welcome
+by-product. Good designs and optimizations are clear and
+explainable, can be stress-tested and analyzed, and adapt
+to new situations, reducing the risk of unpleasant surprises.
+
+A natural solution might be to craft detailed prompts
+for existing LLMs to produce system designs. As we
+show in §3.1, however, this approach does not work
+well. Fundamentally, systems research integrates four
+interdependent skills: (a) developing and reasoning about
+a model of the system and problem, (b) formulating
+hypotheses about bottlenecks and designing experiments
+to test them, (c) instrumenting and analyzing telemetry
+streams that capture performance and diagnostic metrics,
+and (d) synthesizing insights from these analyses into
+improved designs. These skills operate in a feedback loop,
+where an engineer iterates until satisfied with the outcome
+(or gives up). Moreover, systems research is inherently
+collaborative: teams combine complementary skills, vet
+ideas, and refine them through critique and iteration.
+
+We introduce Glia, an Al architecture inspired by
+this successful human process. It comprises three main
+components: (1) a front-end for humans to specify tasks
+and provide background; (2) a multi-agent AI composed
+of LLM-based agents with reasoning, summarization,
+and analytical capabilities, each specialized for particular
+tasks and capable of exploring ideas both sequentially and
+concurrently; and (3) an evaluation framework that could
+be a simulator, emulator, or testbed for running experiments
+and generating data for the Al agents to reason about.
+
+We apply Glia to a distributed GPU-cluster system
+serving LLM inference requests. It produces new insights
+in designing workload-specific adaptive algorithms for
+
+(a) request routing (deciding which GPU should serve
+a request), (b) batch scheduling (dispatching batches of
+requests to individual GPUs running inference tasks), and
+(c) auto-scaling (adjusting cluster size dynamically to meet
+latency goals while controlling compute costs).
+
+The key contributions and findings of this paper are:
+
+1. Human-inspired AI design: Glia employs an agentic
+workflow that mirrors how expert humans design sys-
+tems—through conceptual understanding, hypothesis
+formation, experimental testing, ideation, and iterative re-
+finement. We compare this approach with prior methods
+such as AlphaEvolve, highlighting its advantages. For
+example, on a benchmark developing a request router for
+a distributed LLM inference system serving a challeng-
+ing workload, Glia produced a novel routing algorithm
+whose mean request completion time is 2.2 x lower than
+a standard baseline (least-loaded queue routing) and
+1.6 x lower than the solution produced by OpenEvolve
+(an open-source implementation of AlphaEvolve). Glia
+took only two hours to match the performance of a hu-
+man expert who required two weeks to achieve a similar
+result.
+
+2. Demonstration of Glia’s creativity: Glia autonomously
+generated novel resource-management algorithms that
+are simple and interpretable, revealing the reasoning that
+led to their creation. These outputs provided new insights
+even to experts. For instance, Glia discovered within
+one hour that poor performance in a particular LLM
+workload stemmed not from load imbalance, as initially
+assumed, but from a memory management bottleneck—
+an insight that took a human expert several days to
+uncover independently.
+
+3. Workload-specific adaptability: Glia operates continu-
+ously, adapting to changes in workload and environment.
+When the workload characteristics shift, previously dis-
+covered algorithms may degrade in performance. In
+such cases, Glia is able to generate new, more effective
+methods tailored to the new conditions.
+
+4. Benefits of parallel multi-context execution: Running
+Glia with multiple concurrent contexts yields higher-
+quality solutions than a single one-shot execution. Par-
+allel exploration prevents the system from converging
+prematurely on suboptimal ideas and encourages diver-
+sity in solution strategies.
+
+In §2, we survey prior work on AI/ML for systems and
+recent relevant advances in LLMs. In §3, we dive into a
+case study of LLM serving on a GPU cluster to analyze
+
+
+why black-box LLM prompting alone is insufficient to
+produce robust or interpretable system designs. This section
+also shows the results of running Glia on the problem,
+highlighting the differences from prior approaches. We
+then present the design of Glia in §4, contrasting it with
+systems such as AlphaEvolve [53] and FunSearch [60].
+Our evaluation in §5 demonstrates Glia’s effectiveness
+using several experiments on the same case study. Finally,
+we reflect on our findings and discuss open challenges for
+Al-driven systems design in §6.
+
+2 Related Work
+
+AI/ML for networked systems. A large body of work
+has explored learning-based control and optimization in
+networking and systems. At the transport layer, Remy syn-
+thesizes congestion-control algorithms offline [79], while
+PCC Vivace [13] and Aurora [22] use online learning and
+deep RL, respectively. For video streaming, Pensieve learns
+ABR policies that surpass engineered heuristics [45]. In dat-
+acenters, researchers have applied RL to traffic optimization
+and control (e.g., AuTO [7], Iroko [61]), topology/routing
+management (DeepConf [62]), and packet classification
+(NeuroCuts [32]). Despite impressive benchmarks, these
+approaches rely on simulators that miss key real-world arti-
+facts or narrow traces, yielding opaque or complex policies
+with fragile generalization outside the training regime [83].
+
+DeepRL has also been applied to cluster schedul-
+ing (DeepRM [43]; Decima [47]), cache replacement
+(LeCaR [73]), GPU warp scheduling (RLWS [3]), and
+database systems (CDBTune [88], Bao [48]). Related
+work even explores data-center control with learning and
+model-based methods for cooling [28]. Taken together,
+these efforts show that learning can find high-performance
+policies, but they often produce black-box artifacts that are
+hard to analyze, verify, or adapt under workload shifts.
+
+In practice, RL agents try many poor algorithms before
+they find a good one, and if something changes about the
+system, such as the workload, objective, configuration,
+or hardware, they will need to reoptimize all over again.
+By contrast, Glia decomposes the task into modeling,
+hypothesis generation, experiment design, and telemetry
+analysis; iterates with an evaluation-in-the-loop; and
+produces interpretable, stress-testable designs and insights
+rather than a trained policy.
+
+LLM-based discovery. With the rise of LLMs, multiple
+efforts have been made to employ them for algorithm
+discovery [36, 81]. These methods go beyond using LLMs
+
+for simple code generation and instead propose approaches
+that combine reasoning and search. Gottweis et al. [16]
+employ multiple agents that collaborate through several
+iterations to refine and improve solutions. Other works,
+such as Evolution of Heuristics [33], ShinkaEvolve [27], Al-
+phaEvolve [54], MCTS [90], LAS [34], and X-evolve [87],
+develop evolutionary search approaches in which popula-
+tions of programs are evolved through mutation, crossover,
+and selection based on a fitness score. Recently, Multi-
+Objective Evolution of Heuristics [85] has gained attention.
+Some works, such as CALM [20], combine evolutionary
+search with fine-tuning or employ supervised fine-tuning
+on curated datasets to enhance reasoning for algorithm
+discovery [35]. Recent work from Google [5] proposes an
+agentic, tree-search-based approach. DeepEvolve augments
+AlphaEvolve with deep web research to make sure the
+idea behind each code corresponds with latest ideas in
+literature [37]. SR-Scientist [80] introduces a long-horizon
+symbolic regression framework where an LLM iteratively
+refines equations using external tools for data analysis and
+evaluation. Unlike Glia, the LLM cannot perform these
+analyses autonomously and depends on pre-defined tools
+for these capabilities. Thus, many of these approaches rely
+on black-box exploration, as discussed in §4.
+
+LLM-based algorithm design. Researchers across
+various fields of computer science have been exploring the
+use of LLM-based algorithms to improve the performance
+of their systems of interest. ADRS [8] shows the potential
+benefits of using LLMs in several systems problems. Shy-
+pula et al. [66] explore the ability of LLMs to optimize C++
+code. Wei et al. [75] introduce an Agent-System Interface
+(ASI), composed of a concise Domain-Specific Language
+(DSL) and a feedback interpreter called AutoGuide, to opti-
+mize mapper code for parallel programs. Nagda et al. [52]
+use AlphaEvolve to discover new finite combinatorial
+constructions in complexity theory. Sun et al. [70] employ
+LLMs to automatically discover heuristics for SAT solvers.
+Press et al. [58] introduce AlgoTune, an agentic framework
+for optimizing general-purpose numerical programs. Liu
+et al. [39] propose ASI-ARCH, a closed-loop, multi-agent
+evolutionary system for neural architecture search.
+Astra [76] and GPU Kernel Scientist [4] explore the opti-
+mization of CUDA GPU kernels. NADA [18] investigates
+the use of LLMs for designing adaptive bitrate streaming
+(ABR) algorithms. Robusta [24] combines combinatorial
+reasoning about heuristics from prior work [23] with
+LLM-based reasoning in an evolutionary search to discover
+
+
+networking heuristics with improved worst-case guarantees.
+
+He et al. [19] explores the use of LLMs in congestion
+
+control. POLICYSMITH [14] also explores LLM heuristic
+
+search for web caching and congestion control. MetaMuse
+
+[41] is an approach that guides LLMs to generate novel
+
+algorithms with structured creative ideation. It explores the
+
+solution space using external stimuli, waypoint reasoning,
+and feedback-based performance embeddings to steer
+diversity and quality. It is able to discover high-performance
+algorithms in tasks like cache replacement and bin packing.
+
+Our approach in Glia differs from prior work in three
+significant ways:
+
+1. Glia focuses on generating hypotheses and ideas from
+performance analysis rather than code evolution. Prior
+work does not inspect the simulation results and logs to
+reveal the mechanisms behind each modification and to
+establish its causal relationship to observed outcomes.
+
+2. Inspecting the simulation results and modifying the
+code based on what the experimental data indicates.
+
+3. Running experiments to understand deeper relationships
+between the metrics and the bottlenecks.
+
+3 Case Study: LLM Serving in a GPU Cluster
+
+In this section we apply Glia to the problem of efficiently
+serving inference requests across a cluster of GPUs running
+large language models (LLMs), which is a fundamental
+challenge in distributed LLM serving systems [2, 26, 55,
+57, 86, 89]. When an inference request arrives, the system
+must process it promptly and in a cost-efficient manner.
+Because GPUs are expensive and often operate under di-
+verse workloads, achieving high utilization without violat-
+ing latency constraints is crucial. As model architectures,
+hardware generations, and application workloads evolve,
+maintaining and optimizing serving systems across these
+combinations has become increasingly difficult.
+
+Today’s systems implement one or two generic mech-
+anisms to route requests to GPUs (discussed below). They
+also employ standard batch schedulers to dispatch requests
+within a GPU and may use auto-scalers to adjust cluster
+capacity as load fluctuates over time. However, these com-
+ponents are often tuned conservatively or manually, leaving
+significant performance and cost improvements unrealized.
+Optimizing them requires expert knowledge of both
+workloads and system internals, requiring specialized engi-
+neering teams to design and tune these systems [26, 57, 86].
+
+We focus on a key opportunity for optimization: dynamic,
+workload-adaptive routing of inference requests. The
+goal is to tailor the routing method to observed workload
+
+Queue Processing
+Bzmsa
+[] I i 1 SF ES
+Current: :
+
+Figure 1: Illustrative pipeline of request routing for LLM infer-
+ence.
+
+patterns in order to best satisfy specified service-level
+objectives (SLOs). Typical SLOs include the mean time
+to first token (TTFT), which captures latency; the mean
+time per output token (TPOT), which is a measure of
+throughput; and the mean end-to-end request completion
+time, which reflects overall responsiveness.
+
+Request routing, illustrated in Fig. 1, is implemented
+in the orchestration layer of the inference stack. Modern
+LLM-serving systems such as NVIDIA Dynamo [55], Red
+Hat 11lm-d [40], the vLLM production stack [74], and
+ByteDance AlBrix [72] typically use simple, static policies
+such as:
+
+* Round-robin (RR): routes each request to the next
+inference engine in sequence.
+
+Least-loaded queue (LLQ): routes each request to the
+inference engine with the fewest queued requests.
+Prefix-aware routing: routes requests sharing a prefix to
+the same inference engine to enable reuse of cached com-
+putations; this technique is often combined with other
+criteria such as queue length or memory availability.’
+While effective under steady conditions, these heuristics
+do not adapt to changing workloads or resource states. We
+therefore examine the potential for dynamic, workload-
+adaptive optimization of the request router using Glia.
+
+3.1 Using LLMs As-is
+
+A natural first step is to ask an LLM to write the
+algorithm given a detailed prompt describing the problem,
+environment, workload, and objectives. Even with carefully
+constructed prompts and state-of-the-art reasoning models,
+the resulting solutions are not competitive out of the box
+for this specialized task. Fig. 11 shows an example of such
+a detailed prompt. Fig. 2 shows the distribution of mean
+request completion times for 100 generated programs
+sampled from the same prompt using 03, o4-mini, gpt-
+40, and gpt-5. Performance varies widely across model
+outputs and is consistently worse than that of a human
+expert, indicating that direct prompting alone is insufficient
+
+We disable prefix-aware routing in our experiments to focus on the
+core routing logic.
+
+
+=== 03 == od-mini cee gpt-40 —— gpt-5
+2 1 Hoo
+= | [HHI
+g i HH
+pS 4071 | Better Eid
+I — io
+2 1 i 1 1
+x 1 (|
+3 i TE
+© 20 1 FE COR
+<Q 1 AWN. 1
+[9 1 he i
+
+0 | Se ———— oo h : ~ EE
+
+30 40 50 60 70 80
+
+Avg Response Time (s)
+
+Figure 2: Distribution of mean request completion times for 100
+programs generated by directly prompting the LLM.
+
+for generating efficient request routing algorithms.
+3.2 Black-box LL.M-in-the-loop Search
+
+A more sophisticated approach places LLMs within a
+black-box search loop. In this setting, one or more LLMs
+generate or modify code candidates, an evaluator executes
+each candidate on a benchmark and returns a performance
+score (e.g., latency or throughput), and the LLM refines
+subsequent candidates based on that feedback [33, 53, 60].
+Fig. 12 illustrates a typical prompt for use with systems
+such as FunSearch [60].
+
+This paradigm has some advantages: because proposals
+are in the form of code, thousands of variants can be gener-
+ated and evaluated in parallel; i.e., the evolutionary loop can
+explore a large design space. However, these methods treat
+the problem largely as code-level mutation and optimization.
+Systems such as FunSearch [60] and AlphaEvolve [53] op-
+erate directly on program text, mutating or recombining
+snippets without developing explicit hypotheses or struc-
+tured reasoning traces. Consequently, “idea evolution” is
+driven by low-level code edits rewarded by a scalar objec-
+tive, with little feedback or analysis about why a candidate
+works or fails. Few mechanisms exist to extract or leverage
+higher-level design insights—the kind that human experts
+rely on when developing new ideas. Many of the code can-
+didates don’t make logical sense, but yet the system exper-
+iments with them and obtains scores. This approach resem-
+bles a “code monkey” that tries out code variants, instead of
+reasoning about the ideas at a better level of abstraction [15].
+
+Fig. 10 shows an example request-routing implemen-
+tation generated by FunSearch. The resulting algorithm is
+a weighted composite cost function over a handful of input
+signals, a representation more typical of RL or ML-derived
+
+policies than of human-engineered designs grounded
+in analytical reasoning. Such solutions offer limited
+interpretability, depend on ad hoc weight calibration, and
+are often sensitive to small workload or configuration
+changes. As we show in §5, this black-box approach
+performs worse than the more explainable and adaptive
+designs produced by Glia.
+
+The core limitation is not the LLM’s reasoning capability
+or the evolutionary framework itself, but the level of
+abstraction at which the system operates: reasoning purely
+in code, with limited visibility into system behavior or
+design principles.
+
+3.3 The Glia Approach
+
+Rather than using LLM as a black-box optimizer, Glia uses
+it to elicit systems reasoning. We design an agentic LLM
+framework that mirrors how human engineers approach
+design problems—a workflow loop that forms hypotheses,
+conducts experiments, analyzes results, and refines ideas.
+
+The system is named Glia, inspired by glial cells in the
+brain. Just as glial cells support, maintain, and enhance
+the function of neurons, Glia supports, augments, and
+accelerates the work of systems researchers and engineers.
+
+This reasoning-centered methodology is generalizable,
+applying across diverse system domains, and aims to be
+robust, avoiding the false paths common to brute-force or
+code-mutation methods. By combining learned expertise
+with continuous experimentation, Glia seeks to produce
+algorithms that are explainable, adaptable to changing
+workloads, and grounded in analytic reasoning rather than
+opaque optimization.
+
+We illustrate Glia’s operation in the context of the
+request-routing problem. The user specifies a task prompt,
+an example of which is in Fig. 14 to the Glia front-end.
+Starting from a baseline such as LLQ, Glia iterates through
+cycles of experimentation, analysis, idea generation, and
+code modification, progressively refining its design toward
+improved performance and clarity.
+
+Experimentation. Glia begins by testing a few simple
+request-routing strategies. It first evaluates the baseline
+performance of LLQ, then explores alternatives such as
+Least Outstanding Requests (LOR) and modified versions
+of LLQ where the load signal incorporates memory
+pressure. It executes each algorithm on the benchmark,
+recording detailed statistics and performance metrics
+for every run. Across these initial experiments, Glia
+observes that none of these simple variants yield significant
+
+
+improvement over the baseline.
+
+Analysis. After about ten such experiments, Glia
+determines that further blind exploration is unproductive:
+
+Rather than continuing to iterate blindly, I am going to
+step back, profile the baseline more rigorously and de-
+rive a quantitative model of where time is actually spent
+(queueing vs execution, pre-emptions, GPU-memory
+
+pressure, ..). Once that is done we can target the domi-
+nant contributor directly and should be able to reach the
+desired 30% speed-up.
+
+Glia proceeds to instrument the simulator and collect
+detailed internal metrics. From this analysis, it identifies
+restarts—instances where a request is evicted and
+restarted—as a potential source of inefficiency, an insight
+discovered autonomously without user prompting. Glia
+prints the following summary:
+
+mean e2e no restart 37.40
+mean e2e restarted 48.12
+fraction restarted 0.26
+
+Glia finds that roughtl;y 26% of the requests in this
+workload experience restarts, with restarted requests averag-
+ing 48.1 s end-to-end latency—about 11 s slower than non-
+restarted ones. Glia formulates the following hypothesis:
+
+Hypothesis: memory imbalance — more restarts —
+
+wasted execution time.
+
+Modern GPUs are highly parallel devices designed to
+process many requests concurrently. To achieve efficiency,
+they batch requests together, making scheduling decisions
+critical to performance. LLM inference workloads are
+often bursty, with highly skewed and unpredictable
+compute demands. Request durations vary with prefill and
+decode token lengths, frequently following heavy-tailed
+distributions [71, 84].
+
+A core scheduling challenge is that the GPU memory
+requirement of each request is proportional to its eventual
+number of output tokens. This information is not available
+at routing time. A router must either allocate the maximum
+possible size [86] or allocate incrementally, assuming the
+batch will fit in available GPU memory [26]. The latter
+approach, used in vLLM, avoids over-provisioning but
+risks out-of-memory conditions. When a GPU exhausts
+memory during batch processing, the youngest request is
+evicted, freeing its memory but losing all progress. This
+eviction causes a restart and wastes computation.
+
+Glia discovers a solution. Having identified restarts
+as a major source of inefficiency, Glia, Glia experiments
+with several techniques from the literature to mitigate them.
+It reports that it has “implemented several increasingly
+sophisticated global-scheduler prototypes: memory-head-
+room LB, prompt-token balanced LB, elephant-house
+heuristic, and size-affinity batching LB.” Its evaluation
+of these approaches in the simulator finds that the best
+method so far, least outstanding blocks, improves average
+latency by only 3% over the LLQ baseline. It says that it
+is “continuing to iterate on schedulers”.
+
+At this point, Glia’s Supervisor agent intervenes:
+
+It seems that we have been unable to reduce the number
+of restarts. Why is that? Is there something structurally
+
+wrong about our approach that is making it difficult to
+limit the number of restarts?
+
+This step helps the Researcher agent achieve a break-
+through by triggering the following chain-of-thought
+reasoning:
+
+Why restarts stubbornly persist
+1. vLLM’s pre-empt-on-growth behaviour
+
+* vLLM allocates just enough KV-cache blocks for the
+prompt.
+
+During decode it keeps adding blocks 1 token at a
+time (1/16 of a block).
+As soon as a new block is needed and no free block
+is available, vLLM pre-empts the youngest request,
+frees its blocks and pushes it back to the pending
+queue.
+This happens even if the replica was perfectly bal-
+anced at admission time.
+
+2. The global scheduler sees only prompt-length, not
+
+future decode length.
+
+* A 50-token prompt that later decodes 1500 tokens will
+eventually need [1500 / 16] = 94 extra blocks.
+
+* The scheduler cannot foresee this growth, so an appar-
+ently “safe” admission can still trigger a pre-emption
+many seconds later.
+
+3. Memory stays near 100% utilisation most of the time
+
+* LLQ (and our variants) keep GPUs busy to maximise
+throughput.
+
+* With no head-room, the *first* request that needs an
+extra block causes a domino of restarts.
+
+* Our heuristics moved load around, but average utilisa-
+tion stayed > 90%. That is simply too tight.
+
+Guided by this analysis, Glia proposes a new routing
+strategy that explicitly forecasts memory usage (i.e.,
+
+
+expected output tokens) and dispatches requests only when
+sufficient GPU headroom remains:
+
+To cut both queueing delay and pre-emptions we
+must:
+
+1. Balance memory usage / outstanding prompt tokens
+
+across replicas, not just queue length.
+2. Admit new requests to replicas that still have KV-cache
+head-room so that pre-emptions become rare.
+
+Glia formalizes this idea by introducing two tunable
+parameters: the decode-to-prefill ratio r and a memory
+safety margin, m. If the dynamically estimated r for the
+workload exceeds a threshold and available memory falls
+below (1—m) of total capacity, the router holds the request
+in a global queue rather than dispatching it immediately
+to a GPU. Intuitively, when r is large, the eventual number
+of output tokens may exhaust GPU memory, and deferring
+admission mitigates this risk when the amount of available
+memory is small.
+
+Glia implements this strategy (Fig. 9), calling it the
+Head-Room Allocator (HRA), and evaluates it. The
+initial implementation performs worse than baseline LLQ
+(mean latency >50s vs. 40 s) but eliminates most restarts,
+reducing them from 26% to under 0.001%. Recognizing
+the opportunity for parameter tuning, Glia performs a rapid
+search over the (r,m) parameter space, soon identifying
+a configuration that breaks the 40s latency barrier. After
+two additional experiments, it achieves a design with mean
+latency just above 30 s—while maintaining low restart
+rates (about 20%, mostly early in request lifetimes).
+
+Next, the Supervisor encourages idea composition,
+recalling that Glia had previously tested a shortest-prompt-
+first scheduler inspired by the classical shortest-job-first
+policy known to minimize mean completion time.
+Gliacombines this idea with HRA and implements the
+combined design. The result achieves a mean end-to-end
+latency under 23 s—a 42.5% improvement over the 40s
+baseline—with queueing delay reduced from 20s to just
+3s. These improvements arise because the number of
+restarts reduces by 44%. Glia discovered this scheduler in
+only 20 simulations and in under two hours, compared to a
+human expert who required over 100 simulations and more
+than two weeks to reach similar insights.
+
+A key advantage of Glia ’s agentic workflow is that
+it fosters reasoning-driven exploration. It formulates
+hypotheses, tests them empirically, and composes ideas,
+rather than relying solely on scalar feedback from
+
+benchmark scores. This reasoning process produces both
+higher performance and more interpretable designs than
+black-box optimization methods.
+
+Continuous adaptation to changing workloads and
+application patterns. A key motivation for automated
+decision-making is that optimal policies depend on
+factors that evolve over time. Workload characteristics,
+hardware configurations, and application priorities can all
+shift, changing which routing policy performs best. For
+instance, the solution Glia devised above is less effective in
+configurations with abundant KV-cache memory and short
+sequence lengths. Moreover, applications often optimize
+for different metrics: interactive services may emphasize
+TTFT and TPOT; background processing may prioritize
+overall throughput; and agentic or multi-stage applications
+may focus on end-to-end agent execution time. By running
+periodically and re-optimizing in response to observed
+conditions, Glia can adapt its decisions to these evolving
+workloads and objectives.
+
+4 Glia Agents
+
+This section presents the design of Glia ’s agents. The
+current implementation comprises two primary agents:
+
+1. a Researcher, which proposes ideas, implements them,
+conducts experiments to generate metrics, and analyzes
+results; and
+
+2. a Supervisor, which guides the Researcher by asking
+questions, providing feedback, and approving or
+suggesting revisions to proposals.
+
+We have taught the Researcher the general principles of
+systems research via its system prompt. The user prompt
+specifies the simulator and optimization problem to be
+solved.
+
+To interact with the simulator, the Researcher is
+equipped with access to shell commands and a cloned copy
+of the simulator repository. As described in §3.3, the agent
+employs standard Unix commands (e.g., 1s, grep, find)
+to navigate the codebase, inspect directory structures, and
+identify relevant components, a process known as agentic
+search [59]. The Researcher can also create and execute
+scripts to analyze simulation outputs and performance
+metrics, enabling data-driven refinement of its hypotheses.
+Through these interactions, the Researcher conducts a
+human-like research process that iteratively combines
+experimentation and reasoning to discover new algorithms.
+
+Glia ’s white-box, reasoning-driven workflow elevates
+exploration from the code level to the idea level. This makes
+
+
+its agentic research loop both more efficient (Fig. 7) and
+more interpretable (§5.4) than prior black-box approaches
+such as FunSearch, AlphaEvolve, and EoH [33, 53, 60].
+Rather than relying solely on scalar performance scores,
+Glia analyzes why a design succeeds or fails. It examines
+experimental evidence, forms hypotheses about root
+causes, and validates them through new experiments. As
+a result, its behavior more closely mirrors that of a human
+researcher, achieving both higher insight and robustness.
+
+We first describe a single-context design in §4.1, and
+then extend it to support multiple contexts in §4.2.
+
+4.1 Single-Context Glia (SCG)
+
+Our initial design employs a single execution context shared
+by the two agents. Within this context, the Researcher may
+occasionally pursue unproductive directions, lose focus, or
+prematurely terminate exploration. When this occurs, the
+Supervisor intervenes to provide feedback and guidance:
+offering encouragement when the Researcher appears
+close to a promising idea, asking clarifying questions when
+potential directions are overlooked, and halting progress
+along clearly unproductive paths. The Supervisor also
+removes procedural obstacles, reminds the Researcher of
+overarching goals, and recalls previous findings.
+However, the Supervisor does not introduce new ideas
+or interfere directly with the Researcher’s reasoning. Un-
+like the Researcher, the Supervisor has no access to the
+codebase; it operates solely from the task description and
+from observing the Researcher’s outputs. In response to
+Supervisor’s questions, the Researcher provides detailed
+rationales in a chain-of-thought style. This design intention-
+ally mirrors the dynamics of a small human research team.
+Maintaining a single execution context offers the benefit
+of a coherent, contiguous exploration history that is easily
+accessible to the Researcher. However, it also introduces
+two limitations. First, current LLMs have finite context
+windows: once the limit is reached, the process must
+terminate, regardless of progress. Moreover, as the context
+grows, model attention becomes increasingly uneven
+across earlier content [38, 59]. Second, the single-context
+design scales poorly as there is no straightforward way
+to improve the resulting algorithms merely by increasing
+compute, budget, or iteration count. The next section
+introduces two extensions that mitigate these limitations.
+
+4.2 Multi-Context Glia (MCG)
+
+To overcome the limitations imposed by a single finite
+context window, we adopt a best-of-N sampling strategy, a
+
+common method for scaling test-time computation [9, 69].
+In this approach, we execute N independent single-context
+instances of Glia, each exploring the design space along a
+distinct trajectory, and select the best-performing algorithm
+discovered across all runs based on benchmark scores.
+
+We present two variants of this strategy: Sequential
+MCG and Parallel MCG-N. In Sequential MCG,
+single-context Glia runs execute one after another, allowing
+the process to stop as soon as a satisfactory result is
+achieved (up to a maximum number governed by cost). In
+Parallel MCG-N, N independent runs proceed concurrently,
+with NV serving as a user-specified hyperparameter. For both
+variants, Glia returns the best-performing design across
+all runs as the final output. A performance comparison
+between these modes is presented in §5.6.
+
+Because the runtime and output quality of a single-
+context instance cannot be predicted in advance, the
+two modes expose different trade-offs. Sequential MCG
+achieves faster early progress, as results can be assessed
+incrementally after each run, but its early performance
+varies depending on which trajectories complete first.
+
+Parallel MCG-N, in contrast, requires more peak
+compute but provides steadier improvement: evaluating
+multiple trajectories simultaneously reduces the likelihood
+that all runs perform poorly, leading to more consistent
+aggregate performance. In practice, Sequential MCG
+is preferable when compute resources are constrained,
+while Parallel MCG-N offers lower variance and smoother
+convergence. Our experiments show that most of the benefit
+saturates by N=4, with larger values yielding diminishing
+returns. We discuss these differences further in §5.6.
+
+5 Evaluation
+
+We use OpenAl 03 [56] as the underlying language model.
+In the following experiments, we specified a budget of $30
+per optimization.
+
+We evaluate Glia in vidur, a simulator for distributed
+LLM serving systems [1]. This section focuses on the
+request routing strategy among LLM replicas in distributed
+serving environments. We study how Glia discovers novel
+routing algorithms that lower the mean request completion
+time (RT) across all requests.
+
+We simulate an LLM inference workload
+(ShareGPT [64]) on four NVIDIA A10 GPUs run-
+ning Llama-3-8B-Instruct. To emulate reasoning workloads
+with heavy-tailed sequence length distributions, we
+independently inflate 5% of decode lengths and 5% of
+prompt lengths by 10x. The workload uses a query rate
+
+
+Table 1: Experimental settings and hyperparameters from EoH,
+FunSearch, and OpenEvolve, using the same parameter names
+from their corresponding papers.
+
+System Parameter Name Value
+EoH Initial population size (N) 20
+FunSearch ~~ # Prompt programs (k) 3
+Number of islands 6
+Exploration probability 0.6
+OpenEvolve Exploitation probability 0.4
+
+LLQ router
+
+Table 2: Hyperparameters for the other approaches used in our
+evaluation.
+
+Initial program
+
+of 7.5 queries per second (QPS), with bursty interarrival
+times following a log-normal distribution (¢ = 2). Each
+LLM replica uses chunked prefill [2] for batch scheduling,
+with a chunk size of 8192. We run each experiment with
+ten random seeds.
+
+The primary evaluation metric is the mean request
+
+completion time (RT), defined as the end-to-end latency
+to receive the response to a request. This metric reflects
+user-perceived responsiveness in LLM serving and
+measures the effectiveness of scheduling policies under
+dynamic workloads. We also report the 90% bootstrapped
+confidence interval.
+Comparisons to other approaches. We compare Glia
+to three state-of-the-art frameworks that employ LLMs
+and evolutionary strategies for discovery: (i) Evolution
+of Heuristics (EoH) [33], (ii) FunSearch [60], and (iii)
+OpenEvolve [65]. The parameter settings for these systems
+are shown in Tab. 1. For FunSearch, we restrict each island
+to 20 algorithms.
+
+Evolution of Heuristics [33] introduces a “thought” step
+into algorithm design and evolves candidate heuristics
+using five operators: crossover operators (Ej: generate
+diverse heuristics, E,: recombine common ideas) and
+mutation operators (M;: modify heuristics for improvement,
+M,: adjust parameters within a heuristic, M3: simplify by
+removing redundancies). These operators iteratively evolve
+heuristic candidates.
+
+FunSearch [60] applies a best-shot optimization
+strategy within an island model. In each generation, the
+system selects top-performing code examples from the
+solution database and prompts the LLM to refine them,
+maintaining a bounded island of candidates through
+
+iterative improvement.
+
+OpenEvolve [65], an open-source implementation of
+AlphaEvolve [53], also employs island-based evolutionary
+search. It begins with an initial candidate program and
+a task-specific evaluation function to maximize a score.
+A prompt sampler generates inputs for the LLM, which
+produces new program variants. The system then applies
+evolutionary principles and migration across islands to
+improve solutions across generations.
+
+Baseline routing comparisons. We also compare Glia
+with three heuristics from the literature: Round-Robin,
+Least-Loaded Queue (LLQ), and Least Outstanding Re-
+quests (LOR). Round-Robin forwards requests to replicas
+in a simple cyclic order. LLQ selects the replica with the
+fewest inflight requests. LOR chooses the replica with
+the fewest waiting requests (those without allocated GPU
+memory). We also compare against an expert-designed
+heuristic, a workload-specialized algorithm developed over
+a two-week design period by a senior systems researcher
+with over 20 years of experience working on such problems.
+
+5.1 Glia outperforms baselines
+
+Fig. 3a compares the algorithms generated by Single-
+Context Glia (SCG) with routing heuristic baselines and
+prior algorithm design methods under a strict simulation
+budget of at most 15 runs. On average, SCG discovers
+algorithms that reduce mean response time (RT) by
+1.3-1.4x compared to EoH, FunSearch, and OpenEvolve,
+and achieves the fastest discovery rate among them.
+
+Next, we increase the simulation budget to 100 runs.
+Fig. 3b shows the best-performing algorithms produced
+by Glia variants compared with the same baselines in
+this case. SCG performs similarly to the 15-simulation
+setting (Fig. 3a). This stability stems from SCG’s stopping
+rule: it halts once the Researcher agent either completes
+its reasoning process or exhausts the context window,
+preventing further additions or revisions. In contrast, EoH,
+FunSearch, and OpenEvolve continue improving with
+additional simulations, attempting to use the extra resources.
+SCG cannot benefit from these available resources because
+it follows a single reasoning trajectory; because it runs out
+of context, it cannot extend its research process.
+
+Multi-Context Glia (MCG) addresses this limitation,
+as explained in §4.2. MCG samples multiple independent
+reasoning chains, either in parallel (MCG-Par4) or sequen-
+tially (MCG-Seq), and selects the best resulting algorithms.
+MCG-Par4 launches four independent SCG processes si-
+multaneously to diversify the search, while MCG-Seq starts
+
+
+[))
+o
+
+BH (6,1
+
+o o
+Better
+
+HH
+
+w
+o
+
+IEE Es --- Expert
+
+Best Avg RT (s)
+N
+o
+
+=
+o
+
+« ws Le
+
+(a) Single-Context Glia (SCG) finds better algorithms compared
+to prior methods after a strict 15-simulation run budget. Lower
+response time (RT) is better. Error bars show the 90% bootstrap-
+ping confidence intervals.
+
+-- Round Robin
+--LOR
+
+[))
+o
+
+wu
+o
+
+EN
+o
+
+w
+o
+T
+|
+
+- Expert
+
+Best Avg RT (s)
+N
+o
+
+=
+o
+
+5° ® eo
+
+O al e
+pf a¢C gov
+we oF er
+
+® o?
+
+(b) Comparison of the algorithms produced by Glia with prior
+methods on a more relaxed 100-simulation budget (lower RT is
+better). Both versions of MCG Glia (MCG-Par4 and MCG-Seq)
+find solutions that perform better than all the other methods. The
+error bars show the 90% bootstrapping confidence intervals.
+
+Figure 3: Performance of SCG and MCG Glia against other
+algorithms and baselines.
+
+anew SCG after each previous run completes. Both MCG
+versions achieve the lowest average RT, outperforming
+SCG, traditional routing heuristics (Round-Robin, LLQ,
+LOR), and state-of-the-art LLM-based design frameworks
+(EoH, FunSearch, OpenEvolve). This multi-context scaling
+enables Glia to effectively utilize larger simulation budgets
+and continually improve solution quality.
+
+MCG delivers substantial gains. On average its algo-
+rithms reduce average RT by 1.4x compared to SCG. It
+outperforms EoH, OpenEvolve, and FunSearch by 1.7 x,
+1.6 x, and 1.3, respectively.
+
+10
+
+5.2 Glia ’s discoveries transfer to real systems
+
+We implemented Glia’s routing strategy in Production
+Stack [74], an open-source request router for LLM
+inference using vVLLM. Our testbed comprises 4 Nvidia
+Al10 GPUs serving the Meta-Llama-3-8B-Instruct
+model. To evaluate performance, we measure Slowdown,
+defined as
+
+RTystem
+
+Tigeal ’
+
+where RT gem is the request response time (RT) under
+the evaluated system, and RTqc is the minimum possible
+RT in an ideal, load-free setting. A slowdown greater than
+1 indicates system overhead.
+
+Fig. 5 shows that, even under real-world workload vari-
+ability and system uncertainty, Glia ’s discovered algorithm
+consistently outperforms all baselines. In the same load
+regime (QPS =7.5), the router reduces request slowdown by
+over 4.5x compared to LLQ, confirming that Glia’s discov-
+eries transfer effectively from simulation to a real system.
+
+Slowdown =
+
+5.3 Glia discovers new algorithms across the stack
+
+We also applied Glia to the vLLM batch scheduler and to
+the design of an autoscaler for the distributed vLLM cluster.
+
+Within the inference engine, whenever a GPU becomes
+idle, a scheduling algorithm selects which unfinished
+requests should proceed. This batch scheduler forms
+batches while respecting constraints such as available KV
+cache memory, maximum requests per batch, and token
+limits. In the experiments above, we used the Sarathi [2]
+batch scheduler, which performs chunked prefill similarly
+to current vLLM implementations.
+
+Using our optimized request router, we asked Glia
+to improve the batch scheduler. Glia discovered that
+ordering requests by prefill length (rather than arrival
+time, as done in vLLLM and Sarathi) reduces end-to-end
+delay by an additional 25%. The insight mirrors why
+Shortest-Remaining-Time-First outperforms First-Come-
+First-Served scheduling: prioritizing shorter prefills
+minimizes head-of-line blocking, reducing queueing delays
+for short prompts while adding negligible delay for longer
+ones. This reduces mean end-to-end latency.
+
+At another layer of the orchestration stack, autoscaling
+adjusts the number of compute instances to meet latency
+targets while minimizing compute cost. To evaluate this
+method, we implemented autoscaling in the vidur simulator
+and created a long-running workload with temporal vari-
+ability (QPS varying from 7.5 to 22.5 in a slow sinusoidal
+pattern). We first implemented a baseline autoscaler,
+
+
+>
+
+140
+
+120
+
+100 q
+
+5 2 2
+
+Relative Cost % (GPU x Hours)
+
+>
+
+Glia Autoscaler
+Glia Router
+Glia Batch
+
+Glia Autoscaler
+Glia Router
+
+Off the Shelf ~~ Glia Autoscaler
+
+Figure 4: Glia’s GPU cost reductions as we progressively use it
+across the inference stack.
+
+modeled after production systems, which scales based on
+per-instance decode throughput: it adds an instance when
+throughput exceeds a high threshold, removes the least
+busy instance when it falls below a low threshold, and
+includes a cooldown mechanism to prevent oscillation.
+
+We then asked Glia to design a more efficient autoscaler
+that minimizes compute cost while keeping the p95
+slowdown below 5 x. Glia proposed a proportional control
+loop that adjusts the number of instances based on inflight
+requests per instance. It then tuned the controller thresholds
+for this specific model and workload, finding an optimal
+configuration that minimizes cost while satisfying the
+latency constraint.
+
+Figure 4 shows the total GPU xhours saved when
+applying Glia across different layers of the stack. The
+Glia-discovered autoscaler alone reduces GPU cost by 13%
+compared to an off-the-shelf autoscaler, while the full Glia-
+optimized stack (router, batch scheduler, and autoscaler)
+cuts total GPU x hours by 40% for this variable workload,
+compared to standard serving systems (VLLM batch
+scheduler, LLQ router, and throughput-based autoscalers).
+
+54 Glia discovers novel, interpretable algorithms
+
+Fig. 9 shows a representative algorithm discovered by
+Glia. This algorithm is principled and, to the best of our
+knowledge, introduces a new concept in this domain:
+a Head-Room Admission (HRA) router that reserves
+headroom to accommodate unknown decode growths. The
+router follows an admission-control approach—if a replica
+lacks sufficient KV-cache memory (after accounting for
+headroom), the request is queued and dispatched only
+when resources may have become available. It combines
+this idea with a shortest-prefill-first policy, approximating
+shortest-job-first scheduling, a strategy known to minimize
+mean latency [67]. By maintaining a small KV-cache
+
+11
+
+Cloud
+A
+
+—=— Round Robin
+204 —=— LLQ
+—=—  AlScheduler
+
+Better
+
+Average Slowdown
+
+Queries Per Second
+
+Figure 5: Glia’s discovered routing algorithm (AlScheduler in
+the figure) outperforms baselines in cloud experiments. The
+trends observed in the cloud experiments are similar to simu-
+lation though the numbers aren't identical.
+
+headroom on each replica at admission time, the router
+effectively prevents vLLM from running out of memory,
+thereby avoiding request restarts and wasted computation.
+
+Glia ’s discovered algorithms are natural and intuitive,
+often reflecting the kind of principled reasoning a human
+designer might employ. In contrast, algorithms produced
+by prior evolutionary frameworks such as EoH, FunSearch,
+and OpenEvolve are typically more complex and less
+interpretable. For instance, the program generated by
+FunSearch (Fig. 10) includes numerous hyperparameters,
+conditional branches, and opaque thresholds, making
+it difficult to identify which components actually drive
+performance. Other evolutionary baselines show similar
+traits, yielding heuristics that are cumbersome to interpret
+and challenging to analyze, refine, or reason about.
+
+5.5 Glia can continuously adapt to changes
+
+We next evaluate Glia for router optimization under a
+
+different i) workload, ii) hardware, and iii) optimization
+
+settings. All experiments in this section are conducted
+
+within the simulator. The Researcher agent uses GPT5 as
+
+its underlying model.
+
+* Workload: Prefill-heavy, with a prompt-to-decode
+ratio of about 70. The workload generator operates in
+a closed loop, maintaining 200 concurrent requests in
+the system—analogous to a chat application with 200
+users waiting for LLM responses before sending their
+next messages.
+
+
+* Model and Hardware: Llama-3.3-70B-Instruct-
+FP8-dynamic running on 8 Nvidia H100 GPUs.
+
+* Objective: Constrained optimization—maximize
+request throughput (QPS) while keeping P90 TTFT
+below 1500 ms.
+
+In this new setting, none of the routing
+heuristics—Round-Robin, LLQ, or LOR—satisfy
+the TTFT constraint. More importantly, the human-expert-
+designed heuristic (§5.1) not only violates the constraint
+but also yields a significantly higher TTFT than these
+baseline routing heuristics.
+
+This reveals a key challenge: the expert heuristic’s strong
+performance in §5.1 relied on workload specialization.
+
+Without automated adaptation, a human expert would
+need to reanalyze each new workload and redesign the
+routing strategy, an expensive and time-consuming process.
+
+Glia overcomes this challenge by automatically adapting
+to new operating conditions. Under the new workload,
+Glia discovers a routing algorithm that meets the TTFT
+constraint in all ten trials. Moreover, its achieved QPS
+exceeds that of the baseline heuristics, even though those
+heuristics fail to meet the TTFT constraint. This example
+demonstrates Glia ’s versatility and ability to perform
+constrained optimization, ensuring SLO compliance
+without human intervention
+
+To further analyze the Glia-discovered routing algorithm,
+we vary the number of inflight requests and examine the
+trade-off between tail TTFT and request throughput (QPS)
+for both the expert-designed (§5.1) and Glia-designed
+algorithms in Fig. 6. As shown in the figure, the expert
+algorithm fails to maintain acceptable TTFT as QPS in-
+creases, satisfying the SLO only up to 1.5 QPS. In contrast,
+the Glia-discovered algorithm sustains compliant TTFT up
+to 7 QPS—a 4.6 x improvement over the expert algorithm.
+
+5.6 Ablation experiments
+
+Glia finds good algorithms quickly. Fig. 7 compares
+Glia’s progress across simulations with prior algorithm
+design methods (lower is better). Glia consistently
+discovers stronger algorithms using far fewer simulations.
+Single-Context Glia (SCG) achieves the steepest early
+gains, driven by white-box reasoning and focused,
+continuous refinement within a single context.
+
+However, SCG’s scalability is limited. Because the
+researcher can conclude the search regardless of available
+simulations (hence the shorter SCG curve), additional
+resources cannot easily improve performance. We address
+this limitation with Multi-Context Glia (MCG) approaches.
+
+12
+
+-=o-- Expert —e— Glia
+[4
+2500 |
+nl eo $
+£ 2000 — SR — a od
+- ,/ TTese-d
+F1s00{ |
+[=) 1
+2 ot
+1000
+2 3 4 5 6 7
+
+Queries Per Second
+
+Figure 6: Trade-off between tail (P90) Time to First Token
+(TTFT) and request throughput for the expert-designed algo-
+rithm and Glia-designed algorithm. The expert algorithm was
+tailored to a different problem setup, and struggles in this prefill-
+heavy workload.
+
+—-— FunSearch
+OpenEvolve
+
+—— MCG-Par4
+MCG-Seq —e-
+
+--- SCG
+EoH
+
+Best Avg RT So Far (s)
+
+40 60
+Num Simulations
+
+Figure 7: Comparison of Glia variants with baselines and prior
+methods (lower is better). SCG has the steepest early gains
+thanks to coherent and continuous white-box reasoning. The two
+variants of MCG—4-way parallel (MCG-Par4) and sequential
+(MCG-Seq)—extend the gains and outperform other methods
+by finding better algorithms more quickly. Shades show 90%
+confidence intervals.
+
+As shown in Fig. 7, both 4-way Parallel Glia (MCG-Par4)
+and Sequential Glia (MCG-Seq) overcome SCG’s
+constraint and continue to improve. On average, MCG
+methods discover better-performing algorithms faster than
+EoH, FunSearch, and OpenEvolve, achieving lower RT
+than all other methods.
+
+Supervisor impact. To illustrate the Supervisor’s impact,
+we present an example intervention. In one run, early ex-
+ploration produced two ideas: (i) combining backlog-aware
+selection with heavy-request isolation, and (ii) bounding the
+
+
+one-pass queue scan to prevent large requests from starving.
+Instead, the Researcher pursued adaptive headroom tuning
+and heavy-lane gating, which reduced latency from 55 s
+to 28 s but still missed the 22 s target. Believing further
+progress was unlikely, the Researcher considered stopping.
+At this point, the supervisor intervened:
+
+You're close, but not stuck yet. A couple of quick check-
+
+points:
+
+1. Recall your finding that queueing delay still domi-
+
+nates whenever memory is oversubscribed.
+
+Does the dynamic-headroom variant fully leverage
+backlog information when deciding headroom, or
+is it applied replica-independently?
+You previously tested backlog-aware selection and
+heavy-request isolation separately; have you mea-
+sured them together under the same admission-
+control knob?
+
+. Your one-pass queue scan leaves large, unsafe re-
+quests parked. Verify whether those accumulate and
+starve; if so, a bounded re-ordering window (still
+SPF) might smooth the tail without extra restarts.
+
+If you haven’t exhausted these combinations, worth a
+final sweep before concluding.
+
+The Researcher then proceeds to revisit these earlier
+ideas, combining backlog-aware selection with heavy-
+request isolation and exploring bounded re-ordering, which
+ultimately advanced the router beyond the plateaued
+performance.
+
+Multi-context Glia ablation. Fig. 8 compares Glia’s
+Multi-Context variants. N-way Parallel Glia runs N
+independent instances of Single-Context Glia in parallel
+and reports the best-performing algorithm among them.
+Its key advantage is scalability: with more computational
+resources, more instances can be launched simultaneously.
+For example, 4-way Parallel Glia outperforms 2-way
+because the likelihood that all agents “go astray” decreases
+as the number of parallel runs increases. This design also
+mitigates early exploration risk, since at least one agent
+is likely to discover a strong algorithm quickly. However,
+it introduces a new hyperparameter, N, which must be
+chosen; there is no obvious optimal value, though in our
+experiments N = 4 achieved a good balance between
+performance and resource cost. Larger values (e.g., N=6
+in Fig. 8) yield diminishing returns.
+
+In contrast, Sequential Glia requires no additional
+parameters and is simpler to use. It initially reduces error
+more sharply than N-way Parallel (within the first 35
+
+13
+
+snes MCG-Par2 -=-- MCG-Par6 -= MCG-Seq
+
+—— MCG-Par4
+
+I mmm mm Round Robin
+BO fm LOR
+>
+- LLQ
+£
+5 50
+[1]
+k
+040
+>
+<
+hd
+830
+
+Expert
+
+40 60
+Num Simulations
+
+80 100
+
+Figure 8: Comparing Glia variants (lower is better).
+
+simulations) but later slows down, taking longer to match
+the performance of 4-way Parallel Glia.
+
+6 Conclusion
+
+We are progressing toward our primary goal: developing
+Glia into an Al capable of PhD-level systems design and
+optimization for real-world problems. While this paper’s
+focus is on Al inference (covering both large language
+models and traditional AI workloads), our broader vision
+is a general-purpose system architect that autonomously
+enhances the performance, efficiency, and adaptability of
+emerging computing systems.
+
+Glia demonstrates the promise of Al-driven infrastruc-
+ture optimization, yet significant open questions remain.
+Achieving fully self-managing computing infrastructures
+will require progress across several key dimensions:
+
+1. Robustness and safety: Automated systems must
+remain stable under adversarial or unexpected condi-
+tions. Glia must ensure robustness to workload shifts,
+hardware failures, and network anomalies through safety
+checks, formal verification, and fail-safe mechanisms.
+
+2. Heterogeneous hardware integration: Future datacen-
+ters will combine diverse accelerators (GPUs, TPUs,
+custom ASICs) with CPUs, DPUs, and memory-centric
+hardware. Glia’s discovery process will evolve to
+navigate this heterogeneity, learning to allocate and
+orchestrate resources across differing performance and
+cost trade-offs.
+
+3. Human-AlI collaboration: Glia’s explainability is a
+core strength, and ongoing work aims to expand how sys-
+tem architects engage with Al-generated insights. Richer
+visualization, interactive debugging, and co-design
+workflows could further enhance productivity and trust.
+
+
+4. Generalization across systems: Although current
+results focus on Al inference stacks, our approach
+holds promise for optimizing a broad range of complex
+computer systems.
+
+Acknowledgments
+
+We thank the MIT Generative Al Impact Consortium
+(MGAIC) for providing seed funding for this project.
+
+14
+
+References
+[1] Amey Agrawal, Nitin Kedia, Jayashree Mohan,
+
+—_
+
+—_
+
+[—
+
+—_
+
+—
+
+Ashish Panwar, Nipun Kwatra, Bhargav S Gulavani,
+Ramachandran Ramjee, and Alexey Tumanov. Vidur:
+A large-scale simulation framework for llm inference.
+Proceedings of Machine Learning and Systems,
+6:351-366, 2024.
+
+Amey Agrawal, Nitin Kedia, Ashish Panwar,
+Jayashree Mohan, Nipun Kwatra, Bhargav S.
+Gulavani, Alexey Tumanov, and Ramachandran
+Ramjee. Taming Throughput-Latency Tradeoff in
+LLM Inference with Sarathi-Serve. In OSDI, 2024.
+
+Jayvant Anantpur, Nagendra Gulur Dwarakanath,
+Shivaram Kalyanakrishnan, Shalabh Bhatnagar,
+and R. Govindarajan. RLWS: A Reinforcement
+Learning based GPU Warp Scheduler. arXiv preprint
+arXiv:1712.04303, 2017.
+
+Martin Andrews and Sam Witteveen. Gpu kernel sci-
+entist: An llm-driven framework for iterative kernel
+optimization. arXiv preprint arXiv:2506.20807, 2025.
+
+Eser Aygiin, Anastasiya Belyaeva, Gheorghe
+Comanici, Marc Coram, Hao Cui, Jake Garrison,
+Renee Johnston Anton Kast, Cory Y McLean, Peter
+Norgaard, Zahra Shamsi, et al. An ai system to help
+scientists write expert-level empirical software. arXiv
+preprint arXiv:2509.06503, 2025.
+
+Michelle Brachman, Amina El-Ashry, Casey Dugan,
+and Werner Geyer. Current and future use of large
+language models for knowledge work, 2025.
+
+Jie Chen, Kang G. Shin, Jiaqi Zheng, Xin Jin, Xia
+Zhou, Ben Y. Zhao, and Haitao Zheng. Auto: Scaling
+deep reinforcement learning for datacenter-scale
+traffic optimization. In ACM SIGCOMM Workshop
+on APNet, 2018.
+
+Audrey Cheng, Shu Liu, Melissa Pan, Zhifei Li,
+Bowen Wang, Alex Krentsel, Tian Xia, Mert Cemri,
+Jongseok Park, Shuo Yang, Jeff Chen, Lakshya
+Agrawal, Aditya Desai, Jiarong Xing, Koushik Sen,
+Matei Zaharia, and Ion Stoica. Barbarians at the gate:
+How ai is upending systems research, 2025.
+
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,
+Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias
+
+
+Plappert, Jerry Tworek, Jacob Hilton, Reiichiro
+Nakano, et al. Training verifiers to solve math word
+problems. arXiv preprint arXiv:2110.14168, 2021.
+
+Jaber Daneshamooz, Jessica Nguyen, William Chen,
+Sanjay Chandrasekaran, Satyandra Guthula, Ankit
+Gupta, Arpit Gupta, and Walter Willinger. Addressing
+the ml domain adaptation problem for networking:
+Realistic and controllable training data generation
+with netreplica, 2025.
+
+DeepMind. Advanced version of gemini with
+deepthink officially achieves gold-medal standard
+at the international mathematical olympiad. https:
+//deepmind.google/discover/blog/advanced
+-version-of-gemini-with-deep-think-offic
+ially-achieves-gold-medal-standard-at-the
+-international-mathematical-olympiad/, 2024.
+Accessed: 2025-10-17.
+
+Mo Dong, Tong Meng, Doron Zarchy, Engin Arslan,
+Yossi Gilad, Brighten Godfrey, and Michael Schapira.
+PCC vivace: Online-Learning congestion control. In
+15th USENIX Symposium on Networked Systems De-
+sign and Implementation (NSDI 18), pages 343-356,
+Renton, WA, April 2018. USENIX Association.
+
+Mo Dong, Tong Meng, Doron Zarchy, Engin Arslan,
+Yossi Gilad, P. Brighten Godfrey, and Michael
+Schapira. PCC Vivace: Online-Learning Congestion
+Control. In NSDI, pages 343-356, 2018.
+
+Rohit Dwivedula, Divyanshu Saxena, Aditya Akella,
+Swarat Chaudhuri, and Daehyeok Kim. Man-made
+heuristics are dead. long live code generators! arXiv
+preprint arXiv:2510.08803, 2025.
+
+Ryan Ehrlich, Bradley Brown, Jordan Juravsky,
+Ronald Clark, Christopher Ré, and Azalia Mirhoseini.
+Codemonkeys: Scaling test-time compute for
+software engineering, 2025.
+
+Juraj Gottweis, Wei-Hung Weng, Alexander Daryin,
+Tao Tu, Anil Palepu, Petar Sirkovic, Artiom
+Myaskovsky, Felix Weissenberger, Keran Rong,
+Ryutaro Tanno, et al. Towards an ai co-scientist.
+arXiv preprint arXiv:2502.18864, 2025.
+
+[u—
+
+—_—
+
+—_
+
+[18] Zhiyuan He, Aashish Gottipati, Lili Qiu, Xufang
+
+Luo, Kenuo Xu, Yuqing Yang, and Francis Y. Yan.
+Designing Network Algorithms via Large Language
+Models. In HotNets, page 205-212, New York, NY,
+USA, 2024. Association for Computing Machinery.
+
+Zhiyuan He, Aashish Gottipati, Lili Qiu, Yuqing
+Yang, and Francis Y. Yan. Congestion control system
+optimization with large language models, 2025.
+
+Ziyao Huang, Weiwei Wu, Kui Wu, Jianping Wang,
+and Wei-Bin Lee. Calm: Co-evolution of algorithms
+and language model for automatic heuristic design.
+arXiv preprint arXiv:2505.12285, 2025.
+
+Nathan Jay, Noga H. Rotman, P. Brighten Godfrey,
+Michael Schapira, and Aviv Tamar. Internet conges-
+tion control via deep reinforcement learning, 2019.
+
+Nathan Jay, Yair Rotman, P. Brighten Godfrey,
+and Michael Schapira. An End-to-End Deep
+Reinforcement Learning Framework for Internet
+Congestion Control. In ICML, 2019.
+
+Pantea Karimi, Solal Pirelli, Siva Kesava Reddy
+Kakarla, Ryan Beckett, Santiago Segarra, Beibin Li,
+Pooria Namyar, and Behnaz Arzani. Towards safer
+heuristics with xplain. In Proceedings of the 23rd
+ACM Workshop on Hot Topics in Networks, pages
+68-76, 2024.
+
+Pantea Karimi, Dany Rouhana, Pooria Namyar, Siva
+Kesava Reddy Kakarla, Venkat Arun, and Behnaz
+Arzani. Robust heuristic algorithm design with lms,
+2025.
+
+Mehrdad Khani, Mohammad Alizadeh, Jakob Hoydis,
+and Phil Fleming. Adaptive neural signal detection
+for massive mimo. IEEE Transactions on Wireless
+Communications, 19(8):5635-5648, 2020.
+
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying
+Sheng, Lianmin Zheng, Cody Hao Yu, Joseph
+Gonzalez, Hao Zhang, and Ion Stoica. Efficient
+Memory Management for Large Language Model
+Serving with PagedAttention. In SOSP, SOSP
+’23, page 611-626, New York, NY, USA, 2023.
+Association for Computing Machinery.
+
+[17] Harvard Extension School. Principles of good design.
+https://cscie2x.dce. harvard. edu/hw/ch@1s [27] Robert Tjarko Lange, Yuki Imajuku, and Edoardo
+06.html. Accessed: 2025-10-17. Cetin.  Shinkaevolve: Towards open-ended and
+
+[—
+
+15
+
+
+—
+
+—
+
+—_—
+
+—_
+
+—_
+
+sample-efficient program evolution. arXiv preprint
+arXiv:2509.19349, 2025.
+
+Nikolay Lazic, Craig Boutilier, Thomas Lu, Eric
+Wong, Binz Roy, Marcin Minka, Ben J. Heller, David
+Schuurmans, Geoffrey J. Gordon, Olivier Duchesnay,
+Marc L. Bellemare, Albin Cassirer, et al. Data center
+cooling using model-predictive control. In Advances
+in Neural Information Processing Systems (NeurIPS)
+Workshop, 2018. Describes learning-assisted control
+for DC cooling.
+
+Baolin Li, Yankai Jiang, Vijay Gadepally, and Devesh
+Tiwari. Llm inference serving: Survey of recent
+advances and opportunities, 2024.
+
+Tianhong Li, Vibhaalakshmi Sivaraman, Pantea
+Karimi, Lijie Fan, Mohammad Alizadeh, and
+Dina Katabi. Reparo: Loss-resilient generative
+codec for video conferencing. arXiv preprint
+arXiv:2305.14135, 2023.
+
+Yujia Li, David Choi, Junyoung Chung, Nate
+Kushman, Julian Schrittwieser, Rémi Leblond, Tom
+Eccles, James Keeling, Felix Gimeno, Agustin
+Dal Lago, Thomas Hubert, Peter Choy, Cyprien
+de Masson d’ Autume, Igor Babuschkin, Xinyun Chen,
+Po-Sen Huang, Johannes Welbl, Sven Gowal, Alexey
+Cherepanov, James Molloy, Daniel J. Mankowitz,
+Esme Sutherland Robson, Pushmeet Kohli, Nando
+de Freitas, Koray Kavukcuoglu, and Oriol Vinyals.
+Competition-level code generation with alphacode.
+Science, 378(6624):1092-1097, December 2022.
+
+Eric Liang, Hang Zhu, Xin Jin, and Ion Stoica. Neu-
+rocuts: Neural decision trees for packet classification.
+In SIGCOMM, pages 1-15, 2019.
+
+Fei Liu, Xialiang Tong, Mingxuan Yuan, Xi Lin,
+Fu Luo, Zhenkun Wang, Zhichao Lu, and Qingfu
+Zhang. Evolution of heuristics: Towards efficient
+automatic algorithm design using large language
+model. In ICML, ICML 24. JMLR.org, 2024.
+
+Fei Liu, Qingfu Zhang, Jialong Shi, Xialiang Tong,
+Kun Mao, and Mingxuan Yuan. Fitness landscape of
+large language model-assisted automated algorithm
+search. arXiv preprint arXiv:2504.19636, 2025.
+
+[u—
+
+—_
+
+for automated algorithm design. arXiv preprint
+arXiv:2507.10614, 2025.
+
+Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun,
+Kai Li, Xi Lin, Zhenkun Wang, Zhichao Lu, and
+Qingfu Zhang. Llmdad: A platform for algorithm
+design with large language model. arXiv preprint
+arXiv:2412.17287, 2024.
+
+Gang Liu, Yihan Zhu, Jie Chen, and Meng Jiang.
+Scientific algorithm discovery by augmenting
+alphaevolve with deep research. arXiv preprint
+arXiv:2510.06056, 2025.
+
+Nelson F. Liu, Kevin Lin, John Hewitt, Ashwin Paran-
+jape, Michele Bevilacqua, Fabio Petroni, and Percy
+Liang. Lost in the middle: How language models use
+long contexts. Transactions of the Association for
+Computational Linguistics, 12:157-173, 2024.
+
+Yixiu Liu, Yang Nan, Weixian Xu, Xiangkun Hu,
+Lyumanshan Ye, Zhen Qin, and Pengfei Liu. Alphago
+moment for model architecture discovery. arXiv
+preprint arXiv:2507.18074, 2025.
+
+IIm-d Community. GitHub - llm-d/llm-d: llm-d en-
+ables high-performance distributed LLM inference on
+Kubernetes. https: //github.com/11lm-d/11lm-d,
+2025. [Accessed 10-10-2025].
+
+Ruiying Ma, Chieh-Jan Mike Liang, Yanjie Gao, and
+Francis Y Yan. Algorithm generation via creative
+ideation. arXiv preprint arXiv:2510.03851, 2025.
+
+Hongzi Mao, Mohammad Alizadeh, Ishai Menache,
+and Srikanth Kandula. Resource management with
+deep reinforcement learning. In HotNets, pages
+50-56, 2016.
+
+Hongzi Mao, Mohammad Alizadeh, Ishai Menache,
+and Srikanth Kandula. Resource management with
+deep reinforcement learning. In HotNets, 2016.
+
+Hongzi Mao, Shannon Chen, Drew Dimmery, Shaun
+Singh, Drew Blaisdell, Yuandong Tian, Mohammad
+Alizadeh, and Eytan Bakshy. Real-world video
+adaptation with reinforcement learning, 2020.
+
+[45
+
+—_
+
+Hongzi Mao, Ravi Netravali, and Mohammad
+Alizadeh. Neural adaptive video streaming with
+pensieve. In SIGCOMM, pages 197-210, 2017.
+
+[35] Fei Liu, Rui Zhang, Xi Lin, Zhichao Lu, and
+Qingfu Zhang. Fine-tuning large language model
+
+16
+
+
+[46]
+
+[47]
+
+[48]
+
+[49]
+
+[50
+
+—
+
+[51]
+
+[52
+
+—_—
+
+[53]
+
+[54]
+
+Hongzi Mao, Malte Schwarzkopf, Shaileshh Bojja
+Venkatakrishnan, Zili Meng, and Mohammad Al-
+izadeh. Learning scheduling algorithms for data pro-
+cessing clusters. In SIGCOMM, pages 270-288. 2019.
+
+Hongzi Mao, Malte Schwarzkopf, Shaileshh Bojja
+Venkatakrishnan, Zili Meng, and Mohammad Al-
+izadeh. Learning scheduling algorithms for data pro-
+cessing clusters. In SIGCOMM, pages 270-288, 2019.
+
+Ryan Marcus, Parimarjan Negi, Hongzi Mao, Nesime
+Tatbul, Mohammad Alizadeh, and Tim Kraska. Bao:
+Making learned query optimization practical. In
+SIGMOD, pages 1275-1288, 2021.
+
+Ryan Marcus, Parimarjan Negi, Hongzi Mao, Chi
+Zhang, Mohammad Alizadeh, Tim Kraska, Olga
+Papaemmanouil, and Nesime Tatbul. Neo: A
+learned query optimizer. Proc. VLDB Endow.,
+12(11):1705-1718, July 2019.
+
+Zili Meng, Minhu Wang, Jiasong Bai, Mingwei Xu,
+Hongzi Mao, and Hongxin Hu. Interpreting deep
+learning-based networking systems. In Proceedings
+of the Annual Conference of the ACM Special Interest
+Group on Data Communication on the Applications,
+Technologies, Architectures, and Protocols for
+Computer Communication, SIGCOMM °20, page
+154-171, New York, NY, USA, 2020. Association
+for Computing Machinery.
+
+MIT News Office. Study finds chatgpt boosts worker
+productivity in writing tasks. MIT News, 2023.
+Accessed: 2025-10-17.
+
+Ansh Nagda, Prabhakar Raghavan, and Abhradeep
+Thakurta. Reinforced generation of combinatorial
+structures: Applications to complexity theory. arXiv
+preprint arXiv:2509.18057, 2025.
+
+Alexander Novikov, Ngan Vii, Marvin Eisenberger,
+Emilien Dupont, Po-Sen Huang, Adam Zsolt Wagner,
+Sergey Shirobokov, Borislav Kozlovskii, Francisco JR
+Ruiz, Abbas Mehrabian, et al. Alphaevolve: A coding
+agent for scientific and algorithmic discovery. arXiv
+preprint arXiv:2506.13131, 2025.
+
+Alexander Novikov, Ngan Vu, Marvin Eisenberger,
+Emilien Dupont, Po-Sen Huang, Adam Zsolt Wagner,
+Sergey Shirobokov, Borislav Kozlovskii, Francisco JR
+Ruiz, Abbas Mehrabian, et al. Alphaevolve: A coding
+
+17
+
+[55]
+
+[56]
+
+[57
+
+[—
+
+[58]
+
+[59]
+
+[60]
+
+[61]
+
+[62]
+
+agent for scientific and algorithmic discovery, 2025.
+URL: https://arxiv. org/abs/2506.13131, 2025.
+
+NVIDIA. GitHub - ai-dynamo/dynamo: A Datacenter
+Scale Distributed Inference Serving Framework.
+https: //github.com/ai-dynamo/dynamo, 2025.
+[Accessed 10-10-2025].
+
+OpenAl.  OpenAl 03 and 04-mini System Card.
+Technical report, OpenAl, April 2025.
+
+Pratyush Patel, Esha Choukse, Chaojie Zhang,
+Aashaka Shah, fiigo Goiri, Saeed Maleki, and
+Ricardo Bianchini. Splitwise: Efficient generative lim
+inference using phase splitting. In 2024 ACM/IEEE
+51st Annual International Symposium on Computer
+Architecture (ISCA), pages 118-132, 2024.
+
+Ori Press, Brandon Amos, Haoyu Zhao, Yikai Wu,
+Samuel K Ainsworth, Dominik Krupke, Patrick
+Kidger, Touqir Sajed, Bartolomeo Stellato, Jisun
+Park, et al. Algotune: Can language models speed up
+general-purpose numerical programs? arXiv preprint
+arXiv:2507.15887, 2025.
+
+Prithvi Rajasekaran, Ethan Dixon, Carly Ryan, and
+Jeremy Hadfield. Effective context engineering for
+ai agents, September 2025. With contributions from
+Rafi Ayub, Hannah Moran, Cal Rueb, and Connor
+Jennings. Published online September 29, 2025.
+
+Bermardino Romera-Paredes, Mohammadamin
+Barekatain, Alexander Novikov, Matej Balog,
+M Pawan Kumar, Emilien Dupont, Francisco JR
+Ruiz, Jordan S Ellenberg, Pengming Wang, Omar
+Fawzi, et al. Mathematical discoveries from
+program search with large language models. Nature,
+625(7995):468-475, 2024.
+
+Fabian Ruffy, Michael Przystupa, and Ivan Beschast-
+nikh. Iroko: A framework to prototype reinforcement
+learning for data center traffic control. arXiv preprint
+arXiv:1812.09975, 2018.
+
+Saim Salman, Christopher Streiffer, Huan Chen,
+Theophilus Benson, and Asim Kadav. Deepconf:
+Automating data center network topologies and
+routing with deep reinforcement learning. arXiv
+preprint arXiv:1712.03890, 2018.
+
+
+[—
+
+[ur
+
+—
+
+[63] Amedeo Sapio, Marco Canini, Chen-Yu Ho, Jacob
+
+Nelson, Panos Kalnis, Changhoon Kim, Arvind
+Krishnamurthy, Masoud Moshref, Dan Ports, and
+Peter Richtarik. Scaling distributed machine learning
+with In-Network aggregation. In 8th USENIX
+Symposium on Networked Systems Design and
+Implementation (NSDI 21), pages 785-808. USENIX
+Association, April 2021.
+
+ShareGPT Datasets at Hugging Face.
+https://huggingface.co/datasets/anon
+8231489123/ShareGPT_Vicuna_unfiltered,
+2025. [Accessed 10-10-2025].
+
+Asankhaya Sharma. OpenEvolve: an open-source
+evolutionary coding agent, 2025.
+
+Alexander Shypula, Aman Madaan, Yimeng Zeng,
+Uri Alon, Jacob Gardner, Milad Hashemi, Graham
+Neubig, Parthasarathy Ranganathan, Osbert Bastani,
+and Amir Yazdanbakhsh. Automated high-level
+code optimization for warehouse performance. IEEE
+Micro, 2025.
+
+Abraham Silberschatz, Peter B. Galvin, and Greg
+Gagne. Operating System Concepts. Wiley
+Publishing, 10th edition, 2018.
+
+Vibhaalakshmi Sivaraman, Pantea Karimi, Vedantha
+Venkatapathy, Mehrdad Khani, Sadjad Fouladi,
+Mohammad Alizadeh, Frédo Durand, and Vivienne
+Sze. Gemino: Practical and robust neural compression
+for video conferencing. In NSDI, 2024.
+
+Charlie Snell, Jachoon Lee, Kelvin Xu, and Aviral
+Kumar. Scaling llm test-time compute optimally
+can be more effective than scaling model parameters.
+arXiv preprint arXiv:2408.03314, 2024.
+
+Yiwen Sun, Furong Ye, Zhihan Chen, Ke Wei, and
+Shaowei Cai. Automatically discovering heuristics
+in a complex sat solver with large language models.
+arXiv preprint arXiv:2507.22876, 2025.
+
+Yiheng Tao, Yihe Zhang, Matthew T. Dearing, Xin
+Wang, Yuping Fan, and Zhiling Lan. Prompt-aware
+scheduling for low-latency llm serving, 2025.
+
+The AIBrix Team, Jiaxin Shan, Varun Gupta,
+Le Xu, Haiyang Shi, Jingyuan Zhang, Ning Wang,
+Linhui Xu, Rong Kang, Tongping Liu, Yifei Zhang,
+
+—_
+
+—_
+
+—_
+
+—
+
+Yiqing Zhu, Shuowei Jin, Gangmuk Lim, Binbin
+Chen, Zuzhi Chen, Xiao Liu, Xin Chen, Kante
+Yin, Chak-Pong Chung, Chenyu Jiang, Yicheng Lu,
+Jianjun Chen, Caixue Lin, Wu Xiang, Rui Shi, and
+Liguang Xie. Aibrix: Towards scalable, cost-effective
+large language model inference infrastructure, 2025.
+
+Giuseppe Vietri, Liana V. Rodriguez, Wendy A. Mar-
+tinez, Steven Lyons, Jason Liu, Raju Rangaswami,
+Ming Zhao, and Giri Narasimhan. Driving cache
+replacement with ml-based lecar. In USENIX
+Workshop on Hot Topics in Storage and File Systems
+(HotStorage), 2018.
+
+vllm-project. vllm production stack: reference stack
+for production vllm deployment. https: //github
+.com/v1lm-project/production-stack, 2025.
+
+Anjiang Wei, Allen Nie, Thiago SFX Teixeira,
+Rohan Yadav, Wonchan Lee, Ke Wang, and Alex
+Aiken. Improving parallel program performance with
+Im optimizers via agent-system interfaces. arXiv
+preprint arXiv:2410.15625, 2024.
+
+Anjiang Wei, Tianran Sun, Yogesh Seenichamy, Hang
+Song, Anne Ouyang, Azalia Mirhoseini, Ke Wang,
+and Alex Aiken. Astra: A multi-agent system for
+gpu kernel performance optimization. arXiv preprint
+arXiv:2509.07506, 2025.
+
+David Wheeler. Problems in the design of systems.
+https: //www.doc.ic.ac.uk/~dcw/PSD/article
+13/. Accessed: 2025-10-17.
+
+Wikiquote contributors. Edsger w. dijkstra — wik-
+iquote. https://en.wikiquote.org/wiki/Edsg
+er_W._Dijkstra#:~:text=native%20tongue%?2
+01s%20the%20most, asset%200f%20a%20compet
+ent%20programmer, 2025. Accessed: 2025-10-17.
+
+Keith Winstein and Hari Balakrishnan. TCP ex
+Machina: Computer-Generated Congestion Control.
+In SIGCOMM, pages 123-134, 2013.
+
+Shijie Xia, Yuhan Sun, and Pengfei Liu. Sr-scientist:
+Scientific equation discovery with agentic ai. arXiv
+preprint arXiv:2510.11661, 2025.
+
+[81] Qiujie Xie, Yixuan Weng, Minjun Zhu, Fuchen
+
+Shen, Shulin Huang, Zhen Lin, Jiahui Zhou, Zilan
+Mao, Zijie Yang, Linyi Yang, et al. How far are ai
+
+
+[82
+
+—_—
+
+[83
+
+—_
+
+[84
+
+—_
+
+[85
+
+—_
+
+[86
+
+—_
+
+[87
+
+[—
+
+[88
+
+[ur
+
+[89]
+
+scientists from changing the world? arXiv preprint
+arXiv:2507.23276, 2025.
+
+Francis Y. Yan, Hudson Ayers, Chenzhi Zhu, Sadjad
+Fouladi, James Hong, Keyi Zhang, Philip Levis,
+and Keith Winstein. Learning in situ: a randomized
+experiment in video streaming. In /7th USENIX
+Symposium on Networked Systems Design and
+Implementation (NSDI 20), pages 495-511, Santa
+Clara, CA, February 2020. USENIX Association.
+
+Francis Y Yan, Hudson Ayers, Chenzhi Zhu, Sadjad
+Fouladi, James Hong, Keyi Zhang, Philip Levis, and
+Keith Winstein. Learning in situ: A randomized
+experiment in video streaming. In NSDI, pages
+495-511, 2020.
+
+Yuqing Yang, Yuedong Xu, and Lei Jiao. A queueing
+theoretic perspective on low-latency llm inference
+with variable token length, 2024.
+
+Shunyu Yao, Fei Liu, Xi Lin, Zhichao Lu, Zhenkun
+Wang, and Qingfu Zhang. Multi-objective evolution
+of heuristic using large language model. In Proceed-
+ings of the AAAI Conference on Artificial Intelligence,
+pages 27144-27152, 2025.
+
+Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim,
+Soojeong Kim, and Byung-Gon Chun. Orca: A
+distributed serving system for Transformer-Based
+generative models. In OSDI, pages 521-538,
+Carlsbad, CA, July 2022. USENIX Association.
+
+Yi Zhai, Zhigiang Wei, Ruohan Li, Keyu Pan, Shuo
+Liu, Lu Zhang, Jianmin Ji, Wuyang Zhang, Yu Zhang,
+and Yanyong Zhang. \(x\)-evolve: Solution space
+evolution powered by large language models. arXiv
+preprint arXiv:2508.07932, 2025.
+
+Ji Zhang, Yu Liu, Ke Zhou, Guoliang Li, Zhili Xiao,
+Bin Cheng, Jiashu Xing, Yangtao Wang, Tianheng
+Cheng, Li Liu, Minwei Ran, and Zekang Li. An
+end-to-end automatic cloud database tuning system
+using deep reinforcement learning. In Proceedings
+of the 2019 ACM SIGMOD International Conference
+on Management of Data, pages 415-432, 2019.
+
+Lianmin Zheng, Liangsheng Yin, Zhigiang Xie,
+Chuyue Sun, Jeff Huang, Cody Hao Yu, Shiyi Cao,
+Christos Kozyrakis, Ion Stoica, Joseph E. Gonzalez,
+
+19
+
+[90]
+
+[91]
+
+Clark Barrett, and Ying Sheng. Sglang: Efficient exe-
+cution of structured language model programs, 2024.
+
+Zhi Zheng, Zhuoliang Xie, Zhenkun Wang, and
+Bryan Hooi. Monte carlo tree search for compre-
+hensive exploration in llm-based automatic heuristic
+design. arXiv preprint arXiv:2501.08603, 2025.
+
+Hang Zhu, Varun Gupta, Satyajeet Singh Ahuja,
+Yuandong Tian, Ying Zhang, and Xin Jin. Network
+planning with deep reinforcement learning. In Pro-
+ceedings of the 2021 ACM SIGCOMM 2021 Confer-
+ence, SIGCOMM °21, page 258-271, New York, NY,
+USA, 2021. Association for Computing Machinery.
+
+
+Figure 9: Pyhthon code for the Head-Room Allocator (HRA) request routing algorithm discovered by Glia.
+
+"""Head-Room Admission (HRA) global scheduler.
+
+This scheduler mitigates VLLM pre-emptions by keeping a small KV-cache
+head-room on every replica *at admission time*. For each incoming request we
+pessimistically reserve additional blocks to account for the (unknown) decode
+phase and admit the request only if the target replica would still retain the
+configured safety margin.
+
+Empirical defaults (good for the ShareGPT-style workload used in Vidur's
+benchmarks) :
+
+DECODE_TO_PREFILL_RATIO = 0.6 # avg decode/prompt tokens
+SAFETY_FRACTION = 0.03 # keep last 3 % blocks free
+
+These values reduce average end-to-end latency by ~40 % compared to LLQ while
+maintaining >95 % GPU utilisation.
+
+from math import ceil
+from typing import List, Tuple
+
+from vidur.entities import Request
+from vidur.scheduler.global_scheduler.base_global_scheduler import BaseGlobalScheduler
+
+DECODE_TO_PREFILL_RATIO: float = @.6 # pessimistic decode growth factor
+SAFETY_FRACTION: float = @.03 # minimum fraction of blocks kept free
+
+class AIGlobalScheduler(BaseGlobalScheduler):
+"""Memory-aware global scheduler with fixed head-room admission control."""
+
+# pylint: disable=protected-access
+
+def schedule(self) -> List[Tuple[int, Request]]:
+# Always serve the xshortest* prompt next (SJF) to minimise mean latency.
+self._request_queue.sort(key=lambda r: (r.num_prefill_tokens, r.arrived_at))
+
+if not self._request_queue:
+return []
+
+# Cluster-wide, all replicas share the same memory configuration.
+any_scheduler = next(iter(self._replica_schedulers.values()))
+block_size = any_scheduler._config.block_size
+
+max_blocks = any_scheduler._config.num_blocks
+
+min_free_blocks = int(max_blocks *SAFETY_FRACTION)
+
+# Snapshot per-replica state and keep optimistic updates locally so that
+# multiple placements within one call are consistent.
+allocated_blocks = {
+rid: rs.num_allocated_blocks for rid, rs in self._replica_schedulers.items()
+
+}
+pending_reserved_blocks = {
+rid: ceil(
+sum(r.num_prefill_tokens *(1 + DECODE_TO_PREFILL_RATIO) for r in rs._request_queue)
+/ block_size
+)
+for rid, rs in self._replica_schedulers.items()
+}
+
+queue_lengths = {
+rid: rs.num_pending_requests + rs.num_active_requests for rid, rs in self._replica_schedulers.items()
+
+20
+
+
+
+}
+request_mapping: List[Tuple[int, Request]] = []
+
+idx = @
+# Traverse requests in order; if the head request cannot be admitted we
+# stop to preserve FIFO fairness (new arrivals behind it must wait).
+while idx < len(self._request_queue):
+
+req = self._request_queue[idx]
+
+req_blocks = ceil(
+req.num_prefill_tokens *(1 + DECODE_TO_PREFILL_RATIO) / block_size
+
+)
+
+admissible = []
+for rid in self._replica_schedulers.keys():
+projected_usage = allocated_blocks[rid] + pending_reserved_blocks[rid] + req_blocks
+free_after = max_blocks - projected_usage
+if free_after >= min_free_blocks:
+admissible. append(rid)
+
+if not admissible:
+break # cannot place the oldest waiting request right now
+
+# Choose replica with lowest projected usage; tie-break by queue length.
+target_rid = min(
+admissible,
+key=lambda rid: (allocated_blocks[rid] + pending_reserved_blocks[rid], queue_lengths[rid]),
+
+)
+
+# Commit placement and optimistically update state for subsequent decisions.
+request_mapping.append((target_rid, req))
+
+self._request_queue.pop(idx) # do *not* increment idx
+
+pending_reserved_blocks[target_rid] += req_blocks
+queue_lengths[target_rid] += 1
+
+return request_mapping
+
+Figure 10: Code generated by FunSearch.
+
+class CustomGlobalScheduler(BaseGlobalScheduler): # type: ignore[name-defined]
+"""Latency-oriented, eviction-aware global scheduler.
+
+Key features
+
+1. Decode length prediction per *prefill* bucket (small / mid / large)
+with an online exponential moving average; gives markedly better
+memory-footprint forecasts than a single global estimate.
+
+2. Looks ahead and keeps a projection of every replica's future state
+(memory blocks, remaining pre-fill backlog, queue length). The
+projection is updated greedily after each assignment so later
+decisions use a consistent view.
+
+3. Request priority is *rescue-first SJFx: previously evicted jobs first
+(to avoid starvation / wasted work), then smaller **totalx* expected
+tokens, finally FIFO.
+
+4. Replica selection minimises a composite cost of projected memory
+utilisation (quadratic), outstanding pre-fill backlog, queue length
+and the *instant* block deficit for the pre-fill of the candidate
+request. Jobs with restarts receive a multiplicative cost discount.
+
+5. Admission control: a new request is dispatched only if the projected
+
+utilisation stays below a configurable soft limit. The limit is
+relaxed slightly for restarted jobs so they can finish.
+
+21
+
+
+
+# oom tunables -----------—--
+
+_BUCKET_BOUNDS = (128, 512) # <128 small, 128-512 mid, >512 large
+_EMA_ALPHA = 0.10 # smoothing for bucketed averages
+_INIT_DECODE_EST = 96.0 # bootstrap decode len (tokens)
+_MIN_DECODE = 32.0
+
+_MAX_DECODE = 1024.0
+
+_SOFT_UTIL_CAP = 1.03 # ordinary requests must stay under this
+_SOFT_UTIL_CAP_RESTART = 1.10 # restarted jobs may exceed slightly
+
+# cost weights (should sum ~1)
+
+_W_UTIL = 0.55 # projected utilisation*2
+
+_W_BACKLOG = 0.25 # remaining pre-fill backlog fraction
+_W_QUEUE = 0.10 # queue length fairness
+
+_W_DEFICIT = 0.10 # instantaneous block deficit
+
+_OVER_CAP_PEN = 12.0 # extra when util>1
+_RESTART_DISCOUNT = 0.6 # multiplicative cost discount per restart
+
+def __init__(self, =*args: Any, xxkwargs: Any): # type: ignorel[override]
+super().__init__(*args, *xkwargs)
+
+# bucketed decode length EWMA statistics
+
+# structure: (count , avg)
+
+self. _bucket_avg: List[float] = [self._INIT_DECODE_EST] =*3
+self. _bucket_cnt: List[int] = [@, 0, 0]
+
+# global fallback EWMA
+self. _global_avg: float = self._INIT_DECODE_EST
+
+# snapshot of visible requests from previous tick (id -> (pf, processed))
+self. _prev_snapshot: Dict[int, Tuple[int, intl] = {3}
+
+@classmethod
+def _bucket_idx(cls, prefill: int) -> int:
+if prefill < cls._BUCKET_BOUNDS[Q]:
+
+return @
+if prefill < cls._BUCKET_BOUNDS[1]:
+return 1
+return 2
+# oom statistics maintenance ------------------
+
+def _update_decode_statistics(self) -> None:
+"""Detect completed requests and update bucket/global decode EWMAs.
+current: Dict[int, Tuple[int, intl] = {3}
+
+# helper to insert into current snapshot quickly
+def _collect(req):
+current[id(req)] = (req.num_prefill_tokens, req.num_processed_tokens)
+
+for req in self._request_queue:
+_collect(req)
+for rep in self._replica_schedulers.values():
+for rq in rep.pending_queue:
+_collect(rq)
+for rq in rep.active_queue:
+_collect(rq)
+
+# detect finished requests
+finished_ids = set(self._prev_snapshot.keys()) - set(current.keys())
+for rid in finished_ids:
+
+pf_tokens, processed = self._prev_snapshot[rid]
+
+decode_tokens = max(@, processed - pf_tokens)
+
+22
+
+
+
+if decode_tokens <= 0:
+continue
+
+# update bucket stats
+bidx = self._bucket_idx(pf_tokens)
+old_avg = self._bucket_avg[bidx]
+new_avg = (1.0 - self._EMA_ALPHA) *old_avg + self._EMA_ALPHA xdecode_tokens
+self. _bucket_avg[bidx] = min(max(new_avg, self._MIN_DECODE), self._MAX_DECODE)
+if self._bucket_cnt[bidx] < 1e9: # avoid overflow
+
+self. _bucket_cnt[bidx] += 1
+
+# update global average
+g_new = (1.0 - self. _EMA_ALPHA) #*self._global_avg + self._EMA_ALPHA *decode_tokens
+self. _global_avg = min(max(g_new, self._MIN_DECODE), self._MAX_DECODE)
+
+self. _prev_snapshot = current
+
+# oom decode prediction ------------------——--—-
+def _predict_decode(self, prefill_tokens: int) -> float:
+bidx = self._bucket_idx(prefill_tokens)
+if self._bucket_cnt[bidx] >= 10: # need some data for bucket-specific
+return self._bucket_avg[bidx]
+return self._global_avg
+
+@staticmethod
+def _ceil_div(a: float, b: int) -> int:
+return int(math.ceil(a / b))
+
+# mmm mmm mmm mmm main —-—------mmmmmm mmm
+def schedule(self) -> List[Tuple[int, 'Request’']]: # type: ignore[name-defined]
+# housekeeping
+self. _update_decode_statistics()
+if not self._request_queue:
+return []
+
+replicas: Dict[int, 'ReplicaScheduler'] = self._replica_schedulers # type: ignore[name-defined]
+num_repls: int = max(1, self._num_replicas)
+
+# om priority sort for global queue ----------
+
+def _priority(req: 'Request') -> Tuple[int, float, float]: # type: ignore[name-defined]
+predicted_total = req.num_prefill_tokens + self._predict_decode(req.num_prefill_tokens)
+return (-req.num_restarts, predicted_total, req.arrived_at)
+
+self. _request_queue.sort(key=_priority)
+
+# om projected replica states (without unrouted) ----------
+proj_blocks: Dict[int, int] = {3}
+
+proj_backlog_tokens: Dict[int, int] = {}
+
+proj_queue_len: Dict[int, int] = {}
+
+blk_size: Dict[int, int] = {}
+token_capacity: Dict[int, int]
+
+{x
+
+for rid, rep in replicas.items():
+bs = rep.block_size
+blk_sizel[rid] = bs
+token_capacity[rid] = rep.num_blocks *bs
+
+blocks = rep.num_allocated_blocks # currently allocated blocks
+backlog_tokens = @
+glen = len(rep.active_queue) + len(rep.pending_queue)
+
+# active requests
+for rq in rep.active_queue:
+# remaining future blocks for this request
+total_tokens_goal = rq.num_prefill_tokens + self._predict_decode(rq.num_prefill_tokens)
+future_blocks = self._ceil_div(total_tokens_goal, bs)
+already_blocks = self._ceil_div(rqg.num_processed_tokens, bs)
+
+23
+
+
+
+blocks += max(@, future_blocks - already_blocks)
+
+# backlog tokens (remaining prefill)
+if rq.num_processed_tokens < rq.num_prefill_tokens:
+backlog_tokens += rq.num_prefill_tokens - rq.num_processed_tokens
+
+# pending requests
+
+for rq in rep.pending_queue:
+total_tokens_goal = rq.num_prefill_tokens + self._predict_decode(rq.num_prefill_tokens)
+blocks += self._ceil_div(total_tokens_goal, bs)
+backlog_tokens += rq.num_prefill_tokens
+
+proj_blocks[rid] = blocks
+proj_backlog_tokens[rid] = backlog_tokens
+proj_queue_len[rid] = glen
+
+avg_queue_len = (sum(proj_queue_len.values()) / num_repls) + le-6
+
+# om greedy assignment loop ----------
+mapping: List[Tuple[int, 'Request']] = [J] # type: ignore[name-defined]
+remaining: List['Request'] = [] # requests we skip this tick
+
+while self._request_queue:
+req = self._request_queue.pop(@)
+pred_decode = self._predict_decode(req.num_prefill_tokens)
+total_tokens_req = req.num_prefill_tokens + pred_decode
+
+best_rid: int | None = None
+best_cost: float = float('inf"')
+best_util_after: float = 0.0
+
+for rid, rep in replicas.items():
+bs = blk_size[rid]
+reg_blocks = self._ceil_div(total_tokens_req, bs)
+pf_blocks = self._ceil_div(req.num_prefill_tokens, bs)
+
+free_now_blocks = rep.num_blocks - rep.num_allocated_blocks
+deficit_blocks = max(@, pf_blocks - free_now_blocks)
+
+util_after = (proj_blocks[rid] + req_blocks) / rep.num_blocks
+backlog_after = proj_backlog_tokens[rid] + req.num_prefill_tokens
+queue_after = proj_queue_len[rid] + 1
+
+cost = (
+self. _W_UTIL x(util_after **2) +
+self. _W_BACKLOG *(backlog_ after / (token_capacity[rid] + 1e-6)) +
+self._W_QUEUE x(queue_after / avg_queue_len) +
+self._W_DEFICIT *(deficit_blocks / (rep.num_blocks + 1e-6))
+)
+
+if util_after > 1.0:
+cost += self._OVER_CAP_PEN x(util_after - 1.0) **2
+
+# discount for restarts
+if req.num_restarts:
+cost *= (1.0 - self._RESTART_DISCOUNT) x*req.num_restarts
+
+if cost < best_cost - Te-12:
+best_cost = cost
+best_rid = rid
+best_util_after = util_after
+
+if best_rid is None:
+remaining. append(req)
+
+continue
+
+# admission control ------
+cap = self._SOFT_UTIL_CAP_RESTART if req.num_restarts else self._SOFT_UTIL_CAP
+
+24
+
+
+
+if best_util_after > cap:
+# keep for next tick
+remaining. append(req)
+continue
+
+# commit placement
+sel = best_rid
+mapping .append((sel, req))
+
+bs_sel = blk_size[sel]
+
+reg_blocks_sel = self._ceil_div(total_tokens_req, bs_sel)
+proj_blocks[sel] += req_blocks_sel
+
+proj_backlog_tokens[sel] += req.num_prefill_tokens
+proj_queue_len[sel] += 1
+
+avg_queue_len = (sum(proj_queue_len.values()) / num_repls) + le-6
+
+# push remaining requests back to queue (maintain order)
+self. _request_queue = remaining + self._request_queue
+
+return mapping
+
+25
+
+
+
+Prompt for Using LLM as is
+
+System Instruction: You are an Al expert in designing system algorithms and optimization techniques. Your task is to create efficient algorithms for various
+system optimization problems.
+
+Objective: Please implement a scheduler for a LLM inference. Design a solution that minimizes the average request response time across all requests.
+System Model: Here is how the load balance works:
+
+1. The load balancer manages a number (e.g., 16) of LLM serving node called “replica_scheduler’s.
+The load balancer routes requests to any of these replicas, and must eventually route all requests.
+
+2. The load balancer makes routing decisions per each request. The load balancer knows these three key properties per request:
+T_arrived_at”: When the request was received at the load balancer. ~_num_prefill_tokens™: number of tokens to prefill.
+“num_processed_tokens™ : number of tokens that have been processed so far. A request has some number of decode tokens but this is
+not known until the request is completed.
+
+3. Each replica maintains two queues: ~pending_queue™ and ~active_queue’. “pending_queue” contains requests where the prefill has not
+started. “num_processed_tokens™ is @ and there is no memory allocated in the GPU for these requests. ~active_queue” contains requests
+that are currently being processed. ~num_processed_tokens > @~ and some memory is allocated in the GPU for these requests.
+
+If “num_processed_tokens < num_prefill_tokens™, the request is still in the prefill phase. Otherwise, the request is in the decode phase.
+A request cannot be in both queues at the same time.
+
+4. Each replica has to allocate memories for requests currently being processed, in the ~active_queue™, in blocks (16 tokens at a time).
+In case there is no memery left at a replica for continuing decoding of active requests, replicas will evict newer requests to free memory
+for earlier requests.
+
+This removes the request from the 'active_queue', frees its allocated memory, resets its state, and adds it to the 'pending_queue'.
+
+If the evicted request was in the decode phase, the 'num_prefill_tokens' is updated to 'num_processed_tokens'.
+
+5. The load balancer can observe the state of all replicas, meaning all requests in ~pending_queue™ and ~active_queue” of each replica.
+
+Implementation: Please implement the following according to the specifications:
+
+Your task is to implement a custom load balancer by inheriting from BaseGlobalScheduler. To achieve this, you will implement the “schedule”
+function of this class. This function is called every time 1) a new request has arrived, or 2) a replica has finished a request.
+
+To return the routing decisions, this function should return a list of tuples.
+
+Each tuple consists of 1) the id number of the replica to route to and 2) the request to be routed ~(replica_id, request)”.
+
+Note that routed requests should be popped from ~self._request_queue”. Do not change the properties of requests or replicas.
+
+Here is how you can access some helpful metrics to guide the decision-making process.
+
+1. The CustomGlobalScheduler you will implement can see the following elements from a parent class (BaseGlobalScheduler):
+<Some elements>
+
+2. Each replica in
+<Some properties>
+3. Each request has the following READ-ONLY properties:
+<Some properties>
+
+_replica_schedulers™ is a “ReplicaScheduler™ object, and has the following READ-ONLY properties:
+
+Now, implement the load balancer, i.e., CustomGlobalScheduler. Only output the full code for the CustomGlobalScheduler class.
+
+Guidelines:
+To design the algorithm, first consider the requirements and system model carefully to develop an overall strategy. Then, implement your solution.
+
+Figure 11: Prompt for using an LLM as-is for the request-routing problem.
+
+26
+
+
+Basic Prompt for FunSearch
+
+System Instruction: You are an Al expert in designing system algorithms and optimization techniques. Your task is to create efficient algorithms for various
+system optimization problems.
+
+Objective: Please implement a scheduler for a LLM inference. Design a solution that minimizes the average request response time across all requests.
+
+System Model: Here is how the load balance works:
+
+1. The load balancer manages a number (e.g., 16) of LLM serving node called “replica_scheduler’s.
+The load balancer routes requests to any of these replicas, and must eventually route all requests.
+
+2. The load balancer makes routing decisions per each request. The load balancer knows these three key properties per request:
+T_arrived_at”: When the request was received at the load balancer. ~_num_prefill_tokens™: number of tokens to prefill.
+“num_processed_tokens™ : number of tokens that have been processed so far. A request has some number of decode tokens but this is
+not known until the request is completed.
+
+3. Each replica maintains two queues: ~pending_queue™ and ~active_queue’. “pending_queue” contains requests where the prefill has not
+started. “num_processed_tokens™ is @ and there is no memory allocated in the GPU for these requests. ~active_queue” contains requests
+that are currently being processed. ~num_processed_tokens > @~ and some memory is allocated in the GPU for these requests.
+
+If “num_processed_tokens < num_prefill_tokens™, the request is still in the prefill phase. Otherwise, the request is in the decode phase.
+A request cannot be in both queues at the same time.
+
+4. Each replica has to allocate memories for requests currently being processed, in the ~active_queue™, in blocks (16 tokens at a time).
+In case there is no memery left at a replica for continuing decoding of active requests, replicas will evict newer requests to free memory
+for earlier requests.
+
+This removes the request from the 'active_queue', frees its allocated memory, resets its state, and adds it to the 'pending_queue'.
+
+If the evicted request was in the decode phase, the 'num_prefill_tokens' is updated to 'num_processed_tokens'.
+
+5. The load balancer can observe the state of all replicas, meaning all requests in ~pending_queue™ and ~active_queue” of each replica.
+Implementation: Please implement the following according to the specifications:
+
+Your task is to implement a custom load balancer by inheriting from BaseGlobalScheduler. To achieve this, you will implement the “schedule”
+function of this class. This function is called every time 1) a new request has arrived, or 2) a replica has finished a request.
+
+To return the routing decisions, this function should return a list of tuples.
+
+Each tuple consists of 1) the id number of the replica to route to and 2) the request to be routed ~(replica_id, request)”.
+
+Note that routed requests should be popped from ~self._request_queue”. Do not change the properties of requests or replicas.
+
+Here is how you can access some helpful metrics to guide the decision-making process.
+
+1. The CustomGlobalScheduler you will implement can see the following elements from a parent class (BaseGlobalScheduler):
+<Some elements>
+
+2. Each replica in
+<Some properties>
+3. Each request has the following READ-ONLY properties:
+<Some properties>
+
+_replica_schedulers™ is a “ReplicaScheduler™ object, and has the following READ-ONLY properties:
+
+Now, implement the load balancer, i.e., CustomGlobalScheduler. Only output the full code for the CustomGlobalScheduler class.
+
+Guidelines:
+To design the algorithm, first consider the requirements and system model carefully to develop an overall strategy. Then, implement your solution.
+
+Some other implementations and their achieved average request response time:
+# Implementation #1 (response time: 54.054 s):
+
+<algorithm 1>
+
+# Implementation #2 (response time: 55.55 s):
+
+<algorithm 2>
+
+# Implementation #3 (response time: 57.142 s):
+
+<algorithm 3>
+
+Figure 12: Base prompt for our FunSearch evaluation.
+
+27
+
+
+System Prompt for Openevolve
+
+Please implement a scheduler for a LLM inference cluster.
+
+System Model:
+Here is how the load balance works:
+
+1. The load balancer manages a number of LLM serving nodes called “replica_scheduler’s.
+- The load balancer routes requests to any of these replicas.
+- The load balancer must eventually route all requests.
+
+2. The load balancer makes routing decisions per each request. The load balancer knows these three key properties per request:
+- ~_arrived_at™: When the request was received at the load balancer.
+- “_num_prefill_tokens™: number of tokens to prefill.
+- “num_processed_tokens™ : number of tokens that have been processed so far.
+
+- A request has some number of decode tokens but this is not known until the request is completed.
+
+3. Each replica maintains two queues: ~pending_queue™ and ~active_queue.
+- “pending_queue™ contains requests where the prefill has not started. ~num_processed_tokens™ is @ and there is no memory allocated in
+— the GPU for these requests.
+- Tactive_queue” contains requests that are currently being processed. ~num_processed_tokens > © and some memory is allocated in the
+— GPU for these requests. If ~num_processed_tokens < num_prefill_tokens™, the request is still in the prefill phase. Otherwise, the
+— request is in the decode phase.
+- A request cannot be in both queues at the same time.
+
+4. Each replica has to allocate memories for requests currently being processed, in the ~active_queue™, in blocks (16 tokens at a time).
+- In case there is no memory left at a replica for continuing decoding of active requests, replicas will evict newer requests to free
+— memory for earlier requests.
+
+- This removes the request from the 'active_queue', frees its allocated memory, resets its state, and adds it to the 'pending_queue'.
+- If the evicted request was in the decode phase, the 'num_prefill_tokens' is updated to 'num_processed_tokens'.
+
+5. The load balancer can observe the current state of all replicas, meaning all requests in ~pending_queue™ and ~active_queue™ of each
+— replica.
+
+Objective:
+Design a solution that Minimize the average request completion time across all requests.
+
+Implementation:
+Please implement the following according to the specifications:
+
+Your task is to implement a custom load balancer by inheriting from BaseGlobalScheduler.
+
+To achieve this, you will implement the “schedule” function of this class.
+
+This function is called everytime 1) a new request has arrived, or 2) a replica has finished a request.
+
+To return the routing decisions, this function should return a list of tuples. Each tuple consists of 1) the id number of the replica to
+— route to and 2) the request to be routed ~(replica_id, request)".
+
+Note that routed requests should be popped from ~self._request_queue.
+
+Do not change the properties of requests or replicas.
+
+Here is how you can access some helpful metrics to guide the decision-making process.
+
+1. The CustomGlobalScheduler you will implement can see the following elements from a parent class (BaseGlobalScheduler):
+<Some elements>
+
+2. Each replica in
+<Some properties>
+3. Each request has the following READ-ONLY properties:
+<Some properties>
+
+_replica_schedulers™ is a “ReplicaScheduler™ object, and has the following READ-ONLY properties:
+
+Now, implement the load balancer, i.e., CustomGlobalScheduler. Only output the full code for the CustomGlobalScheduler class.
+<Class signiture>
+Guidelines:
+
+To design the algorithm, first consider the requirements and system model carefully to develop an overall strategy. Then, implement your
+— solution.
+
+Figure 13: System prompt used for our OpenEvolve evaluation.
+
+28
+
+
+The user’s prompt to Glia for the LLM request-routing problem.
+
+Design an efficient request scheduler for a distributed LLM serving cluster. Use the simulator (the current working directory) to evaluate
+your ideas.
+
+System overview:
+The system has a number of LLM serving instances (replicas) that can process the requests. Incoming requests are first processed by a
+“global scheduler’. The global scheduler maintains a queue of requests. It decides when and which replica to send each request.
+
+The base class for the global scheduler "BaseGlobalScheduler" can be found at: "scheduler/global_scheduler/base_global_scheduler.py"
+A simple implementation of the global scheduler is LLQGlobalScheduler which dispatches requests to the replica with least loaded queue,
+and can be found here: "scheduler/global_scheduler/11q_global_scheduler.py"
+
+The entry point for the global scheduler is the schedule() function. This is called by the simulator after each request
+arrival and request completion event.
+
+Each serving instance schedules its incoming requests via a “replica scheduler'. The replica scheduler creates batches of work to be
+processed on GPUs.
+
+The base class for replica scheduler “BaseReplicaScheduler” can be found at: "scheduler/replica_scheduler/base_replica_scheduler.py"
+For this design task, we will use the VLLM replica scheduler provided here: "scheduler/replica_scheduler/vllm_replica_scheduler.py"
+
+To summarize, the life of a request in the system is as follows:
+incoming request -+ global scheduler -+ replica scheduler -+ Batch processing by GPU (prefill / decode)
+
+Every request is first processed in prefill stage to compute the kv-cache of the input tokens. Once prefill is complete, the request enters
+the decode stage where its output tokens are computed incrementally. The total number of decode tokens is not known until a request finishes)
+Only the number of prefill tokens is known when a request first arrives.
+
+Objective:
+Your task is to optimize the global scheduler. The primary performance metric is the average response time of requests.
+
+Evaluation:
+
+A benchmark is provided to evaluate your designs. It consists of a 1000-second simulation of a workload running on a cluster with 4
+identical al@ GPUs. The workload generates <target_qps> queries-per-second (gps). The benchmark workload can be found in
+“data/processed_traces/sharegpt_<target_gps>.csv”. To run the benchmark, use the following command: ./run_all.sh
+
+As a baseline, I ran the benchmark for the LLQ algorithm. The simulation outputs artifacts in a directory like
+“simulator_results/sharegpt_llg_<target_gps>/<folder_time_stamp>/". This directory contains the following files:
+
+1. “config. json” that specifies the experiment configs,
+
+2. "gs_log.csv" is the log of global scheduling events. For every global scheduling event, it writes 4 (num sarathi instances) lines with
+the following information: ['time', 'replica_id', 'num_pending_requests', 'num_active_requests', 'num_allocated_blocks', 'num_blocks',
+'memory_usage_percent'].
+
+3. "regs_log.csv" is the log of where each request was eventually routed. For every request, it writes one line with the following
+information: ['time', 'replica_id', 'request_id', 'num_prefill_tokens', 'num_decode_tokens'].
+
+4. "request_metrics.csv" provides per-request information.
+
+Constraints:
+
+Modify only the global scheduler. Do not change the behavior of replica scheduler.
+The global scheduler may not use the num_decode_token property of request objects, since the number of decode tokens of a request is
+not known in a real system.
+
+Implement your ideas in "scheduler/global_scheduler/ai_global_scheduler.py", which is prepopulated with a random acheduler.
+
+Experiment by running “./run_all.sh”
+
+and looking at the output found in “simulator_results/sharegpt_AI_<target_qps>/[YYYY-MM-DD_HH-MM-SS-microseconds]”. Iterate on your
+design to reduce the average request completion time ("request_e2e_time" in "request_metrics.csv"). Do not interrupt me until you have
+found a solution that is at least better that LLQ's average request time (around <time> seconds on this benchmark). It should be possible
+to perform much better than LLQ (at least a <targe_improvement>% improvement is expected).
+
+Figure 14: The user’s prompt to Glia for the LLM request-routing problem.
+
+29

@@ -1,0 +1,2124 @@
+arXiv:2510.26912v1 [cs.CL] 30 Oct 2025
+
+Understanding and Enhancing Mamba-Transformer Hybrids
+for Memory Recall and Language Modeling
+
+Hyunji Lee” Wenhao Yu”
+Jiyeon Kim”
+
+“UNC Chapel Hill
+
+Abstract
+
+Hybrid models that combine state space models
+(SSMs) with attention mechanisms have shown
+strong performance by leveraging the efficiency
+of SSMs and the high recall ability of attention.
+However, the architectural design choices be-
+hind these hybrid models remain insufficiently
+understood. In this work, we analyze hybrid
+architectures through the lens of memory uti-
+lization and overall performance, and propose
+a complementary method to further enhance
+their effectiveness. We first examine the distinc-
+tion between sequential and parallel integration
+of SSM and attention layers. Our analysis re-
+veals several interesting findings, including that
+sequential hybrids perform better on shorter
+contexts, whereas parallel hybrids are more ef-
+fective for longer contexts. We also introduce
+a data-centric approach of continually training
+on datasets augmented with paraphrases, which
+further enhances recall while preserving other
+capabilities. It generalizes well across differ-
+ent base models and outperforms architectural
+modifications aimed at enhancing recall. Our
+findings provide a deeper understanding of hy-
+brid SSM-attention models and offer practical
+guidance for designing architectures tailored
+to various use cases. Our findings provide a
+deeper understanding of hybrid SSM-attention
+models and offer practical guidance for design-
+
+ing architectures tailored to various use cases’.
+
+1 Introduction
+
+Recent advances in state-space models (SSMs),
+such as Mamba (Gu and Dao, 2023), have shown
+strong performance in language modeling, partic-
+ularly in long-context tasks, while offering signif-
+icantly greater efficiency than traditional Trans-
+former (Vaswani et al., 2017) architectures (Dao
+and Gu, 2024; Waleffe et al., 2024; Zuo et al.,
+
+* Work was done during internship at Tencent AI Lab,
+Bellevue.
+
+!Code in mamba-transformer-hybrids
+
+Hongming Zhang”
+Dong Yu”
+
+"Tencent Al Lab
+
+Kaixin Ma”
+Minjoon Seo”
+
+"KAIST Al
+
+2024). However, unlike Transformers, which main-
+tain a dynamically growing key-value (KV) cache
+to attend to all previous tokens, SSMs compress
+past information into a fixed-size hidden state, lim-
+iting their ability to model long-term dependencies
+and recall distant context (Park et al., 2024; Glo-
+rioso et al., 2024). To address this, recent work has
+explored hybrid architectures (Dong et al., 2024;
+Ren et al., 2024; Park et al., 2024) that integrate at-
+tention with SSMs, aiming to leverage the strengths
+of both: combining the expressive, high capacity
+memory of attention with the efficiency of SSM
+computation.
+
+Despite promising results, there remains a lim-
+ited understanding of how different architectural
+design choices affect performance in these hybrid
+models, and what specific roles SSM and attention
+components play. In this work, we aim to fill this
+gap by systematically analyzing the following three
+research questions: (RQ 1) Aggregation Strategies:
+How do different ways of combining SSMs and at-
+tention affect performance and efficiency? (RQ2)
+Component Roles: What are the respective con-
+tributions and characteristics of SSMs and atten-
+tion layers in hybrid models? (RQ3) Data-Centric
+Enhancements: Can performance be further im-
+proved through data-centric methods, beyond ar-
+chitectural design alone?
+
+To investigate the first two questions (RQI,
+RQ2), we conduct extensive pretraining experi-
+ments on 17 models spanning pure SSMs, Trans-
+former, and hybrid variants (Figure 1). Prior work
+often uses inconsistent training and evaluation se-
+tups, making fair comparison difficult. We there-
+fore design a unified experimental setup that stan-
+dardizes training and evaluation, enabling a con-
+trolled analysis of individual components and ar-
+chitectural choices. All models share the same
+configurations, differing only in their core block
+design (SSM or attention). We evaluate them across
+three axes: language modeling, commonsense rea-
+
+
+(Cow)
+
+Mamba t
+| Attention
+
+SSM | Transformer |
+
+Attention
+
+f
+
+Mamba
+
+Sequential Hybrid
+
+Aggregate
+f f
+
+Mamba
+
+| Attention
+
+Parallel Hybrid
+
+Figure 1: Comparison of different architectural designs: SSM, Transformer, Sequential Hybrid, and Parallel Hybrid.
+Each architecture consists of stacked blocks that incorporate Mamba and Attention layers. The key difference lies in
+
+how these layers are arranged: SSM uses only Mamba layers,
+
+uses only Attention layers, while the
+
+hybrid models combine both. Sequential Hybrid stacks Mamba and Attention layers within each block, whereas
+Parallel Hybrid applies them in parallel and aggregates their outputs. Feedforward (FF) layers are omitted in the
+
+hybrid models for clarity, as it varies by design.
+
+soning, and memory recall. Our analysis shows a
+strong correlation between long-context language
+modeling and commonsense reasoning, but weaker
+links to memory recall. These results suggest that
+focusing solely on language modeling or reason-
+ing benchmarks, as in prior work (Glorioso et al.,
+2024; Lieber et al., 2024; Ren et al., 2024), may
+miss critical aspects of memory performance. Our
+study fills this gap by providing a comprehensive
+and standardized evaluation.
+
+using our unified evaluation, we analyze how
+aggregation strategies (sequential or parallel) af-
+fect performance and the roles of ssm and attention
+components. sequential hybrids, where one com-
+ponent processes input before the other, excel on
+short-context tasks because aligned representation
+spaces promote stable training. however, this align-
+ment can limit expressiveness. in contrast, paral-
+lel hybrids keep separate embedding spaces and
+fuse outputs later, enabling greater representational
+diversity and stronger long-context performance.
+Among them, the parallel variant with a merge-
+attention layer, which attends over the outputs of
+the Mamba and the attention layers to produce a
+fused representation, achieves the strongest overall
+results.
+
+Beyond architecture, we explore a data-centric
+approach to improve memory recall (RQ3). While
+previous works often finetune models on synthetic
+tasks like Needle-in-a-Haystack (NIAH) (Kamradt,
+2023), which boosts recall but often harms perfor-
+mance on other metrics. To mitigate this, we show
+that continued training with paraphrased sentences,
+drawn from a distribution similar to the pretraining
+data, enhances recall with minimum or no degra-
+
+dation in commonsense reasoning. Compared to
+other datasets such as UltraChat (Ding et al., 2023),
+Based (Arora et al., 2024), or NIAH, this strategy
+achieves the best trade-off. Notably, it outperforms
+architectural methods aimed at enhancing recall,
+such as DeciMamba (Ben-Kish et al., 2024) (+12.7
+avg), and generalizes well across a range of base
+models, scaling up to 2.8B parameter model.
+
+2 Preliminary
+
+In this section, we share details of how the Mamba
+layer from recent SSM models and the Attention
+layer in the Transformer differ, an overview of prior
+works on hybrid models, and outline our experi-
+mental architectures.
+
+Mamba and Attention layers Both Mamba and
+attention layers transform an input sequence into
+an output sequence using a transformation matrix,
+but differ in how they process inputs. Mamba lay-
+ers update a recurrent hidden state sequentially,
+incorporating one token at a time as a compressed
+summary of past inputs. In contrast, attention lay-
+ers process the entire sequence simultaneously, at-
+tending to all preceding tokens to model dependen-
+cies. These approaches involve trade-offs: Mamba
+offers linear-time computation but may struggle
+with long-range dependencies, while attention lay-
+ers capture such dependencies more effectively at
+the cost of quadratic time and memory. See Ap-
+pendix A.1 for details and equations.
+
+Hybrid Models To leverage the strengths of
+SSMs and attention, recent works have proposed
+hybrid architecture that integrate both compo-
+nents (Dong et al., 2024; Ren et al., 2024; Park
+
+
+etal., 2024). These models outperforms non-hybrid
+models, especially in long-context language mod-
+eling compared to attention-only models and recall
+performance compared to pure SSMs.
+
+Recent hybrid models vary along four design
+axes: (1) SSM layer type: Mamba is the most com-
+mon (Gu and Dao, 2023; Ren et al., 2024; Dong
+et al., 2024; Glorioso et al., 2024), though alterna-
+tives like DeltaNet have also been effective (Yang
+et al., 2025). (2) Layer ratio: A 1:1 SSM-to-
+attention ratio is typical (Dong et al., 2024; Ren
+et al., 2024), though some prefer more SSM layers
+for efficiency (Glorioso et al., 2024; Lieber et al.,
+2024). (3) Attention type: To retain efficiency,
+many use SWA?2(Ren et al., 2024; Yang et al,
+2025), combine SWA with full attention(Dong
+et al., 2024), or use full attention alone (Glorioso
+etal., 2024). (4) Integration strategy: Sequential fu-
+sion is most common (Park et al., 2024; Ren et al.,
+2024; Yang et al., 2025), but parallel fusion is also
+explored (Dong et al., 2024).
+
+In this work, as our focus is on understanding
+affect of how to combine SSMs with attention lay-
+ers and analyzing the role of each components in
+hyrid model performance, we focus on the fourth
+axes and keep other design choices fixed based on
+the recent strong baselines (Ren et al., 2024; Dong
+et al., 2024; Yang et al., 2025): (1) using Mamba
+as the SSM component, (2) a 1:1 ratio of attention
+to SSM layers, and (3) using SWA (Beltagy et al.,
+2020) as attention layer. See Appendix B for more
+related works.
+
+Architectural Designs of Hybrid Blocks To
+analyze various hybrid model configurations, we
+design a set of hybrid models, each combining
+Mamba and Attention layers. These blocks are
+stacked to build the full model (Figure 1). Our
+designs vary along two main axes: (1) the integra-
+tion strategy and (2) the placement of feed-forward
+(FF) layers. For integration, we explore: sequen-
+tial hybrid where one layer’s output feeds into
+the other, with two variants (Mamba — SWA and
+SWA — Mamba) and parallel fusion where both
+layers receive the same input, and their outputs are
+aggregated using one of several methods (simple
+averaging (Dong et al., 2024), a trainable projection
+layer (Behrouz et al., 2024), or a trainable merge-
+attention layer). Also, given that FF layers play an
+important role in Transformer models (Geva et al.,
+
+2SWA restricts attention to a fixed-size window around
+each token, improving scalability over full attention.
+
+@® Mamba [) LJ
+
+« 51 SWA LF ® @
+fo @ Sequential Hybrid ve
+s 50 @ Parallel Hybrid Ld
+g °
+Q
+© 49 Ld
+3 °
+g 48 ® °
+c
+g
+
+47
+£
+[e)
+Oo
+
+ry
+[o>]
+
+13 14 15 16 17 18 19 20
+Recall Ability T
+
+Figure 2: Comparison of different model architectures
+on Commonsense Reasoning (y-axis) vs. Recall Ability
+(x-axis). Commonsense Reasoning and Recall Abil-
+ity are measured using answer accuracy. The models
+compared included Mamba-only, , Hybrid
+(Sequential), and Hybrid (Parallel). For details of each
+model, see Figure 10 in Appendix C.1.
+
+2020; Meng et al., 2022), we also experiment with
+the effect of different FF placements.
+
+3 Designing a Unified Experimental Setup
+
+While various works have proposed and demon-
+strated the effectiveness of hybrid models, their
+results are often difficult to compare to each other
+due to differences in training procedures, evalua-
+tion metrics, and the absence of released check-
+points. To enable fair and comprehensive analysis,
+in this section, we introduce a unified experimental
+setup to re-evaluate multiple models within this
+consistent framework of training (Section 3.1) and
+evaluation (Section 3.2). We observe that some
+prior works often overlook key metrics, which can
+obscure a model’s overall performance, underscor-
+ing the need for extensive evaluation over multiple
+axes to understand model performance.
+
+3.1 Training
+
+We follow widely adopted training setups from re-
+cent works, primarily based on Ren et al. (2024),
+which provides detailed implementation code. All
+models are trained from scratch on 100B tokens
+from the SlimPajama dataset (Soboleva et al,
+2023). Model sizes are kept consistent across archi-
+tectural variants: approximately 430M parameters
+for base models and 1.3B for larger ones. All mod-
+els use the same hyperparameters: batch size of
+512, sequence length of 4K, learning rate of 4e-4,
+weight decay of 0.1, window size of 2k for SWA,
+and the AdamW optimizer (Loshchilov and Hutter,
+2017).
+
+
+52
+
+> F 20
+
+£
+
+& 51 -
+
+[72]
+
+8 F182
+0
+
+g 0 <
+
+) [0]
+
+3 F16 9
+
+S 49 ©
+
+£
+
+5
+
+S 48 14
+
+MS MFS MSF MFSF ~~ SFMF
+
+(a)
+
+a
+N
+1
+
+< -17
+2
+£ 51-
+3 «—
+® 16 >
+& 50- =
+L [WM]
+3 49- 18g
+o [hd
+£
+-14
+3S 48
+M/S MF/S M/SF MF/SF +Proj +MergeAttn
+(b)
+
+Figure 3: Performance comparison of commonsense reasoning accuracy and recall ability across different model
+architectures. (a) Results for sequential models. (b) Results for parallel models. For further details, refer to the first
+
+paragraph of Section 4.1.
+
+3.2 Evaluation
+
+Setup We evaluate hybrid models across three
+axes: (1) long-context language modeling, (2) com-
+monsense reasoning, and (3) memory recall, fol-
+lowing previous works on hybrid models. For
+language modeling, we report perplexity on the
+SlimPajama validation set using 16k-token se-
+quences. Commonsense reasoning is assessed
+by averaging accuracy across five standard bench-
+marks: LAMBADA-OpenAlI (Radford et al., 2019),
+HellaSwag (Zellers et al., 2019), PIQA (Bisk et al.,
+2020), ARC-Easy (Clark et al., 2018), and Wino-
+grande (ai2, 2019). Recall ability is evaluated
+over average of eight datasets in Based bench-
+mark (Arora et al., 2024), using the evaluation pro-
+tocol of Yang et al. (2025). We further group them
+into short- and long-context subsets to study the
+influence of context length on recall performance.
+Details are in Appendix C.2.
+
+Correlation Between Evaluation Axes We in-
+vestigate how the three evaluation axes, language
+modeling, commonsense reasoning, and memory
+recall, relate across different architectural choices.
+We find that strong performance on reasoning
+or language modeling does not necessarily im-
+ply strong memory recall. While there is some
+positive correlation, it is relatively weak. Specifi-
+cally, the pearson correlation coefficient between
+language modeling and commonsense reasoning
+is high (0.814), whereas recall correlates modestly
+with reasoning (0.697) and even less with language
+modeling (0.542). These trends are also visual-
+ized in Figure 2, which shows the correlation be-
+tween recall ability (x-axis) and reasoning (y-axis).
+Notably, the clustering of models with similar ar-
+chitectures (indicated by color) suggests that ar-
+
+chitectural design has a greater impact on recall
+performance than overall reasoning ability. These
+findings highlight that prior works, which evaluate
+models solely on language modeling or reasoning
+benchmarks (Glorioso et al., 2024; Lieber et al.,
+2024; Ren et al., 2024), need a more comprehen-
+sive evaluation including memory-intensive tasks
+to more accurately assess model capabilities.
+
+4 How Does the Architectural Design
+Affect Model Performance?
+
+In this section, we present our experimental results
+across various model architectures (Section 4.1)
+and provide a detailed analysis of their structural
+design (Section 4.2).
+
+4.1 Results
+
+Figure 3 compares commonsense reasoning and
+recall performance across various block designs in
+both sequential and parallel model architectures.
+In both subfigures, the x-axis represents different
+block configurations. M indicates a Mamba layer,
+S a Sliding Window Attention (SWA) layer, and
+F a feed-forward (FF) layer. For example, MFSF
+represents a block with Mamba, FF, SWA, and
+FF layers in that order. In parallel models (Fig-
+ure 3b), ‘I’ denotes parallel branches (e.g., MISF
+means Mamba on one side and SWA+FF on the
+other). Aggregation strategies are defined as fol-
+lows: +PROJ uses a trainable projection layer;
++MERGEATTN uses a trainable attention module,
+similar to the cross-attention layer in encoder-
+decoder models, but using Mamba’s output embed-
+dings as the Key and Value; the remaining variants
+use simple mean averaging. See Appendix D.1 for
+detailed performance and Appendix D.2 for com-
+
+
+parison between hybrid and non-hybrid models.
+
+Impact of SWA and Mamba Layer Order on
+Sequential Hybrid Performance We investigate
+how the order of SWA and Mamba layers affect
+sequential hybrid performance by comparing two
+configurations: MFSF (Mamba before SWA) and
+SFMF (SWA before Mamba). As shown in Fig-
+ure 3a, MFSF consistently outperforms SFMF
+across tasks. This suggests that placing the Mamba
+layer first helps the model capture global dependen-
+cies early, while placing SWA first may bottleneck
+performance due to its limited attention window.
+However, when analyzing recall performance by
+context length (Figure 16 in Appendix D.3), SEMF
+performs better on shorter contexts. We attribute
+this to SWA effectively approximating full atten-
+tion when the input length is within its window,
+enabling strong local representations that Mamba
+can refine. In summary, SFMF may benefit short-
+context tasks, but MFSEF, architecture used in Ren
+et al. (2024), offers superior overall performance.
+We therefore adopt MFSF as our default sequential
+model architecture.
+
+Effect of Aggregation Method in Parallel Hy-
+brids Performance We study how different ag-
+gregation layers for combining SWA and Mamba
+output embeddings affect hybrid model perfor-
+mance. As shown in Figure 3b, we evaluate
+three strategies: +BOTH, PROJ, and MERGEATTN.
+MERGEATTN achieves the best overall perfor-
+mance, particularly in long-context language mod-
+eling (see Appendix D.4 for more results). We
+thus use MERGEATTN as the representative paral-
+lel model in subsequent analysis. Simple averag-
+ing (+BOTH) performs well on commonsense rea-
+soning, consistent with observation in Dong et al.
+(2024), but we observe that it underperforms on
+recall; for strong recall, especially with long con-
+texts, trainable aggregation methods like PROJ and
+MERGEATTN are more effective.
+
+Sequential models excel in short contexts, paral-
+lel models excel in long ones When comparing
+recall performance of sequential and parallel mod-
+els, we observe that sequential models tend to per-
+form better in relatively shorter contexts whereas
+parallel combinations general show superior perfor-
+mance in longer contexts (Figure 4). We hypothe-
+size that this trend arises from the differing degrees
+of interaction between the SWA and Mamba com-
+ponents. As parallel models has less interaction
+
+F225
+
+AREER  ]
+« 524 om
+o | me 20.0
+£
+c
+
+514
+I EE a A F175
+Ce | fe >
+50 -15.0 2
+c =
+a 3
+2 ~12.5
+S 49 ©
+1S
+—@- Commonsense
+E -@- Recall(All) 10.0
+O 484 ~Ml- Recall(Short)
+A +k Recall(Long) L75
+Mamba SWA Sequential Parallel
+
+Figure 4: Performance of best performing models from
+each architecture in commonsense reasoning and recall
+ability, where divided by length of context.
+
+between Mamba and SWA components, it prevents
+from collapsing into a shared mode of producing
+overly similar hidden states. It instead encourages
+each component to retain its distinct representa-
+tional strength. In Section 4.2, we provide empiri-
+cal evidence supporting this hypothesis.
+
+Impact of Adding Feed-Forward Layers on Hy-
+brid Model Performance Feed-formward (FF)
+layers play an important role in transformers (Geva
+et al., 2020; Meng et al., 2022), but their effect on
+hybrid models remains less explored. We find that
+adding FF layers to only one component, either
+Mamba or SWA, degrades performance in both
+sequential and parallel settings, while improve-
+ments appear only when FF layers are added to
+both components. We hypothesize that this degra-
+dation arises from feature misalignment: it is es-
+pecially harmful in parallel architectures, where
+components maintain distinct representations and
+make aggregation harder, whereas sequential mod-
+els integrate features into a shared space, mitigat-
+ing some of these issues. This drop is particularly
+high when adding FFNs to Mamba, likely because
+its final layer (C' in Equation 1) already functions
+similarly to an MLP (Sharma et al., 2024), mak-
+ing additional FFNs redundant or even detrimental.
+This aligns with prior findings that FENs benefit
+SWA but not Mamba (Gu and Dao, 2023).
+
+Generalization to 1.3B Trends observed at the
+430M scale generally hold at 1.3B. Hybrid models
+consistently outperform non-hybrids. Among se-
+quential hybrids, MFSF outperforms MS. In paral-
+lel setups, merge-attention as an aggregation layer
+shows higher performance, especially for long-
+context recall. Overall, merge-attention mecha-
+nisms show strong performance. Sequential hy-
+
+
+o
+©
+
+o
+o
+
+I
+FS
+
+Cosine Similarity
+
+°
+N]
+
+—8— Seq (430M)
+-#l- Seq (1.3B)
+—e— Parallel (430M)
+-#- Parallel (1.3B)
+
+0.04 BH
+
+20 40 60 8 1 0 0
+
+0
+Layer Depth (% from Final Layer)
+
+Figure 5: Cosine similarity between output embeddings
+of aligned SWA and Mamba layers (y-axis), plotted
+against layer depth, measured as percentage distance
+from the final layer (x-axis).
+
+brids excel in short-context settings, while parallel
+hybrids perform better with longer contexts. See
+Appendix D.6 for detailed results.
+
+4.2 Analysis
+
+Similarity between SWA and Mamba Output
+Embeddings in Hybrid Models To better under-
+stand the interaction between SWA and Mamba in
+hybrid models, we analyze the cosine similarity
+of their output embeddings across block depths,
+aligned by position from the final block (Figure 5).
+Sequential hybrids show high similarity, especially
+in the larger 1.3B model, because outputs from one
+component feed into the next, naturally aligning
+their representations. Parallel hybrids show much
+lower similarity, particularly in early and middle
+layers, as both components process inputs inde-
+pendently and fuse outputs later. We hypothesize
+that this structural difference shapes performance:
+sequential hybrids benefit from stable, aligned rep-
+resentations for commonsense reasoning and short-
+context tasks but struggle with long-context reason-
+ing. In contrast, parallel hybrids produce more
+diverse representations and, though sensitive to
+aggregation strategy, can outperform on complex
+long-context tasks when effectively trained. More
+analysis in Appendix D.7.
+
+Identifying Critical Components in Hybrid
+Blocks Figure 6 shows performance degradation
+on commonsense (left) and recall (right) tasks when
+removing blocks by depth. Removing the first
+block causes the steepest drop, up to 90% on re-
+call tasks, highlighting the crucial role of early
+layers. We further examine the importance of sub-
+components within each block. In sequential mod-
+
+els, the first subcomponent is most critical because
+it shapes the feature space, and later components
+align to it. In parallel models, the aggregation layer
+is most critical as it must merge the distinct rep-
+resentation spaces from Mamba and SWA, while
+either path alone can still infer the input distribu-
+tion. See Appendix D.8 for further discussion.
+
+Understanding the performance gains of
+MERGEATTN Among the various configura-
+tions, parallel hybrids using an attention layer that
+merges output embeddings of SSM and attention
+achieve the best performance. To understand why
+these models tend to perform strongly, we ana-
+lyze the models on how much each token is in-
+fluenced by prior tokens, following the method in
+Ben-Kish et al. (2024); higher value indicates that
+they exhibit stronger attention to previous tokens.
+As shown in Figure 7, models with merge-attention
+show the highest average attention weights, sug-
+gesting that their improved performance arises be-
+cause the Mamba layers effectively capture global
+dependencies, which the merge-attention mecha-
+nism then leverages to integrate information. See
+Appendix D.9 for more details of the calculation.
+
+5 Dataset Strategy to Enhance Recall
+
+We show that continually training models on
+datasets with paraphrased contexts, drawn from
+a distribution similar to the pretraining dataset, im-
+proves recall without sacrificing commonsense rea-
+soning. Previous work focused on improving recall
+through architectural changes, such as hybrid mod-
+els. Here, we investigate a data-centric approach,
+aiming to complement and further enhance these
+architectural advances.
+
+Section 5.1 describes how we construct the train-
+ing dataset and train the model. Section 5.2 shows
+that models trained on our dataset achieve the best
+trade-off between recall and reasoning, outperform-
+ing other dataset choices and DeciMamba (which
+introduces architectural changes) across scales up
+to 2.8B parameters. Section 5.3 analyzes design
+factors such as input length, dataset size, and model
+choice, demonstrating through extensive experi-
+ments that our simple approach generalizes well
+and consistently improves performance.
+
+5.1 Experimental Setup
+
+Paraphrasing Method We construct a para-
+phrased dataset using a subset of the training cor-
+pus (SlimPajama), based on the hypothesis that
+
+
+Commonsense
+
+Ww wb
+oo ua Oo
+
+Reduction Rate (%)
+nN
+o
+
+20 40 60 80 100
+Removal Block Depth (% from Final Block)
+
+® Sequential ® Parallel
+
+—— SWA (Solid)
+
+Recall
+
+20 40 60 80 100
+
+--- Mamba (Dashed)  :+---= MergeAttn (Dotted)
+
+Figure 6: Performance degradation (y-axis) on commonsense (left) and recall (right) tasks as a function of the
+removed block’s relative position from the final block (x-axis).
+
+70
+
+Hl Sequential
++ 65 HEE Parallel
+<
+Re
+2 60
+(o)]
+Cc
+© 55
+Cc
+2
+< 50
+=)
+>
+Lys
+40
+SFMF MFSF MF|SF +Proj +MergeAttn
+
+Figure 7: Average attending weight across different
+model architectures. Higher values indicate that the
+model attends more strongly to previous information.
+
+the data should remain close in distribution to the
+original pretraining corpus to prevent degrading
+existing performance. To control the density of
+paraphrased content, we divide the data into 1k-
+token chunks. For each chunk, we use LLaMA
+3.1-8B? to generate factual question-answer (QA)
+pairs. Following Arora et al. (2024), we convert
+these QA pairs into cloze-style paraphrased sen-
+tences. This yields pairs of the form (1k-token
+chunk, paraphrased sentence). To construct a train-
+ing dataset, we concatenate multiple chunks and
+insert the corresponding paraphrased sentence at a
+random position following the chunk it was derived
+from. Based on the constructed dataset, we run a
+filtering process based on three criteria: (1) the
+model fails to generate a valid question and answer
+pair, (2) the generated answer is not present in the
+corresponding paragraph, or (3) the model fails to
+convert the example into a cloze-style task. See
+Appendix E.1 for more details.
+
+We use the released model from Hugging Face:
+meta-1lama/Meta-Llama-3-8B-Instruct
+
+—18
+
+@ 100
+& 14
+
+c 80
+
+[0] Q
+£ 12 E
+2 60 G
+[e) ©
+IS ©
+E 40
+
+3 8 20
+
+x @ltraChat
+
+2 4 6 8 10 12
+Commonsense Reduction Rate (|)
+
+Figure 8: The upper-left region (indicated by the red
+arrow) represents the optimal balance between recall
+improvement and commonsense degradation.
+
+Training Details After the initial pretraining
+phase,* we continue training the model using sev-
+eral different datasets, including recall-intensive
+datasets such as NIAH and SQuAD from Based,
+widely used SFT dataset UltraChat (Ding et al.,
+2023), and our paraphrased dataset. Following the
+setup of Ben-Kish et al. (2024), we train the mod-
+els using a batch size of 32, a learning rate of 1e-4
+for 10 epochs. We conduct experiments with both
+hybrid models and Mamba-only models.
+
+5.2 Results
+
+Our Dataset Strikes the Best Balance Figure 8
+shows the balance between commonsense degra-
+dation and recall gains® for the 430M sequential
+hybrid model (MFSF) when trained on various
+datasets including NIAH (Kamradt, 2023), Ultra-
+Chat (Waleffe et al., 2024), or SQuAD dataset from
+
+“We also experimented with incorporating the paraphrase
+dataset during pretraining. However, we observed a degrada-
+tion in performance when doing so (see Appendix E.2).
+
+5In this section, we exclude SQUAD from Based when
+computing average recall, as it is part of the training data.
+
+
+35 —e— Mamba
+—s— DeciMamba
+Mamba + Ours
+
+2500 5000 7500 10000 12500 15000 17500
+Average Input Length
+
+Figure 9: Performance (y-axis) of Mamba, DeciMamba,
+and Mamba trained with our dataset across LongBench
+datasets with varying input lengths (x-axis).
+
+Based benchmark (Arora et al., 2024). Models
+trained on our paraphrased SlimPajama dataset con-
+sistently achieve the best balance. We attribute this
+to: (1) its alignment with the original pretraining
+distribution, preserving baseline performance; and
+(2) paraphrased content promoting the model to
+retain and utilize previous context. In contrast,
+recall-focused datasets like NIAH and Based sig-
+nificantly harm commonsense performance, while
+UltraChat offers only modest recall improvements.
+Appendix E.3 provides detailed performance. Sim-
+ilar patterns hold for Mamba models, including the
+released 2.8B version (Appendix E.4).
+
+Comparison with DeciMamba We investigate
+whether a data-centric approach can outperform
+architectural modifications by comparing our ap-
+proach with DeciMamba (Ben-Kish et al., 2024),
+which enhances recall by discarding less important
+tokens. Across 16 datasets in LongBench (Bai
+et al., 2023) using Mamba-2.8B, our approach
+achieves an average of +12.7 points overall, with
+particularly strong gains in QA tasks (+8.1 on av-
+erage). As shown in Figure 9, our approach tends
+to consistently outperform DeciMamba on medi-
+mum and long input lengths. These results suggest
+that our data-centric approach is not only comple-
+mentary to architectural change but can also show
+strong standalone performance. Full results are
+provided in Appendix E.5.
+
+5.3 Analysis
+
+To understand the benefit and affect of such ap-
+proach, we analyzed over various design choices.
+
+Generalizes to Various Base Models We ob-
+serve that our method generalizes across differ-
+ent released variants of Mamba-2.8B. Contin-
+ual training yields performance gains for the base
+
+model (+1.7 in commonsense, +6.5 in recall), as
+well as for instruction-tuned (+1.3 in commonsense,
++3.6 in recall) and preference-aligned models (+3.4
+in commonsense, +0.8 in recall). Improvements
+are generally more pronounced for the base model.
+See Appendix E.6 for model details and results.
+
+Longer chunk sizes yield stronger results We
+observe that models trained on longer sequences
+tend to achieve lower reduction rates on common-
+sense tasks and substantially higher gains on recall
+tasks, especially on long-context tasks (Figure 19 in
+Appendix)®. Training on shorter chunk sizes (e.g.,
+2k) tends to enhance performance on short-context
+recall but leads to high degradation on long-context
+tasks. This trend is robust across architectures, ap-
+pearing in both sequential and parallel hybrids, and
+holds for different model sizes. For detailed results,
+refer to Appendix E.7.
+
+Performance improves as the size of the training
+dataset increases We observe that training with
+larger datasets leads to clear gains in both common-
+sense reasoning and recall tasks: models trained
+with more tokens achieve a lower reduction rate on
+commonsense benchmarks and steadily higher im-
+provements on recall performance’. Performance
+grows with the amount of training data and begins
+to converge around 80M-100M tokens. This trend
+holds across different model sizes and hybrid archi-
+tectures. More details are in Appendix E.8.
+
+6 Conclusion
+
+In this paper, we focus on two main aspects: (1)
+studying how different architectural design choices
+(sequential, parallel) affect performance in hybrid
+models and the roles of individual components
+(SSM and Attention layers), and (2) exploring
+data-centric approaches to further improve model’s
+recall ability. Our findings show that sequential
+models offer stable training but are limited in ex-
+pressiveness, while parallel architectures better pre-
+serve the unique characteristics of each component,
+often leading to stronger performance. In particular,
+parallel hybrid models with merge-attention-based
+aggregation consistently perform well. We also
+demonstrate that continually pretraining the model
+on a paraphrased dataset effectively improves recall
+while maintaining overall model performance.
+
+SAll experiments used a fixed token count of 10M, dis-
+carding the final chunk if it does not align with the sequence
+length.
+
+"All experiments use a fixed chunk size of 4k
+
+
+Limitations
+
+Due to computational constraints, we conducted
+our experiments on relatively small model scales,
+430M and 1.3B parameters, trained with 100B to-
+kens. Pretraining a 430M-parameter model on 8
+A100 GPUs takes about one week, while a 1.3B-
+parameter model requires roughly two weeks, mak-
+ing it challenging to analyze larger-scale models.
+Notably, prior work on hybrid models has also pri-
+marily operated at similar scales (Ren et al., 2024;
+Dong et al., 2024; Yang et al., 2025). These re-
+source limitations also restricted our ability to ex-
+plore a broader range of hybrid model configura-
+tions and focus on the experimental setup described
+in the “Hybrid Model” section (Section 2). We
+leave more extensive analyses, such as incorporat-
+ing additional components like gated DeltaNet, to
+future work.
+
+References
+
+2019. Winogrande: An adversarial winograd schema
+challenge at scale.
+
+Simran Arora, Aman Timalsina, Aaryan Singhal, Sabri
+Eyuboglu, Xinyi Zhao, Ashish Rao, Atri Rudra, and
+Christopher Ré. 2024. Just read twice: closing the
+recall gap for recurrent language models.
+
+Simran Arora, Brandon Yang, Sabri Eyuboglu, Avanika
+Narayan, Andrew Hojel, Immanuel Trummer, and
+Christopher Ré. 2023. Language models enable sim-
+ple systems for generating structured views of hetero-
+geneous data lakes. Preprint, arXiv:2304.09433.
+
+Yushi Bai, Xin Lv, Jiajie Zhang, Hongchang Lyu,
+Jiankai Tang, Zhidian Huang, Zhengxiao Du, Xiao
+Liu, Aohan Zeng, Lei Hou, and 1 others. 2023.
+Longbench: A bilingual, multitask benchmark
+for long context understanding. arXiv preprint
+arXiv:2308.14508.
+
+Ali Behrouz, Peilin Zhong, and Vahab Mirrokni. 2024.
+Titans: Learning to memorize at test time. arXiv
+preprint arXiv:2501.00663.
+
+Iz Beltagy, Matthew E. Peters, and Arman Cohan.
+2020. Longformer: The long-document transformer.
+arXiv:2004.05150.
+
+Assaf Ben-Kish, Itamar Zimerman, Shady Abu-Hussein,
+Nadav Cohen, Amir Globerson, Lior Wolf, and
+Raja Giryes. 2024. Decimamba: Exploring the
+length extrapolation potential of mamba. Preprint,
+arXiv:2406.14528.
+
+Yonatan Bisk, Rowan Zellers, Ronan Le Bras, Jianfeng
+Gao, and Yejin Choi. 2020. Piga: Reasoning about
+physical commonsense in natural language. In Thirty-
+Fourth AAAI Conference on Artificial Intelligence.
+
+Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot,
+Ashish Sabharwal, Carissa Schoenick, and Oyvind
+Tafjord. 2018. Think you have solved question
+answering? try arc, the ai2 reasoning challenge.
+arXiv:1803.05457v1.
+
+Tri Dao and Albert Gu. 2024. Transformers are SSMs:
+Generalized models and efficient algorithms through
+structured state space duality. In International Con-
+ference on Machine Learning (ICML).
+
+Ning Ding, Yulin Chen, Bokai Xu, Yujia Qin, Zhi
+Zheng, Shengding Hu, Zhiyuan Liu, Maosong Sun,
+and Bowen Zhou. 2023. Enhancing chat language
+models by scaling high-quality instructional conver-
+sations. arXiv preprint arXiv:2305.14233.
+
+Xin Dong, Yonggan Fu, Shizhe Diao, Wonmin Byeon,
+Zijia Chen, Ameya Sunil Mahabaleshwarkar, Shih-
+Yang Liu, Matthijs Van Keirsbilck, Min-Hung Chen,
+Yoshi Suhara, Yingyan Lin, Jan Kautz, and Pavlo
+Molchanov. 2024. Hymba: A hybrid-head architec-
+ture for small language models.
+
+Dheeru Dua, Yizhong Wang, Pradeep Dasigi, Gabriel
+Stanovsky, Sameer Singh, and Matt Gardner. 2019.
+Drop: A reading comprehension benchmark re-
+quiring discrete reasoning over paragraphs. arXiv
+preprint arXiv:1903.00161.
+
+Mor Geva, Roei Schuster, Jonathan Berant, and Omer
+Levy. 2020. Transformer feed-forward layers are key-
+value memories. arXiv preprint arXiv:2012.14913.
+
+Paolo Glorioso, Quentin Anthony, Yury Tokpanov,
+James Whittington, Jonathan Pilault, Adam Ibrahim,
+and Beren Millidge. 2024. Zamba: A compact 7b
+ssm hybrid model. Preprint, arXiv:2405.16712.
+
+Albert Gu and Tri Dao. 2023. Mamba: Linear-time se-
+quence modeling with selective state spaces. COLM.
+
+Mandar Joshi, Eunsol Choi, Daniel S Weld, and Luke
+Zettlemoyer. 2017. Triviaqa: A large scale distantly
+supervised challenge dataset for reading comprehen-
+sion. arXiv preprint arXiv:1705.03551.
+
+Gregory Kamradt. 2023. Needle in a haystack- pressure
+testing lms. Github.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, and 1 others. 2019. Natural questions: a
+benchmark for question answering research. Trans-
+actions of the Association for Computational Linguis-
+
+tics, 7:453-466.
+
+Hyunji Lee, Sejune Joo, Chaeeun Kim, Joel Jang, Doy-
+oung Kim, Kyoung-Woon On, and Minjoon Seo.
+2023. How well do large language models truly
+ground? arXiv preprint arXiv:2311.09069.
+
+Opher Lieber, Barak Lenz, Hofit Bata, Gal Cohen,
+Jhonathan Osin, Itay Dalmedigos, Erez Safahi,
+
+
+Shaked Meirom, Yonatan Belinkov, Shai Shalev-
+Shwartz, and 1 others. 2024. Jamba: A hybrid
+transformer-mamba language model. arXiv preprint
+arXiv:2403.19887.
+
+Colin Lockard, Prashant Shiralkar, and Xin Luna Dong.
+2019. OpenCeres: When open information extrac-
+tion meets the semi-structured web. In Proceedings
+of the 2019 Conference of the North American Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies, Volume 1 (Long and
+Short Papers), pages 3047-3056, Minneapolis, Min-
+nesota. Association for Computational Linguistics.
+
+Ilya Loshchilov and Frank Hutter. 2017. Decou-
+pled weight decay regularization. arXiv preprint
+arXiv:1711.05101.
+
+Kevin Meng, David Bau, Alex Andonian, and Yonatan
+Belinkov. 2022. Locating and editing factual asso-
+ciations in gpt. In Neural Information Processing
+Systems.
+
+Jongho Park, Jaeseung Park, Zheyang Xiong, Nayoung
+Lee, Jaewoong Cho, Samet Oymak, Kangwook Lee,
+and Dimitris Papailiopoulos. 2024. Can mamba learn
+how to learn? a comparative study on in-context
+learning tasks. International Conference on Machine
+Learning.
+
+Alec Radford, Jeff Wu, Rewon Child, David Luan,
+Dario Amodei, and Ilya Sutskever. 2019. Language
+models are unsupervised multitask learners.
+
+Pranav Rajpurkar, Robin Jia, and Percy Liang. 2018.
+Know what you don’t know: Unanswerable questions
+for squad. Preprint, arXiv:1806.03822.
+
+Liliang Ren, Yang Liu, Yadong Lu, Yelong Shen, Chen
+Liang, and Weizhu Chen. 2024. Samba: Simple hy-
+brid state space models for efficient unlimited context
+language modeling. ICLR.
+
+Arnab Sen Sharma, David Atkinson, and David Bau.
+2024. Locating and editing factual associations in
+mamba. arXiv preprint arXiv:2404.03646.
+
+Daria Soboleva, Faisal Al-Khateeb, Robert Myers, Ja-
+cob R Steeves, Joel Hestness, and Nolan Dey. 2023.
+SlimPajama: A 627B token cleaned and deduplicated
+version of RedPajama.
+
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+Bhosale, and 1 others. 2023. Llama 2: Open foun-
+dation and fine-tuned chat models. arXiv preprint
+arXiv:2307.09288.
+
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+Uszkoreit, Llion Jones, Aidan N Gomez, Lukasz
+Kaiser, and Illia Polosukhin. 2017. Attention is all
+you need. Advances in neural information processing
+systems, 30.
+
+Roger Waleffe, Wonmin Byeon, Duncan Riach, Bran-
+don Norick, Vijay Korthikanti, Tri Dao, Albert
+Gu, Ali Hatamizadeh, Sudhakar Singh, Deepak
+Narayanan, and 1 others. 2024. An empirical study
+of mamba-based language models. arXiv preprint
+arXiv:2406.07887.
+
+Songlin Yang, Jan Kautz, and Ali Hatamizadeh. 2025.
+Gated delta networks: Improving mamba2 with delta
+rule. In The Thirteenth International Conference on
+Learning Representations.
+
+Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali
+Farhadi, and Yejin Choi. 2019. Hellaswag: Can a
+machine really finish your sentence? In Proceedings
+of the 57th Annual Meeting of the Association for
+Computational Linguistics.
+
+Jingwei Zuo, Maksim Velikanov, Dhia Eddine Rhaiem,
+Ilyas Chahed, Younes Belkada, Guillaume Kunsch,
+and Hakim Hacid. 2024. Falcon mamba: The first
+competitive attention-free 7b language model. arXiv
+preprint arXiv:2410.05355.
+
+
+A Preliminary
+
+A.1 Mamba and Attention layers
+
+Given an input sequence X, both Mamba layers
+and attention layers transform it into an output se-
+quence Y via a transformation matrix M: Myampa
+(Equation 1) and May, (Equation 2). The key dif-
+ference lies in how they process inputs. Mamba lay-
+ers update a recurrent hidden state h; sequentially,
+incorporating one token x; at a time. This hidden
+state serves as a compressed memory summariz-
+ing all past inputs. In contrast, Attention layers
+process the entire input sequence at once, attend-
+ing to all tokens up to the current position, thereby
+capturing dependencies without recurrence. These
+design choices yield different trade-offs. Mamba
+is more computationally efficient due to its linear-
+time recurrence but may struggle with long-range
+dependencies. Attention layers, while effective at
+modeling token-wise relationships, incur quadratic
+time and memory complexity with sequence length.
+
+YMamba = MytambaX where (1)
+Yamba = Che, hy = Ahy_1 + Bx, x, € X
+Yan = Maw X where (2)
+
+(WX) (Wk X)"
+Vd
+
+Yin = softmax ( ) (Wy X)
+
+B Related Works
+B.1 Studies on SSMs
+
+Prior work has explored state space models
+(SSMs) (Waleffe et al., 2024; Sharma et al., 2024),
+primarily focusing on their performance in lan-
+guage modeling tasks, particularly their ability to
+handle long-context dependencies. However, these
+studies typically examine pure SSM architectures
+and do not consider hybrid models. In this work,
+we conduct an empirical investigation of hybrid
+architectures that combine SSM and attention lay-
+ers. Our goal is to understand the source of their
+performance gains and the distinct roles played by
+each component.
+
+B.2 Recall Ability of Language Models
+
+Enhancing a model’s recall ability, also referred
+to as grounding ability, is a critical aspect of lan-
+guage modeling, especially in scenarios where the
+model must answer questions based on a given con-
+text, maintain strong coherence across parts of a
+
+conversation or document, or perform consistent
+reasoning over extended texts (Arora et al., 2024;
+Lee et al., 2023). This ability allows the model to
+retrieve relevant information accurately from given
+context, sustain contextual coherence, and generate
+factually grounded responses.
+
+In this paper, we define recall ability as distinct
+from the general capability to model long contexts.
+Unlike next-token prediction, recall-intensive tasks
+require the model to retrieve specific values or an-
+swers from earlier in the context, demanding pre-
+cise and accurate memory. Furthermore, evaluating
+recall ability is not limited to long-context tasks;
+it applies to any setting where exact retrieval from
+prior context is necessary.
+
+Several studies have shown that SSM-based
+models often struggle with such recall-intensive
+tasks, as they must encode prior context into fixed-
+size hidden states. This architectural constraint
+leads to a bottleneck that limits their recall perfor-
+mance (Park et al., 2024; Ren et al., 2024; Dong
+et al., 2024).
+
+C Designing a Unified Experimental
+Setup
+
+C.1 Correlation Between Evaluation Axes
+
+Figure 10 shows the detailed configuration of each
+point in Figure 2.
+
+C.2 Dataset
+
+We experiment over datasets from Arora et al.
+(2024) (Based benchmark) to calculate recall abil-
+ity. Based benchmark is comprised of eight
+datasets: NQ (Kwiatkowski et al., 2019), Trivi-
+aQA (Joshi et al., 2017), DROP (Dua et al., 2019),
+FDA (Arora et al., 2023), SWDE (Lockard et al.,
+2019), and SQuAD (Rajpurkar et al., 2018). The
+NQ dataset is further subdivided by input length
+into NQ-512, NQ-1024, and NQ-2048. To compare
+the recall ability across different sequence lengths,
+we categorize the eight datasets into two groups:
+relatively short sequences (NQ-512, DROP, Trivi-
+aQA, SQuAD) and relatively long sequences (NQ-
+1024, NQ-2048, FDA, SWDE). Using the LLaMA-
+2 tokenizer (Touvron et al., 2023), which was also
+used during training, the average input length is
+around 1k tokens for the short-sequence group and
+around 2.5k tokens for the long-sequence group.
+The Slimpajama dataset and evaluation datasets are
+released under Apache 2.0 license. We used the
+datasets for research purposes.
+
+
+on
+Nd
+
+>
+
+©
+
+IN
+
+« 81 L 4 Ya 4 >
+
+2 n 2 92
+
+‘CT 50
+
+2 T
+
+2 * 90
+
+© 49 t 4 £
+
+< 3
+
+2 ue ° * Ses
+
+c
+
+[9] *
+
+2 2
+
+c
+
+O 47 a 8.6
+
+E [=]
+
+5 5
+
+38 46 _1 84
+45 8.2
+
+13 14 15 16 17 18 19 20
+Recall Ability
+
+13
+
+® M
+Y MF
+®  M(d=2048)
+® Ms
+% MFs
+HW MSF
+A MFSF
+V SFMF
+= @ VFVFSF
+[]) < MF|SF+ MergeAttn
+* >A ® is
+* © A FSF
+Va HB vse
+ow < Xx MAS
+»  MF|SF + Proj
+14 15 16 17 18 19 20
+Recall Ability T
+
+Figure 10: Comparison of detailed model architectures on Commonsense Reasoning (y-axis on left) and Language
+Modeling(y-axis on right) vs. Recall Ability (x-axis). Commonsense Reasoning and Recall Ability are measured
+
+using answer accuracy. The models compared included Mamba-only,
+
+(Parallel).
+
+D How does the architectural design
+affect model performance?
+
+D.1 Performance at the 430M scale
+
+Table 1 presents the performance of models at a
+430M parameter scale. Figures 11 and 12 show
+the language modeling performance, measured in
+terms of perplexity on the SlimPajama validation
+set, for sequential and parallel hybrid models, re-
+spectively.
+
+D.2 Hybrid models outperform non-hybrid
+models in recall and commonsense
+reasoning
+
+Results in Figure 4 show the performance of non-
+hybrid models (Mamba, SWA) and hybrid models
+(Sequential, Parallel). We observe consistent gains
+in both commonsense reasoning and recall perfor-
+mance in hybrid models over non-hybrid ones in
+line with prior works (Ren et al., 2024; Dong et al.,
+2024; Park et al., 2024). Notably, we observe that
+recall shows a substantially larger improvement,
+with an average increase of 29.5%, compared to
+a 7.3% gain in commonsense reasoning. These
+improvements are especially prominent in long-
+context scenarios. In contrast, in short-context set-
+tings, performance differences are less pronounced,
+and hybrid models perform similarly to the SWA
+baseline.
+
+D.3 SWA as the Initial Component Improves
+Short Context Recall
+
+Figure 16 presents the average recall performance
+for both short and long sequences in the sequen-
+tial architecture. The SFMF configuration demon-
+
+, Hybrid (Sequential), and Hybrid
+
+Model
+8 MS
+—o- MFS
+—o— MSF
+—8— MFSF
+—8— SFMF
+
+Perplexity
+® © ©
+FS on >
+
+4000 6000 8000 10000
+
+Chunk Size
+
+12000 14000 16000
+
+Figure 11: Peplexity over sequence length for sequential
+hybrids
+
+Model
+—o- Mis
+
+—o- MISF
+
+—e— MFIS
+
+_@— MFISF
+
+—@— MFISF (+proj)
+~@— MF|SF(+MergeAttn)
+
+8.7
+
+!
+
+Perplexity
+
+4000 6000 8000 10000 12000 14000 16000
+
+Chunk Size
+
+Figure 12: Peplexity over sequence length for parallel
+hybrids
+
+strates stronger performance on shorter sequences.
+We hypothesize that this is because, in short con-
+texts, the input length fits within the window size
+of the SWA module, allowing it to approximate full
+attention more effectively.
+
+D.4 Trainable Aggregation Layers Improve
+Performance on Long Contexts
+
+Figure 12 presents perplexity on the SlimPa-
+jama validation dataset across different chunk
+
+
+Commonsense Reasoning Recall Ability
+
+Model Type LAM. Hella. PIQA ARC Wino. | Avg. NQ-S NQ-M  NQ-L Drop FDA SWDE TQA  SQD | Aug.
+
+M 31.7 43.1 68.2 45.2 52.6 48.1 9.6 8.7 715 11.4 1.8 14.1 38.5 18.4 3.7
+
+MF 34.2 41.6 68.6 51.8 51.0 49.4 9.2 8.8 6.3 10.4 1.1 12.3 36.0 17.0 2.6
+
+S 30.6 37.6 64.6 45.3 51.3 45.9 9.9 9.2 6.4 12.4 32 18.4 31.9 13.4 3.1
+
+SF 35.4 38.7 65.7 48.7 51.0 47.9 10.8 79 6.8 12.3 15.5 16.5 40.8 20.0 2.6
+Sequential Hybrid
+
+MS 40.8 44.0 67.2 50.0 50.9 50.6 12.6 22 8.0 11.6 14.3 26.4 41.7 20.6 8.4
+
+MEFS 34.9 41.8 67.6 44.5 53.2 48.4 10.1 8.8 7.6 11.8 14.6 21.6 37.8 19.3 6.4
+
+MSF 39.0 43.3 67.9 52.5 53.8 51.3 12.3 1.5 7.0 11.7 16.4 24.8 41.9 20.6 8.3
+
+MFSF 38.5 44.2 69.1 51.7 54.0 51.5 13.5 2.3 8.0 11.2 16.5 28.6 43.4 21.2 9.3
+
+SFMF 37.4 42.8 68.6 52.1 52.5 50.7 12.8 1.6 7.6 12.2 15.5 25.6 43.2 22.0 8.8
+
+Parallel Hybrid
+
+MIS 40.1 42.7 67.9 50.1 53.1 50.8 11.5 0.5 73 11.9 16.2 26.7 42.8 20.0 8.4
+
+MEFIS 24.5 42.5 68.3 523 51.7 47.8 11.3 1.3 72 11.6 15.5 25.6 40.9 19.6 79
+
+MISF 37.5 41.2 67.6 51.4 53.7 50.3 11.0 0.0 6.9 10.9 14.9 24.5 41.7 19.9 7.5
+
+MEFISF (Avg) 39.3 42.8 67.9 52.8 52.3 51.0 11.7 1.9 8.0 12.3 16.8 28.0 42.1 19.9 8.8
+
+MEFISF (Proj) 38.0 42.6 69.4 51.0 52.0 50.6 11.9 2.4 8.4 12.7 16.9 28.6 42.3 20.7 9.2
+
+MFISF (MergeAttn) 39.3 44.3 69.0 51.9 52.3 51.4 12.8 2.9 9.0 11.9 17.7 29.6 43.1 20.3 19.7
+
+Table 1: Model performance at the 430M scale. Model Type: M = Mamba, S = SWA, F' = FF layer. The order
+
+reflects the design sequence within each block. In parallel hybrids,
+
+"|
+
+denotes parallel branches (e.g., MISF means
+
+Mamba on one side, SWA+FF on the other). Tasks: LAM. = LAMBADA-OpenAl, Hella. = HellaSwag, ARC =
+ARC-Easy, Wino. = Winogrande, NQ-S = NQ-512, NQ-M = NQ-1024, NQ-L = NQ-2048, TQA = TriviaQA, SQD
+= SQuAD. Bold indicates the highest average performance. In both cases, the best models use hybrid architectures
+
+with merge-attention.
+
+Short Long
+25
+©
+e
+® 20 15
+IS
+S
+515 10
+o
+© 10
+of
+Ina 5
+- 5
+2
+<
+0 0
+mm M|S =em MF|S =mm MSF mmm MF|SF mmm MF|SF (+proj) EEE MF|SF (+MergeAttn)
+
+Figure 13: Comparison of average recall performance across short and long input contexts for parallel hybrids
+
+sizes. Models equipped with trainable aggre-
+gation layers, specifically MFISF (+proj) and
+MFISF (+MergeAttn), consistently outperform oth-
+ers across varying context lengths. These models
+show strong recall performance, with particularly
+notable improvements in longer ones (Figure 13).
+
+D.S Impact of Adding Feed-Forward Layers
+on Hybrid Model Performance
+
+Prior work has shown the importance of feed-
+forward (FF) layers in transformers (Geva et al.,
+2020; Meng et al., 2022). Thereby, we investi-
+
+gate their impact on hybrid models. Interestingly,
+adding FF layers to only one component, either
+Mamba or SWA, degrades performance in both
+sequential and parallel settings, and performance
+improves only when FF layers are added to both
+components. In the sequential setup (Figure 3a),
+the baseline MS outperforms MFS and MSF, but
+is lower than MFSF. Similarly, in the parallel setup
+(Figure 3b), MIS show higher performance over
+MFIS and SFIM but lower than SFIMF.
+
+We hypothesize that this degradation stems from
+feature misalignment. The effect is more pro-
+
+
+Commonsense
+
+Reduction Rate (%)
+
+20 40 60 80
+Removal Layer Depth (% from Final Layer)
+
+© SFMF ® MFSF ® Parallel
+
+—— SWA (Solid)
+
+—==- Mamba (Dashed)
+
+Figure 14: Performance degradation (y-axis) on commonsense (left) and recall (right) tasks as a function of
+the removed block’s relative position from the final block (x-axis) for sequential(SFMF), sequential MFSF) and
+
+parallel(+MergeAttn) architecture.
+
+62 30
+« | eT ET
+o 614 ®-
+c
+E L25
+3 60+ “
+© >
+g =
+@ 59 F202
+2 =
+ko) ©
+2 58 8
+[=]
+£ —@- Commonsense 15
+€ 574 -@- Recall(All)
+8 - lll: Recall(Short)
+
+je -+A- Recall(Long)
+56 10
+Mamba SWA Sequential Parallel
+
+Figure 15: Performance of best performing 1.3B scale
+models from each architecture in commonsense rea-
+soning and recall ability, where divided by length of
+context.
+
+nounced in parallel architectures, where individual
+component characteristics are preserved, making it
+harder to aggregate misaligned features. In contrast,
+sequential models integrate features into a shared
+space, mitigating this effect. Also, the performance
+drop is especially large when adding FFNs to the
+Mamba layer, possibly because its final layer (C
+in Equation 1) already functions similarly to an
+MLP (Sharma et al., 2024), making an additional
+FFN redundant or even detrimental. This aligns
+with prior findings that FFNs benefit SWA but not
+Mamba (Gu and Dao, 2023).
+
+D.6 Performance at the 1.3B Scale
+
+Table 2 presents the performance of models at the
+1.3B parameter scale. Due to computational con-
+straints, we limited our experiments to configura-
+
+tions that demonstrated strong performance at the
+430M scale. We observe consistent trends across
+both scales. Hybrid models outperform their non-
+hybrid counterparts. Among sequential architec-
+tures, the MFSF model achieves the best perfor-
+mance. Additionally, parallel architectures that use
+merge-attention layers for fusion generally yield
+the highest performance. We also observe a similar
+pattern from 430M scale (Figure 4) when com-
+paring short- vs. long-sequence settings in recall
+ability in 1.3B scale (Figure 15).
+
+D.7 Similarity between SWA and Mamba
+Output Embeddings in Hybrid Models
+
+We observe that sequential hybrids exhibit high
+similarity between SWA and Mamba outputs, es-
+pecially in the larger 1.3B model, while parallel
+hybrids show much lower similarity, particularly
+in early and middle layers. This difference arises
+from the design: sequential hybrids pass outputs
+from one component to the next, naturally aligning
+their embedding distributions. In contrast, paral-
+lel hybrids process the same input independently,
+with their outputs aggregated later, leading to more
+distinct representations.
+
+This structural difference impacts performance.
+Sequential hybrids maintain a consistent represen-
+tational space, enabling stable training and strong
+results on tasks requiring commonsense reasoning
+or handling shorter contexts. However, they strug-
+gle with longer-context tasks that require richer
+representations. Parallel hybrids, while more sensi-
+tive to aggregation strategies due to the divergence
+
+
+Commonsense Reasoning Recall Ability
+
+Model Type LAM. Hella. PIQA ARC Wino. Avg. NQ-S NQ-M NQ-L Drop FDA SWDE TQA  SQD | Aug.
+
+M 45.3 52.7 72.1 67.6 54.9 58.5 15.8 3.0 0.6 16.9 4.1 14.8 50.8 23.6 18.7
+
+SF 47.2 49.8 69.5 65.9 53.4 57.1 18.0 6.0 0.7 19.1 10.3 29.0 52.0 24.9 22.5
+Sequential Hybrid
+
+MS 48.9 48.8 69.9 65.3 54.9 57.6 17.9 54 0.3 19.3 45.9 26.4 53.8 23.1 26.5
+
+MFSF 52.9 52.6 71.9 68.5 55.4 60.3 17.6 5.6 0.9 20.0 46.2 38.6 53.7 24.7 28.4
+
+Parallel Hybrid
+MEFISF (Avg) 53.5 51.9 71.4 64.1 56.1 59.4 19.1 6.0 2.4 18.6 47.8 35.8 533 24.6 28.5
+MFISF (MergeAttn) 54.4 53.7 71.7 68.0 57.4 61.0 17.9 6.9 1.8 19.4 48.4 39.7 51.7 26.0 29.0
+
+Table 2: Model performance at the 1.3B scale. Due to computational constraints, we evaluate only those config-
+urations that performed well at the 430M scale. Model Type: M = Mamba, S = SWA, F' = FF layer. The order
+
+reflects the design sequence within each block. In parallel hybrids,
+
+"|
+
+denotes parallel branches (e.g., MISF means
+
+Mamba on one side, SWA+FF on the other). Tasks: LAM. = LAMBADA-OpenAl, Hella. = HellaSwag, ARC =
+ARC-Easy, Wino. = Winogrande, NQ-S = NQ-512, NQ-M = NQ-1024, NQ-L = NQ-2048, TQA = TriviaQA, SQD
+= SQuAD. Bold indicates the highest average performance. In both cases, the best models use hybrid architectures
+
+with merge-attention.
+
+in output spaces, can achieve better performance
+on complex tasks when trained effectively by lever-
+aging the complementary strengths of both compo-
+nents.
+
+D.8 Identifying Critical Components in
+Hybrid Blocks
+
+Figure 6 presents the performance reduction rates
+(y-axis) for commonsense tasks (left) and recall
+tasks (right) as a function of the block removed
+(x-axis, represented as the percentage depth from
+the final block). Across most configurations, the
+removal of the first block results in the highest per-
+formance degradation, indicating that early blocks
+are typically the most critical. This trend is particu-
+larly pronounced in recall tasks, where removing
+the first block often leads to performance drops of
+around 90%.
+
+To better understand the importance of compo-
+nents within each block, we analyze how the re-
+moval of specific subcomponents affects perfor-
+mance across architectures. In sequential architec-
+tures, the first subcomponent in each block plays
+the most important role. In contrast, in parallel ar-
+chitectures, the aggregation mechanism, rather than
+individual components like Mamba or SWA, is the
+most impactful. In more details, in sequential ar-
+chitectures, such as MFSF, where the Mamba layer
+is placed first, removing this initial layer leads to
+significant degradation, while removing the SWA
+layer has a milder effect. Conversely, in SFMF,
+which places the SWA layer first, the most substan-
+
+tial drop occurs when the SWA layer is removed,
+with the Mamba layer being less impactful (Fig-
+ure 14). These results suggest that the position
+of the layer (i.e., being the first) has a greater in-
+fluence on performance than the specific type of
+layer (Mamba vs. SWA). For parallel architectures,
+the impact of removing individual Mamba or SWA
+layers is less severe. Instead, the greatest degrada-
+tion occurs when aggregation mechanisms such as
+merge-attention or projection layers are changed to
+a simple average.
+
+The findings can also be related to the distribu-
+tion shift caused by each component. Sequential ar-
+chitectures exhibit the strongest distributional shift
+in the first component, making it consistently im-
+portant regardless of whether it is the Mamba or the
+SWA component. After this initial transformation,
+subsequent components tend to collapse into simi-
+lar distributions, reducing their relative impact. In
+contrast, in parallel architectures, both the Mamba
+and SWA components process the same input in-
+dependently. As a result, the distributional shifts
+introduced by each path are less pronounced, and
+the model can still form a reasonable representa-
+tion of the input even if one component is removed.
+However, the aggregation mechanism causes the
+largest distributional shift in parallel architectures.
+Replacing it with simpler methods, such as averag-
+ing, can distort the combined representation from
+the two components, resulting in significant perfor-
+mance degradation.
+
+
+Short Long
+
+25
+©
+e
+T 20 15
+IS
+S
+515 10
+o
+© 10
+of
+od 5
+- 5
+2
+<
+
+0 0
+
+mm MS mm MFS mm MSF mm MFSF mm SFMF
+
+Figure 16: Comparison of average recall performance across short and long input contexts for sequential hybrids
+
+D.9 Calculating average attending weights
+
+We calculate Mamba’s hidden attention maps fol-
+lowing Ben-Kish et al. (2024). The average attend-
+ing weight is calculated with a randomly selected
+100 samples of the validation set of Slimpajama
+of a 4k chunk. We average over all tokens and all
+layers.
+
+E Dataset Strategies to Enhance Recall
+
+E.1 Filtering the Paraphrased Dataset
+
+We apply a filtering process to the paraphrased
+dataset based on the following criteria: (1) the
+model fails to generate a valid question and an-
+swer pair, (2) the generated answer is not present
+in the corresponding paragraph, or (3) the model
+fails to convert the example into a cloze-style task,
+such as when the answer does not appear at the end
+of the sentence. Instances that do not meet these
+criteria are discarded, and the processing continues
+with the remaining examples. For all experiments,
+we maintained approximately 3k training instances
+in the training dataset to ensure a fair comparison.
+
+E.2 Introducing Paraphrased Data: Early vs.
+Late
+
+We investigate the impact of introducing para-
+phrased datasets at different stages of pretraining.
+When added early, performance deteriorates: al-
+though training loss decreases steadily, validation
+loss increases, suggesting overfitting. We hypoth-
+esize this is due to the model’s limited language
+modeling ability in the early stages, making it more
+sensitive to data quality. Additionally, deduplica-
+tion plays a critical role in preventing overfitting.
+In contrast, introducing paraphrased data later in
+the continual training stage, as the model is stable,
+
+Training Dataset | Commonsense Recall
+Original | 515 19.1
+Based (SQuAD) 45.3 22.3
+NIAH 50.4 21.6
+UltraChat 47.0 20.6
+Ours 51.2 20.4
+
+Table 3: Performance on commonsense reasoning and
+recall ability after training on the datasets listed in the
+“Training Dataset” column.
+
+we observe that it consistently improves the recall
+performance.
+
+E.3 Our Dataset Achieves the Best Balance
+Across Various Training Datasets
+
+Table 5 shows the performance on common-
+sense reasoning and recall ability after training
+on datasets on the SQuAD dataset from Based,
+NIAH, UltraChat, and Ours (paraphrased slimpa-
+jama dataset). Please note that we remove the
+SQuAD dataset when averaging the recall ability.
+
+E.4 Ours Also Shows Good Balance on
+Mamba-Only Models
+
+Figure 17 illustrates that models trained on our
+dataset (paraphrased SlimPajama) tend to achieve
+an optimal balance, compared to those trained on
+alternative datasets such as NIAH, Based, or Ul-
+traChat, when finetuned on top of the pretrained
+430M Mamba model.
+
+Along with hybrid models, we observe notable
+improvements in recall ability with minimal or
+no degradation in commonsense reasoning or lan-
+guage modeling performance when training non-
+hybrid models (models using only Mamba or
+only SWA layers) with a dataset of 4k sequence
+
+
+=30
+
+[0]
+
+5%
+
+= 20 100
+: 3
+E15 ce
+: 0 3
+© 10 «©
+2 om
+E 5
+
+go f
+
+[0]
+
+[vd
+
+[}
+[4,}
+
+-8 -6 -4 -2 0 2
+Commonsense Reduction Rate (|)
+
+Figure 17: The upper-left region (indicated by the red
+arrow) represents the optimal balance between recall im-
+provement and commonsense degradation. When train-
+ing a pretrained 430M Mamba across various datasets,
+models trained on our dataset (paraphrased SlimPajama)
+consistently achieve the best balance compared to when
+training on other datasets.
+
+length and 40 million tokens. The mamba-only
+model showed a recall improvement rate of 29.5%,
+whereas the SWA-only model showed a more mod-
+est improvement of 17.7%. This suggests that the
+Mamba-only model, despite initially exhibiting
+weak recall performance due to underdeveloped
+recall capabilities during pretraining, has signifi-
+cant potential for recall when further trained. Prior
+to our additional training, the SWA-only model out-
+performed the Mamba-only model in recall (SWA:
+13.8, Mamba: 12.5). However, after training, the
+Mamba-only model learned to better retain and re-
+call information, resulting in a recall performance
+of 17.7, surpassing that of the SWA-only model
+(16.8). Furthermore, this improvement in recall did
+not come at the cost of commonsense reasoning.
+The Mamba-only model shows a 6.87% increase in
+commonsense reasoning, whereas the SWA-only
+model shows a 2.96% decline in commonsense
+reasoning ability. These results suggest that our
+method not only benefits hybrid models but also
+improves the performance of various model archi-
+tectures, particularly those utilizing Mamba layers.
+
+E.5 Comparison with DeciMamba
+
+We evaluate performance on the LongBench
+dataset to compare our training approach with Dec-
+iMamba, using the same base model (Table 6).
+Model trained with our dataset consistently yields
+stronger results, particularly on QA datasets, with
+an average improvement of +8.1 points.
+
+E.6 Generalization Across Different
+Mamba-2.8B Variants
+
+Table 4 presents the performance of various base
+models trained using our paraphrased dataset. To
+ensure a fair comparison, we evaluate three vari-
+ants of the Mamba-2.8B model: Mamba-2.8B,
+Mamba-2.8B-Ultrachat, and Mamba-2.8B-Zephyr.
+Our results show consistent improvements in both
+commonsense reasoning and recall performance
+when using the paraphrased dataset. Notably, the
+gains are most pronounced when using the original
+Mamba-2.8B model as the base, suggesting that
+models with fewer prior instruction-tuning steps
+may benefit more from paraphrased augmentation.
+
+E.7 Length of Training Dataset
+
+As shown in Figure 18, for both sequential and
+parallel architectures and various model sizes, con-
+tinually training with longer chunk size result
+in lower reduction rate on commonsense tasks
+and higher improvements on recall tasks.
+
+Upon closer inspection (Table 5), shorter chunk
+sizes (e.g., 2k) significantly boost performance on
+short-context recall tasks but lead to notable degra-
+dation on long-context tasks. This effect is particu-
+larly pronounced in parallel models. We hypothe-
+size that this is because, as shown in Section D.4,
+parallel hybrid retains layer-wise characteristics
+more strongly than sequential models. Addition-
+ally, the gap in performance is more substantial for
+recall tasks (range of around -1% to 7%) than for
+commonsense tasks (range of around -1% to 3%).
+
+E.8 Number of training dataset
+
+Figure 20 shows the reduction rate of common-
+sense performance (left) and the improvement rate
+of recall performance (right) by the number of train-
+ing token (x-axis), trained with a chunk size of 4k.
+As the training data size increases, we observe a
+general improvement in both commonsense and re-
+call performance with convergence of around 80M
+to 100M tokens.
+
+
+Commonsense Reasoning Recall Ability
+
+Base Model Type LAM. Hella. PIQA ARC ‘Wino. Avg. NQ-S NQ-M NQ-L Drop FDA SWDE TQA Avg.
+
+Mums 69.1 49.5 75.3 64.1 63.2 63.7 31.0 28.1 21.7 20.9 29.6 41.0 64.6 33.8
+amba
+
++ Ours 67.0 64.8 76.0 68.3 62.4 65.4 41.0 37.3 27.5 315 322 41.0 71.4 40.3
+
+Mamba.U 67.0 70.5 78.6 65.9 65.2 65.6 36.3 35.0 27.7 25.7 343 50.1 70.5 39.9
+amba-
+
++ Ours 65.9 69.7 78.3 69.8 64.0 66.9 42.6 39.4 30.8 30.8 33.6 52.4 74.8 43.5
+
+Mamba Z 67.9 71.2 78.4 66.2 65.0 65.6 36.8 35.1 27.8 26.1 32.8 51.6 70.4 40.1
+
+anmba- + Ours 66.8 69.7 71.8 70.2 67.8 69.0 42.4 38.5 30.6 31.3 34.2 34.9 74.3 40.9
+
+Table 4: Performance of Mamba-2.8B when continually trained on our paraphrased dataset, evaluated across
+different base model variants. We observe consistent improvements in both commonsense reasoning and recall
+capabilities, with gains more pronounced for stronger base models (e.g., Mamba). "Mamba-U" and "Mamba-Z"
+refer to Mamba-2.8B-UltraChat and Mamba-2.8B-Zephyr, respectively.
+
+~ | LI —@— Seq (430M)
+2 3 Tt-~-o —m- Parallel (430M) _
+g “Sao -@ Seq (1.3B) =
+S -i Parallel (1.3B) @
+8
+f= ©
+o oc
+= -
+el
+2
+2 g
+o £
+wn —_
+S =
+g n
+£ &
+o
+Oo
+T T T T -1 T T T T
+2048 4096 6144 8192 2048 4096 6144 8192
+Chunk Size Chunk Size
+
+Figure 18: Commonsense reasoning reduction rate(left) and recall improvement rate(right) by changing the chunk
+size of the training dataset (x-axis).
+
+T
+o
+
+Length | Commonsense | Recall (Short) Recall (Long) Recall (All)
+
+Original | 51.5 | 22.33 16.35 19.34
+
+T
+[4]
+
+2k 50.1 24.3 16.4 19.8
+4k 50.6 23.6 16.5 19.6
+6k 51.0 23.7 17.0 19.9
+8k 51.9 24.4 17.3 20.3
+
+T
+ES
+
+T
+w
+
+Commonsense Reduction Rate |
+1
+Recall Improvement Rate T
+
+2048 4006 s144 8192 Table 5: Average commonsense and recall performance
+Veaining Daaset Chunk Size for short and long contexts as training dataset length
+(Length Column) varies in sequential hybrid (MFSF)
+
+Figure 19: Commonsense reasoning reduction rate and training.
+
+recall improvement rate by changing the chunk size of
+the training dataset (x-axis).
+
+
+Benchmark Avg Len Mamba DeciMamba Mamba + Ours
+
+2wikimqa 4887 39 9.1 8.0
+Hotpotqa 9151 15 4.5 12.5
+Musique 11214 0.9 1.7 2.3
+Narrative QA 18409 0.9 1.7 35
+Qasper 3619 5.97 8.9 8.5
+Multifield QA 4559 11.2 18.6 19.3
+GovReport 8734 9.8 14.9 15.2
+QMSum 10614 8.2 7.1 7.3
+MultiNews 2113 23.2 24.6 23.7
+TriviaQA 8209 39 12.6 36.0
+SAMSum 6258 8.6 7.3 6.9
+TREC 5177 0.5 0.5 27.0
+LCC 1235 8.1 8.7 8.9
+RepoBench-p 4206 72 11.0 10.7
+Passage Count 11141 0.0 0.5 0.0
+Passage Ret. en 9289 0.0 L.5 1.9
+
+Table 6: Performance over LongBench. Results of DeciMamba are from the paper (Ben-Kish et al., 2024).
+Mamba+Ours is model continual trained with our paraphrased dataset on the same base model (instruction-tuned
+Mamba-2.8b model). Ours tend to show high performance, especially on QA datasets.
+
+-2 18
+-
+fe) 16
+£
+S 31 F14
+@ >
+Q F122
+nd 4 3
+2 F10<
+[]
+3 ts Q
+Cc
+So -5-4 ox
+|S r6
+§
+Fa
+©
+10 20 30 40 60 80 100
+
+Number of training dataset (M)
+
+Figure 20: Commonsense reasoning and recall ability
+when changing the number of training dataset (x-axis).

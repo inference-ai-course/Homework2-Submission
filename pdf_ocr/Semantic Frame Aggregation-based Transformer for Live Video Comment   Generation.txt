@@ -1,0 +1,1816 @@
+2510.26978v1 [cs.CV] 30 Oct 2025
+
+arxiv
+
+Semantic Frame Aggregation-based Transformer for
+Live Video Comment Generation
+
+Anam Fatima, Yi Yu*, Senior Member, IEEE, Janak Kapuriya, Julien Lalanne and Jainendra Shukla
+
+Abstract—Live commenting on video streams has surged in
+popularity on platforms like Twitch, enhancing viewer engage-
+ment through dynamic interactions. However, automatically gen-
+erating contextually appropriate comments remains a challenging
+and exciting task. Video streams can contain a vast amount
+of data and extraneous content. Existing approaches tend to
+overlook an important aspect of prioritizing video frames that are
+most relevant to ongoing viewer interactions. This prioritization
+is crucial for producing contextually appropriate comments.
+To address this gap, we introduce a novel Semantic Frame
+Aggregation-based Transformer (SFAT) model for live video
+comment generation. This method not only leverages CLIP’s
+visual-text multimodal knowledge to generate comments but
+also assigns weights to video frames based on their semantic
+relevance to ongoing viewer conversation. It employs an efficient
+weighted sum of frames technique to emphasize informative
+frames while focusing less on irrelevant ones. Finally, our
+comment decoder with cross-attention mechanism to attend
+to each modality ensures that the generated comment reflects
+contextual cues from both chats and video. Furthermore, to
+address the limitations of existing datasets, which predominantly
+focus on Chinese-language content with limited video categories,,
+we have constructed a large-scale, diverse, multimodal English
+video comments dataset. Extracted from Twitch, this dataset
+covers 11 video categories, totaling 438 hours and 3.2 million
+comments. We demonstrate the effectiveness of our SFAT model
+by comparing it to existing methods for generating comments
+from live video and ongoing dialogue contexts.
+
+Index Terms—multimodal processing, text generation, live-
+video commenting.
+
+I. INTRODUCTION
+
+IVE commenting on videos has become a popular feature
+
+in live streaming platforms such as Twitch, YouTube,
+Bilibili, Facebook and Instagram. Also known as “bullet
+screen” or “danmaku”, it offers a dynamic and interactive
+experience, promoting engagement and conversations among
+viewers [1]-[3]. In contrast to traditional video comments,
+which neither reference specific moments in the video nor
+interact with one another, danmaku comments enable rich
+multimodal information interactions [4]. It fosters a dynamic
+multimodal group-chatting conversational experience involv-
+ing more than two speakers.
+
+*Corresponding author.
+
+A. Fatima, J. Kapuriya and J. Shukla are with IIIT-Delhi, India.
+Y. Yu is with Graduate School of Advanced Science and Engineering
+at Hiroshima University. J. Lalanne is with Grenoble INP —
+Ensimag, France. (e-mail: anamf @iiitd.ac.in, yiyu@hiroshima-
+u.ac.jp, julien.lalanne.travail @ gmail.com, kapuriya22032 @iiitd.ac.in,
+jainendra@iiitd.ac.in)
+
+Preprint Notice: This is the author’s preprint version of the article
+published in IEEE Transactions on Multimedia (TMM), 2025. Final version:
+https://doi.org/10.1109/TMM.2025.3604921.
+
+subscriber ads
+
+7+ [i] Tophhafn: wakey wakey iol
+
+- so happy
+
+Blizzyblake9
+'s com
+
+Fig. 1: An example of a live video with viewer chats from
+Twitch, illustrating why essential to align visual elements with
+chat references for contextual relevance.
+
+Developing multimodal conversational agents capable of
+engaging in relevant and coherent interactions has been a long-
+pursued objective in Artificial Intelligence (AI) [5]. Inspired by
+it, automatic live commenting is being explored as a challeng-
+ing testbed for AI agents requiring simultaneous understanding
+of multimodal contexts from live streams and ongoing viewer
+conversations. It poses greater challenges compared to other
+multimodal interaction tasks such as video captioning [6]—
+[8] or visual question-answering [9]-[11]. Video comments
+involve diverse user conversations, subjective opinions, re-
+actions, and discussions that can sometimes diverge from
+the live-streaming video. In contrast, video captioning fo-
+cuses on objective description of the visual content, while
+video question-answering involves retrieving factual informa-
+tion from the video itself.
+
+We see that automatically generating video comments is
+an exciting yet challenging domain, as evidenced by ongoing
+research efforts [1]-[3], [12], [13]. However, existing methods
+[1]-[4], [14], [15] overlook an important aspect: the prioritiza-
+tion of video frames that are pivotal to ongoing conversations.
+Assigning relevance to frames based on contextual comments
+ensures that the generated content reflects the true interests of
+viewers, aligning with their engagement. For instance, in Fig-
+ure 1, a Minecraft gameplay scene is shown alongside a highly
+active chat, discussing gameplay observations with multiple
+references to “Ninja” (highlighted in chats). This highlights
+the complex multimodal dependencies in such contexts, where
+comments are often reactions to the video or discussions
+among viewers. To enhance viewer engagement, it is essential
+for the model to prioritize and align the visual elements with
+
+
+these chat references (e.g., the “Ninja” avatar and its actions),
+ensuring the generated comments are contextually relevant to
+what viewers are discussing.
+
+Current approaches fail to address this by treating all video
+frames equally, without adequately prioritizing those most rel-
+evant to ongoing viewer interactions. This lack of prioritization
+often leads to generic and less engaging comments that do
+not capture the essence of the conversation. By prioritizing
+frames aligned with the conversational context, the model can
+generate targeted, accurate, and context-aware comments (such
+as “what is Ninja doing next?”) that resonate with viewer
+interests. To bridge this gap, our work introduces a novel
+technique within the live video comment generation domain to
+assign weights to video frames based on the ongoing dialogue
+context. We propose the Semantic Frame Aggregation-based
+Transformer (SFAT)! model to facilitate the extraction and
+integration of live video and context comments modalities to
+generate contextually coherent comment. Unlike prior works
+[11, [3], [4], [14], [15] that employ standard multimodal
+encoder under-utilizing interdependence of modalities, our
+approach introduces an intricate multimodal encoder employ-
+ing sophisticated weighting mechanism to prioritize frames
+based on chat-context. It leverages CLIP’s visual-text multi-
+modal knowledge to enhance video content representation and
+combines information from a series of video frames based
+on semantic similarity to the context comments. Thus, it
+efficiently utilizes both context comments and video frames
+to generate relevant and coherent comments. To demonstrate
+the efficacy of our proposed SFAT approach, we perform a
+comparative study with the Triple Transformer Encoder (TTE)
+model [1], its variants [16], [17], VideolC [4], KLVCG [2] and
+state-of-the-art multimodal LLM Video-ChatGPT [18].
+
+Most of the existing multimodal video-chat datasets [1], [3],
+[15] predominantly focus on the Chinese language content
+often sourced from platforms like Bilibili or the MovieLC
+dataset [2] from a Chinese movies platform, covering limited
+categories and lacking diversity. This underscores a clear need
+for comprehensive multimodal video comment datasets in
+other global languages catering to a broader audience, such
+as English, to support the advancement of live commenting
+technologies. To address this, we create a large-scale, diverse,
+multimodal English live-video comment dataset with popular
+categories from Twitch to help researchers and practitioners
+with advanced research in English content. Twitch is one such
+platform supporting content in multiple languages, including
+English. It has evolved beyond gaming content to include
+diverse categories like music, art, talk shows, and more, attract-
+ing a variety of content creators and viewers. Our VideoChat
+dataset, extracted from Twitch, comprises 11 categories and
+575 streamers totaling 438 hours of video and 3.2 million
+comments. The task becomes more challenging for English
+due to diverse global accents and dialects. English chats on
+live-streaming platforms exhibit significant linguistic diversity,
+including informal language, unstructured and spontaneous
+reactions, slang, gaming lingos, abbreviations, and regional
+
+"Our code and processed dataset will be publicly available on GitHub. Raw
+data can be provided upon request.
+
+variations. Training models on such a challenging dataset
+for English has been largely unexplored in previous studies,
+establishing it as a more demanding and impactful benchmark.
+Beyond video-comment generation, in the future, such
+English multimodal video-chat datasets can be extended
+for other related contextual understanding tasks like video-
+grounded conversational Al, dialogue-driven video retrieval,
+and keyframe extraction. They can be instrumental in devel-
+oping video-grounded applications, such as personal assistants,
+human-computer interaction systems, and intelligent tutoring
+systems [5] for English-speaking users. Unlike traditional NLP
+datasets with structured text and correct grammar, live-chat
+datasets feature informal language, brief reactive messages,
+and grammatical errors [19]. Such a dataset can be extended
+for advancing NLP research in informal language understand-
+ing and generation as well as multimodal temporal sentiment
+analysis and emotion detection based on viewer’s reactions.
+To this end, main contributions of our work are as follows:
+
+i) Facilitating the prioritization of keyframes by proposing
+a novel Semantic Frame Aggregation-based Trans-
+former (SFAT) model integrating video-frames and con-
+text comments to generate contextually coherent com-
+ment. It employs two primary techniques: extraction of
+video embeddings through semantic frame aggregation
+and an effective multimodal encoder.
+
+ii) Intricately designing our multimodal encoder to extract
+and combine visual and contextual dialogue modalities
+effectively based on the weighted sum mechanism. It
+leverages the CLIP’s [17] multimodal knowledge to as-
+sign weights to video frames based on their semantic
+similarity to ongoing dialogue.
+
+iii) Integrating the comment decoder with modality-specific
+cross-attention mechanism that not only aligns the
+masked target comment with contextual comment embed-
+dings from the text encoder but also incorporates visual
+information from the aggregated video frame embed-
+dings. This ensures that the generated comment reflects
+contextual cues from both chats and video.
+
+iv) Constructing VideoChat, a large-scale, diverse, multi-
+modal video content dataset extracted from Twitch in En-
+glish language, thus catering to a wider global audience
+and advancing research in English content.
+
+v) Through extensive experiments on this dataset, we
+demonstrate the efficacy of the SFAT model in leveraging
+visual-textual contexts. It lays the groundwork for future
+research with potential applications in related research
+tasks, extending beyond video-comment generation.
+
+II. RELATED WORK
+
+Live comment generation shares some similarities with
+other video analysis tasks such as video captioning [6]—
+[8], visual question-answering [9]-[11] and video summa-
+rization [20]-[22], involving video content understanding to
+generate textual information. However, automatic live video
+comment generation has unique challenges in handling multi-
+user interactions concurrently with ongoing dynamic video
+streams. The user interactions can span over diverse topics and
+
+
+styles, each characterized by unique terminology, including
+slang, emojis, and abbreviations. In contrast, the scope of
+analysis for other multimodal tasks [7], [11], [20] is usually
+confined to a question or providing objective information or
+descriptions strictly based on the video content. Furthermore,
+the language in questions, summaries, and captions is typically
+more structured and restricted compared to the broad spectrum
+of expressions found in live comments.
+
+A. Existing Methods and Research Gap
+
+The challenging task has been introduced by LiveBot [1],
+where the authors proposed a “bullet screen” benchmark
+dataset extracted from Bilibili. It is the pioneering work
+providing a benchmark for generating live-video comments
+based on multimodal inputs. It proposed a Long Short-Term
+Memory (LSTM) [23] based model for comparison and a
+unified multimodal Transformer [24] for the main architecture.
+It also introduced retrieval-based metrics appropriate for this
+task, asking the model to sort candidate comments set based
+on the log-likelihood score. Subsequent works have addressed
+various challenges and introduced improvements to this work.
+In the paper Response to LiveBot [25], the authors highlighted
+some shortcomings in the earlier work, leading to further
+investigations into optimizing the task’s results.
+
+Some other works, such as VideolIC [4] and [26], worked
+on leveraging the temporal relation between interactions for
+comment generation. VideoIC employed a multimodal mul-
+titask learning-based approach for comment generation. The
+multimodal encoding included a video encoder for generating
+both global and local representation for video frames and a text
+encoder for encoding surrounding comments. For multitask
+learning, in addition to the comment generation task, they
+introduced a temporal relation prediction task to predict the
+relation between the current time-stamp and the target time-
+stamp, whether in the left context or the right context of the
+target. However, this method requires access to both past and
+future contexts for generating comments and, hence, is not
+suitable for live-commenting tasks having access to past chat-
+context only.
+
+Notably, KLVCG [2] used a knowledge-enhanced approach
+to generate contextually rich comments for a newly con-
+structed long video dataset, MovieLC [2]. However, this
+method making use of external knowledge [27] is well-suited
+to movie datasets where factual information about characters,
+plots, and settings is crucial for generating contextually rich
+comments and may be less effective for diverse datasets like
+ours, lacking fixed narrative structures or involving sponta-
+neous interactions, such as those found in gaming content.
+
+VCM aster [3] aimed at generating diverse comments with-
+out repetitive words by enlarging the distance between gen-
+erated and contextual comments using Sentence-Level Con-
+trastive Loss. It used diversity-based metrics, such as distinct
+and contrastive loss-based scores, to measure the variety in
+generated comments instead of retrieval-based metrics, as used
+in LiveBot. While VCMaster focuses on comment diversity
+relative to available context comments, our work targets to
+generate comments aligned with the ongoing viewer interac-
+tions by prioritizing informative frames. CMVCG [28] used a
+
+non-autoregressive approach with a keywords position predict-
+ing module to generate comments. It relies on user-provided
+keywords prompt to guide comment generation, while our
+approach aims to generate coherent comments without user
+guidance.
+
+Engaging Live Video Comments Generation [13] aimed
+to generate comments that attract audience interaction by
+maximizing “like” counts. It employs contrastive learning
+loss (Semantic Gap Contrastive Loss) to push the generated
+comments closer to highly-liked examples and farther from
+lower-liked comments. It uses a dataset explicitly annotated
+with “like” counts. It may not be applicable to our dataset
+extracted from the Twitch platform, where “like” counts are
+not available for live-streaming videos. Another work, [15],
+focused on comment generation strategy for less-commented
+videos, training a multimodal transformer for different com-
+ment densities. PLVCG [14] incorporated comment posted-
+time and video-label information for improved comments
+generation.
+
+These works aimed at introducing new methodologies to
+capture temporal relations [4], improve sentence level diversity
+[3], enhance knowledge [2] or use user-prompts [28] for
+comment generation task function. Some of them focused
+on improving datasets by adding information such as “like”
+counts [13] for user-guided generation or incorporating posted-
+time [14]. As discussed above, none of the existing works
+address the prioritization of informative video-frames relative
+to chat-context to generate contextually relevant comment. The
+existing works particularly exploit standard multimodal en-
+coders for video and comments representation, under-utilizing
+interdependence of modalities and alignment of relevant visual
+features with dialogue context. We intricately designed our
+multimodal encoder leveraging pretrained CLIP [17] to obtain
+semantically-aggregated frame embeddings relative to chat-
+context for contextually relevant comment generation and en-
+hanced user-engangement. Furthermore, our comment decoder
+with a modality-specific cross-attention mechanism, not only
+aligns the masked target comment with the context comment
+embeddings from the text encoder—allowing it to incorporate
+textual cues from the chat context—but also integrates infor-
+mation from the aggregated video frame embeddings, ensuring
+the generated comment accurately reflects the visual context.
+
+B. Limitations of Existing Datasets
+
+Most datasets for live video comment generation are limited
+in scope and diversity. Prominent datasets, such as those
+introduced by LiveBot [1] and other works [3], [4], [14], [28],
+focus on Chinese-language content sourced from platforms
+like Bilibili. Similarly, the MovieLC dataset [2] in Chinese-
+language is useful for structured movie-based interactions.
+To overcome these limitations—namely the predominance of
+Chinese-language content and limited video categories, we
+have constructed a large-scale, diverse, multimodal video-
+comments dataset in English-language. Extracted from Twitch,
+this dataset covers 11 video categories, totaling 438 hours
+and 3.2 million comments. It is a valuable addition to the
+current live video comment datasets, as it is a real user-
+based dataset with pairs of videos and comments. Furthermore,
+
+
+with English-language content, it will have a broader global
+application and help researchers and practitioners with the
+advancement of live commenting technologies for English.
+It also introduces more challenges with diverse dialects and
+linguistic variations, including slang, gaming jargon, and
+informal, unstructured responses. Training models on such
+a complex dataset has been underexplored, establishing it
+as a demanding and impactful benchmark for understanding
+the semantic relationship between video streams and viewer
+conversations. Further, this dataset can be extended, in the
+future, to advance more challenging NLP research in informal
+language understanding and video-grounded multi-user con-
+versational Al applications.
+
+III. PROBLEM STATEMENT
+
+Live Comment Generation in the context of videos involves
+generating relevant and coherent comments in real-time based
+on multiple input sources, including the video content and
+existing comments from viewers. It poses several challenges:
+
+« Context Fusion: Effectively combining information from
+the video content and existing comments to generate
+contextually appropriate comments.
+
++ Coherence with Existing Comments: Ensuring that the
+generated comments are coherent with the sentiments and
+themes expressed in existing comments.
+
+« Diversity and Creativity: Striving to generate diverse
+and creative comments.
+
+Addressing these challenges will lead to the development of
+more sophisticated and effective Live Comment Generation
+systems.
+
+Let V represent the available video, and C be the set of
+existing comments on that video. The goal is to generate a new
+comment 7 that is contextually appropriate and informative.
+
+Video V can be represented as a sequence of frames
+{f1, fo, .-.; fr}, where T is the total number of frames in
+the video. To capture the video context, we extract visual
+features {v1,vq,...,or} using CLIP [17] or ResNet [16]
+model, where v; is a d,, dimensional vector representing the
+visual information from the i-th frame.
+
+The existing comments C' for a given video V form a set
+of N comments, C' = {¢1,c¢a,...,cN}, Where ¢; is the i-th
+comment. Each comment ¢; is associated with a timestamp ¢;
+that indicates the sequence in which the comment was posted
+during the video playback.
+
+The goal of Live Comment Generation is to generate a new
+comment 7 that is contextually relevant to the visual content,
+as well as coherent with the existing comments. This can be
+formulated as finding the most probable comment given the
+video and the set of existing comments:
+
+7 = argmax P(r|V, C) (1)
+
+where P(r|V,C) represents conditional probability of gen-
+erating comment r given the video content VV and existing
+comments C.
+
+An additional audio content modality is also captured in
+the dataset by converting the audio features into textual
+
+TABLE I: Mathematical Notations
+
+Definition
+
+Definition
+
+Layers in Transformer Encoder
+
+Layers in Transformer Decoder
+Hidden size of the Video Transformer Encoder
+Hidden size of the Text Transformer Encoder
+Token count for context comments text features
+
+Number of context comments considered
+Token count for response text features
+Size of the Vocabulary
+Generated Response vector
+Softmax of similarity score s;
+
+Symbol
+t Starting timestep of the extract e
+Ty Length of the context window ly
+Ts Length of the clip dy
+Video context vector dy
+
+Context comments vector Pe
+
+Latent video representation Ne
+
+Response vector Pr
+
+Aggregated frames representation dy,
+
+Latent context comments representation G
+Similarity score of video and context comments w;
+
+Symbol
+T.
+
+las
+
+representations using a speech-to-text model [29]. However, it
+was dropped from the main architecture as it did not contribute
+significantly to improving the model’s performance.
+
+IV. SEMANTIC FRAME AGGREGATION-BASED
+TRANSFORMER (SFAT) MODEL
+
+We introduce our novel model, intricately designed to in-
+tegrate video and context comments modalities for generating
+comments. Figure 2 illustrates the details of the architecture
+for our proposed Semantic Frame Aggregation-based Trans-
+former (SFAT) model.
+
+The proposed SFAT model not only extracts and combines
+visual and textual information effectively to generate com-
+ments, but also introduces a multimodal encoder. This encoder
+employs a sophisticated weighted sum of video frames to
+combine them into a single video embedding. It leverages
+CLIP’s [17] visual-text multimodal knowledge by assigning
+weights to frames based on relevance to context comments
+for generating relevant and coherent comments.
+
+A. Multimodal Encoder
+
+Our model follows a transformer-based architecture in
+which we first encode each modality into a latent represen-
+tation and then use a weighted sum of frames approach to
+predict a relevant output comment. Each modality is encoded
+through a Multi-Layer Transformer with [. layers and hidden
+dimension sizes d, and d; for video and text inputs respec-
+tively. Table I shows a summary of the notations used.
+
+Context Comments Encoder: From the timestep ¢, we
+sample n. comments in the window [t,t + T1) where Tj
+is the context window length, to produce the vector C' =
+{c1,...,¢cn.} € RPX" Each comment ¢; goes through a
+word and positional embedding and is encoded by the BERT
+[30] based Comment Transformer Encoder to get the final
+representation of the comment. We use the CLS token ¢| of
+the BERT-based embedding to get the representation of each
+comment c;. Thus, we have a hidden representation of our
+context:
+
+C'={d,...
+= {Transformer.(c;),i € [1 :n.]} € RX,
+
+/
+’ Cre
+
+Video Encoder: Given a timestep ¢, we sample one frame
+per second in the window [t,t + T1) to obtain a vector
+V ={fi1,..., fr, } of frames. Each frame is then encoded with
+a frozen CLIP [17] image encoder to obtain the representation
+Ve = {v1,...,vor,} € RT1Xdv We then add positional
+embedding to each frame before passing them through the
+
+
+Jycomment Decoder
+
+reds
+
+I
+I
+
+Feed-Forward
+
+prx dy
+
+Video Frames | [Per frame scores
+
+Embeddings
+
+Rey
+Multi-head Attention
+
+& Video Encoder
+{ty
+ra ( 0)
+> Vv,
+| Video Frames Hoses Image Encoder 31 Feed-Foward | > Mutiiead Feed-Foward | of
+L,| Ty xd,
+\ J
+
+w; Softmax
+w; vi
+
+Per frame weights
+
+CLIP's Text Encoder
+
+{en
+
+....50 hard the
+ame crashes...
+
+wi =
+
+Woo c Tile I [==
+c Ly, pee Multi-head Attention
+L _ ) Semantic Aggregated 1 1 1
+Embedding LL
+\ § Text Encoder 1/ Embedding "°°
+NG, SE
+R
+Multimodal Encod $y eainea Peete ty
+ultimodal Encoder SEE "
+
+V
+'
+@) Fixed ] p
+
+(In Training)
+
+Fig. 2: Semantic frame aggregation-based Transformer model for effectively extracting and combining visual and context
+comments modalities, and computing the weighted sum of frames for single video embedding. Here, X) represents dot-product
+
+operation and X represents aggregation.
+
+Transformer Encoder. The latent representation for video
+frames is:
+
+Vi ={v1,...,vp}
+
+= Transformer,(Vp) € RT1>d,
+
+B. Frame Aggregation-based Video Embedding
+
+It is observed in the collected dataset that the visual content
+may not always align well with ongoing user conversations,
+and contextual information from user dialogue has a greater
+influence on the generated comment, reflecting the viewer’s
+interest. Therefore, it is required to selectively emphasize the
+key-frames which are semantically similar to ongoing conver-
+sations rather than treating all frames with equal importance
+as employed in previous works. Our approach assigns weights
+to the frames embedding V] obtained from the video encoder
+based on similarity to context comments. It combines them
+efficiently into a single video embedding, focusing on the most
+relevant visual content when generating the next comment.
+
+The video frames embedding V; obtained from the video
+encoder are combined to create a single video embedding by
+computing a similarity score s; between visual and textual
+contents. The similarity score s; is calculated as the dot
+product between the video frames embedding V/ and con-
+text comments embeddings obtained using CLIP’s [17] text
+encoder. The score s; is then passed through a softmax with a
+temperature hyperparameter € acting as the argmax operation
+to obtain the weighted sum of all the frames in the video.
+
+The final aggregated frames embedding V' is represented
+below:
+
+T
+I / dy,
+V' = > w;v; € R™,
+i=1
+
+. 2)
+ee
+where w; = =r 5 [S RT %ne
+1 23
+j=1¢°
+
+Here, v} is the normalized feature vector for each frame, and
+w; represents the weight derived from softmax normalization
+
+of similarity scores s; between video frames and context
+comments.
+
+C. Comment Decoder
+
+The decoder comprising of [; layers follows a modified
+transformer architecture with cross-attention mechanisms to
+attend to each modality, namely, video and context com-
+ments. Unlike standard Transformer decoders, our comment
+decoder incorporates modality-specific cross-attention layers
+that not only align the masked target comment with con-
+textual comment embeddings from the text encoder but also
+integrate visual information from the aggregated video frame
+embeddings. This ensures that the generated comment reflects
+contextual cues from both chats and video. It takes the encoded
+representations of the context comments and the semantically
+aggregated video frames from the multimodal encoders. It uses
+them to generate the target comment selected from the re-
+sponse window [t+T4,t+1T3), denoted by R = {r1,...,7p 1}.
+
+Target Comment Processing: During training, the first
+input to decoder is the target comment R. It goes through
+a word and positional embedding layer, followed by a masked
+self multi-head attention layer to ensure that the decoder
+attends only to previously generated tokens.
+
+Remy = Embedding(R),
+Ryo = Self Attention(Remp) € RPrX de
+
+The resulting processed target comment Rg, serves as input
+for the subsequent cross-attention layers.
+
+Cross-Attention Layers: The processed target comment
+is sequentially passed through two different cross-attention
+layers, each designed to attend to a specific modality.
+
+R. = CrossAttention.(Rsq, C',C"),
+R.., = CrossAttention,(R., V',V') € RP dt
+
+x Nig
+
+
+
+CrossAttention, layer aligns the masked target comment
+with the context comments embeddings from the text encoder,
+enabling the decoder to incorporate textual cues from the chat-
+context.
+
+CrossAttention,, layer incorporates information from the
+aggregated video frame embeddings, ensuring that the gener-
+ated comment reflects the visual context.
+
+Prediction Layer: After passing R., through a Feedfor-
+ward layer, the prediction is done through a simple linear layer
+mapping the final hidden state to the vocabulary.
+
+G = Linear(FeedForward(R.,)) € RPrxds
+
+This predicts the next token in the target comment, ensuring
+coherence with the multimodal input.
+
+D. Training Setup
+
+Our model’s training process consists of two primary stages:
+
+« Pretraining: In this stage, the text encoder for context
+comments is pretrained using a masked language model-
+ing (MLM) task. Given a target text Y = {y1,..., Yn},
+a masked version Y = {g1,...,yn} is created where
+Vi,y; = [MASK] with probability p and gy; = y; with
+probability 1 —p. The model is then trained to predict the
+original tokens from the masked ones using the cross-
+entropy loss. This process enables the text encoder to
+capture the underlying semantics and structure of the
+language used in context comments:
+
+yyy [10g (p(yilth))] -
+
+« Training: In the second stage, the entire model, including
+the video and context comment encoders, as well as the
+decoder, is trained. The objective in this phase is to
+predict the target comment R from the multimodal inputs.
+The loss function is the cross-entropy loss applied to the
+entire sequence of target tokens:
+
+Lopretrain =
+
+Lain =
+
+rir [log (p(rilr<i))]
+
+For every query, rather than having the model consistently
+predict a fixed target comment, we introduce randomness
+by selecting a comment uniformly at random from the
+response window. The model is then tasked with pre-
+dicting this randomly chosen comment using the teacher-
+forcing technique. By not being bound to a single target
+for every query, the model is encouraged to generate a
+broader variety of comments, promoting richer and more
+diverse output during the generation phase.
+
+V. VIDEOCHAT DATASET
+A. Data Collection and Preprocessing
+
+The content that we propose in our dataset is extracted
+from the Twitch website. While Twitch’s main audience is
+oriented towards video game content, we try to extend our
+dataset to a wide variety of content available on the platform.
+Figure 3 shows the number of videos per category extracted
+from Twitch to construct our VideoChat dataset. Half of the
+categories correspond to popular video games on the website,
+
+Distribution of Categories
+
+World of Warcraft League of Legends
+
+Special Events Fortnite
+
+Overwatch 2
+Valorant
+
+Minecraft
+Just Chatting
+
+Art
+
+CS: Go
+
+Fig. 3: Repartition of extracted videos across the categories
+for VideoChat dataset.
+
+whereas the other half are related to a wide range of subjects
+such as music or arts which are categories that may invite the
+viewers to write longer and more coherent comments than the
+one we can usually see in video games category. We believe
+that expanding the range of categories will make the dataset
+applicable to a broad spectrum of tasks.
+
+To collect the videos, we use the following process: using
+the TwitchAPI, we first find the top viewed categories and
+manually choose 11 of them to ensure the previously explained
+diversity. Then, we retrieve in each category the top viewed
+live streams of the week for four consecutive weeks and
+filter them to get at most two videos per week of the same
+streamer. Using the open-source tool TwitchDownloaderCLI,
+we download the entirety of the comments from these videos
+and finally use these comments to find the 30 minutes with
+the highest comment density in each video and download these
+parts with the same tool.
+
+We then perform several transformations on these raw
+videos to enhance the dataset’s usability, ensure anonymity,
+and reduce the storage requirements. Each video is first
+reduced from 1080p60 to 720p5 to conserve space while main-
+taining adequate quality and frame count for various tasks.
+Each frame is then encoded into a 512-dimensional vector
+using the CLIP [17] image encoder, to anonymize the videos
+and facilitate computation. Some of our comparison methods
+also use the ResNet50 [16] model pre-trained on ImageNet
+to obtain a vector of 2048 dimensions for each video frame.
+Since most audio information in these videos corresponds to
+the streamer’s speech, we employ a pretrained Speech2Text
+model [29] to transcribe the content. Additionally, we remove
+usernames from the data to preserve privacy.
+
+Finally, each video is divided into 30-second clips and
+sampled at 1 frame per second for our task [1], [2]. Each
+clip consists of a 20-second context window and a 10-second
+response window [5].
+
+B. Dataset Analysis
+
+Our VideoChat dataset contains videos from 11 categories
+and 575 streamers for a total of 438 hours and 3.2 million
+
+
+TABLE II: Comparison among different Live Video Comment-
+ing datasets
+
+Dataset LiveBot [1]  VideoIC [4] MovieLC [2] Twitch-FIFA [5]  VideoChat
+#Videos 2,361 4.951 85 49 873
+#Comments 895,929 5,330,393 1,406,219 168,094 3,200,799
+Duration (h) 114 557 175 86 438
+
+Avg. Duration (s) 174 405 7,412 6,318 1,800
+Avg. #Comments 380 1,077 16,544 3,430 3,666
+Avg. #Words 5.42 5.39 6.53 5.55 4.02
+Comment Density (c/s) | 2.18 2.66 2.23 0.54 2.02
+Comments Type Danmu Danmu Danmu Live chat Live chat
+Language Chinese Chinese Chinese English English
+#Video Categories 19 1 1 11
+Website Bilibili Bilibili QQ Twitch Twitch
+Publication Year 2019 2020 2023 2018 .
+
+comments. It is evaluated against four other major datasets in
+the domain, as detailed in the comparative statistics presented
+in Table II. Some additional information such as the dataset
+languages, number of video categories, collection websites,
+year of publication, and others, is also provided in Table II
+
+Three of these datasets [1], [2], [4] constructed with Danmu
+comments are considered popular, but are in Chinese. The
+only other dataset available in English is Twitch-FIFA [5].
+Compared to it [5], our dataset offers a clear advantage in
+terms of dataset size, content variety, comment density, and
+overall usability. It encompasses a wide range of content and
+categories, capturing diverse English language user interac-
+tions and reactions.
+
+To the best of our knowledge, the VideoChat dataset stands
+as the largest and most diverse English video content dataset.
+The total duration of our dataset and our emphasis on seg-
+ments with the highest comment density ensures that it is
+focused on the most engaging parts of the videos, enhancing
+its relevance for studying live English-language interactions.
+By incorporating these features, our dataset provides a sub-
+stantial contribution to the field, particularly for researchers
+and practitioners focusing on the English-speaking live video
+interaction domain. To our knowledge, no other English live-
+video comment dataset is available after Twitch-FIFA [5],
+published in the year 2018.
+
+Moreover, we see that in live commenting, viewers fre-
+quently employ a diverse array of emotes, which cannot be
+handled as conventional text. To accommodate this, we have
+gathered and stored all the emotes used in the collected
+comments, resulting in a collection of 44,716 different time-
+embedded emotes.
+
+The diversity in the language used by the viewers con-
+tributes to a rich vocabulary size within the dataset, encom-
+passing 541, 811 unique words and an average of 4.02 words
+per comment. However, owing to the real-time nature of the
+comments, it is not possible to guarantee grammatical accuracy
+or the use of extended sentences by users. This extensive
+vocabulary capturing various expressions and reactions might
+pose additional challenges for model training, but also offers
+a platform to evaluate the system’s ability to understand and
+generate nuanced responses.
+
+VI. EXPERIMENTS
+A. Evaluation metrics
+
+Comment generation task is a subjective and creativity-
+driven process that does not have a definitive correct answer.
+
+Video comments vary widely, making it intractable to find all
+references for comparison to model outputs [1]. Consequently,
+existing generative evaluation metrics, such as BLEU [31]
+score or ROUGE [32] score, are not suitable for this task. A
+retrieval-based evaluation method, sorting candidate comments
+based on the log-likelihood score, better aligns with the nature
+of this task [1].
+
+Given a query (in our case, the video and comments
+contexts) and a set of candidates, retrieval metrics measure
+how well the model can retrieve or rank the relevant responses.
+Following the earlier works [1], [2], [4], [5], we evaluate our
+model’s performance using the below retrieval metrics:
+
++ Recall@K: Measures the percentage of times the true
+positive response is within the top K predictions. In
+our experiments, we compute Recall@1, Recall@2, and
+Recall@5.
+
++ Mean Rank (MR): Average rank of the positive response
+among the list of candidate responses. Lower MR indi-
+cates better performance.
+
++ Mean Reciprocal Rank (MRR): Average of the recipro-
+cal ranks of the positive responses. For a particular query,
+if the rank of the true positive response is 7, the reciprocal
+rank is 1/7. Higher MRR indicates better performance.
+
+To construct different candidate sets, we select a list of 10
+candidate responses from the entire dataset for each query. We
+adopt three methodologies for the candidate selection:
+
+1) Cosine Similarity: Potential candidate comments are
+chosen based on their cosine similarity with the chat
+context. By using this metric, we ensure that the selected
+candidates are closely related and contextually relevant
+to the context comments.
+
+2) Popularity: Comments are selected based on their fre-
+quency in a live stream, reflecting the most prevalent reac-
+tions or sentiments within the community. This approach
+captures the commonly repeated comments that resonate
+with a larger audience.
+
+3) Random: Candidates are picked at random from the
+dataset, providing an understanding of the baseline per-
+formance of the retrieval mechanism.
+
+By employing these methods, we aim to comprehensively
+view the model’s retrieval capabilities across varied selection
+criteria. Additionally, we also conducted a human evaluation
+to assess the relevance and appropriateness of the model’s
+responses with human perception and judgment.
+
+B. Comparison Methods
+
+We evaluated our SFAT model’s performance against the
+following methods: TTE model [1] and its variants, Video-
+ChatGPT [18], VideoIC [4] and KLVCG [2]. The Triple
+Transformer Encoder (TTE) model is built upon the pio-
+neering work of LiveBot [1], a representative work to ad-
+dress live video commenting. It utilizes a transformer-based
+architecture where each modality is encoded into a latent
+representation and passed to the decoder through different
+cross-attention layers to generate the output comment. The
+multimodal transformer employed by it to integrate video and
+textual contexts and its training objective aligns with our goal
+
+
+of generating contextually coherent comments by prioritizing
+the most relevant video frames. Moreover, its architecture
+inherently allows modifications to incorporate mechanisms
+such as frame weighting, making it an ideal foundation for
+building and evaluating our SFAT model. We further made
+some enhancements in the LiveBot [1] model, such as using
+CLIP [17] embedding in place of ResNet [16] for video-
+frames, dropping encoder-side attention, and adding audio
+modality.
+
+Video-ChatGPT [18] is used as another method for com-
+parison as we sought to evaluate the state-of-the-art multi-
+modal LLM for the comment generation task. It integrates
+CLIP’s visual encoding with a language generation model
+(e.g., Vicuna [33]), showcasing the power of LLMs in han-
+dling visual-text inputs. While Video-ChatGPT is designed
+for general video-understanding tasks (e.g., visual question
+answering and scene description), we extended its application
+to video commenting. To our knowledge, we are the first ones
+to employ a multimodal LLM for a video-comment generation
+task. As a widely recognized method for multimodal tasks,
+it serves as a valuable benchmark to evaluate how SFAT
+performs in comparison. The experiments conducted on this
+multimodal LLM (discussed in detail in Sections VI-E and
+VII) provide some valuable insights into its performance on
+this complex multimodal interactive task.
+
+For our research objective of generating contextually coher-
+ent comments from given video-chat input, we also selected
+the VideolIC [4] and KLVCG [2] models for evaluation and
+comparison on our dataset. Details of our comparison methods
+are discussed below:
+
+1) TTE (ResNet): For the first comparison method, we use
+ResNet for encoding the visuals in the TTE model as used
+in LiveBot [1]. It employs three separate encoders for
+each modality, namely, video-frames, context-comments
+and audio, followed by a decoder that generates the final
+comment based on multimodal inputs. The cross-attention
+mechanism between different modalities at the encoder
+side is dropped to see the effect on the results.
+
+TTE (ResNet) with cross-attention: The architecture is
+the same as the first comparison method using ResNet for
+encoding the visuals with added cross-attention mecha-
+nisms at the encoder side from context comments encoder
+to video and audio encoders, and from audio encoder to
+video encoder, respectively.
+
+TTE (CLIP): We use the same architecture as in the first
+TTE (Resnet) method but replace the Resnet visual em-
+beddings with CLIP embeddings for improved visual-text
+alignment and semantic richness in feature representation.
+TTE (CLIP) with cross-attention: It uses CLIP embed-
+dings for video frames with added cross-attention mech-
+anisms at encoder side from context comments encoder
+to video and audio encoders, and from audio encoder
+to video encoder, similar to the second TTE comparison
+method.
+
+Video-ChatGPT: It is a video-conversation based mul-
+timodal LLM that merges the pretrained CLIP visual
+encoder with the Vicuna [33] decoder to handle visual-
+text inputs.
+
+2
+
+~
+
+3
+
+~~
+
+4
+
+~~
+
+5
+
+~
+
+6) Video-IC: In its original form, VideoIC [4] relies on
+both past (left) and future (right) contexts to predict
+temporal relations. Since in our generation task we only
+consider past chat-context for target time-step generation
+without accessing future context, we used the model’s
+encoder-decoder based module for comment generation
+and adapted it to focus solely on learning temporal
+dependencies between past frames and target time-step.
+KLVCG: The original KLVCG [2] work proposed for
+movie dataset employs two types of external knowl-
+edge: the knowledge graph and the comments from
+other videos. To adapt a knowledge-enhanced model for
+our diverse dataset without any factual information, we
+used the model’s TF-IDF based strategy for knowledge
+enhancement by the comments from other videos without
+relying on knowledge graphs.
+
+7
+
+~
+
+C. Ablations Study
+
+We conducted some ablation studies to assess how different
+modalities impact model performance. We dropped the context
+comments modality to see the impact on results. Similarly,
+we also dropped the audio modality to study its contribution.
+The results are reported in Table III as TTE (drop con-
+text comments) and TTE (drop audio modality). As evident
+from the results, the audio modality does not significantly
+enhance the model’s performance (Recall@1 remains 14.48
+for the Cosine-similarity candidate set). Whereas, the context-
+comments modality plays a crucial role (Recall@1 drops to
+11.53 when this modality is removed for the Cosine-similarity
+candidate set). Further, we integrated the weighted sum of the
+frames module to the TTE model with audio modality to see
+the impact on results. The findings are reported in Table III as
+SFAT (all modalities). The results show that the performance
+improves markedly across all candidate sets in SFAT (main
+model) with audio modality dropped, compared to SFAT (all
+modalities). Details of the impact of modalities are further
+discussed in Section VI-E.
+
+D. Experimental settings
+
+For the optimal configuration of our SFAT model and
+transformer-based TTE method with its variants, we set the
+learning rate to 10~%, batch size to 32, pretrained the model
+for 100 epochs and trained it for 200 epochs. The Transformer
+encoder and decoder were configured with 4 layers, 8 attention
+heads and 256 hidden dimensions. We set the dropout to 0.1
+and choose 5 and 15 context comments during training and
+evaluation respectively.
+
+The Video-ChatGPT [18] model was trained for 2 epochs
+with a batch size of 8. It employed the Adam optimizer with
+a learning rate of 2e — 4, a warmup ratio of 0.03, and the
+temperature parameter set to 0.8. A cosine scheduler was
+applied as the learning rate scheduler for training, and the base
+model utilized is LLaVA-7B-Lightning-v1. For the VideolC
+model, we employed the Adam optimizer with a learning
+rate of 0.0001 and a weight decay of 0.001, trained for 100
+epochs (optimized at 25) with a batch size of 32. The model
+architecture featured 256-dimensional embeddings and hidden
+
+
+TABLE III: Evaluation results on the VideoChat Dataset for our proposed Semantic Frame Aggregation-based Transformer
+(SFAT) model, Triple Transformer Encoder (TTE) model [1], Video-ChatGPT [18], VideolC [4] and KLVCG [2]. R@k
+represents Recall@k, MR is Mean Rank and MRR is Mean Reciprocal Rank. Highest scores are highlighted in bold, and
+
+second-highest scores are underlined.
+
+Model Cosine Similarity Popularity Random
+
+ode R@1 R@2 R@5 MR MRR | R@l R@2 R@5 MR MRR | R@l R@2 R@5 MR MRR
+
+TTE (ResNet) 14.43 2746 5620 5.06 0.34 7.19 28.07 5735 499 0.36 1489 2696 57.83 496 0.35
+
+TTE (ResNet) with cross-attention | 14.13 26.77 5522 5.11 0.34 8.67 3044 60.72 477 038 15.44 2740 56.53 499 0.35
+TTE (CLIP) 13.96 2720 55.66 5.06 0.34 9.25 3091 59.74 480 0.38 1482 26.70 5841 493 0.35
+
+TTE (CLIP) with cross-attention 13.83 2581 56.09 5.09 0.33 6.48 27.13 5637 503 0.35 1489 27.16 57.87 495 0.35
+TTE (drop context comments) 11.53 2273 5327 528 0.31 5.82 25.87 5429 518 0.34 11.62 2282 54.18 524 031
+TTE (drop audio modality) 14.48 26.68 5631 5.07 0.34 9.77 31.02 61.65 465 0.39 15.58 27.87 5791 492 0.35
+Video-ChatGPT 11.05 2332 55.69 515 0.32 21.39 36.32 6831 4.23 042 11.94 2407 5897 497 033
+Video-IC 11.17 2148 50.52 548 0.30 691 2650 51.11 539 0.34 10.89 21.42 50.55 545 0.30
+
+KLVCG 1299 24.04 5541 515 033 28.33 43.89 7125 394 047 14.04 2651 5936 4.89 0.34
+
+SFAT (all modalities) 14.50 26.68 56.18 5.07 0.34 7.12 2852 5776 500 0.36 1478 2622 57.19 5.01 0.34
+SFAT (main model) 1530 28.61 58.11 4.95 0.35 22.25 3556 64.86 445 041 16.67 28.76 59.58 4.81 0.36
+
+states, 8 attention heads, and 6 transformer blocks, with a
+maximum sequence length of 10 tokens and a dropout rate
+of 0.1. The temporal context was modified to include only
+preceding comments and zero following comments as our
+dataset featured only preceding comments. For the KLVCG
+model, we trained it with a learning rate of 10~%, learning
+rate decay of 0.9, learning rate coefficient as 0.1, batch-size
+as 128 and external knowledge context-length of 120, obtained
+by TF-IDF based comments retrieval from other videos, for
+100 epochs.
+
+Note on inference-time overhead: The model once trained,
+enables near-instant inference for a test video sample. The
+trained model inially takes less than 4 seconds to load on
+NVIDIA A100 80G server. With the available pretrained
+CLIP embeddings for video-clips, the trained model takes
+about 344.44 seconds for generation of 2000 samples with
+an average time of 0.17 seconds per sample and total GPU
+memory usage of 2790 MiB.
+
+E. Performance Comparison with Existing Methods
+
+In Table III, we present the performance of our SFAT
+model against other comparison models: TTE [1] model and
+its variants, Video-ChatGPT [18], VideoIC [4] and KLVCG
+[2] across different metrics under various candidate selection
+methods. It provides insights into how different selection
+methods impact the model’s retrieval capabilities. We also
+provide additional experimental results to study contribution of
+different modalities, on the overall performance of the models.
+
+From Table III, we can see that our main SFAT model
+performs well across all metrics, notably for the Popularity
+candidate set where Recall@1 increased from 19.77 to 22.25,
+Recall@2 from 31.02 to 35.56, Recall@5 from 61.65 to
+64.86 and MRR from 0.39 to 0.41, compared to the Triple
+Transformer Encoder (TTE) models. The Random candidate
+set also showed a significant increase in Recall@1 from 15.58
+to 16.67 and Recall@5 from 57.91 to 59.58, compared to the
+TTE models.
+
+Moreover, SFAT performs better than all other models for
+the Cosine-similarity and Random candidate sets. For the
+Cosine-similarity candidate set, comments closely related and
+
+contextually relevant to the chat sequence are selected. Due
+to their similarity to the chat context, the model assigns them
+a high log-likelihood score, often very close to the ground
+truth, causing the ground truth to not always appear in the
+top-k ranks when sorted by log-likelihood scores. Conversely,
+comments in the Randomness and Popularity sets, selected
+randomly or by frequency, do not match the chat context very
+closely and hence would get lower scores, causing the ground
+truth to appear in top-k ranks more frequently. Thus, the model
+performs better on the Popularity and Randomness sets than
+on the Cosine-similarity set.
+
+Video-ChatGPT’s [18] performance is notably higher for
+Popular candidate comments as it is adept at capturing fre-
+quently occurring patterns in popular comments. However,
+the model’s generalization capabilities do not align well for
+the Cosine-similarity candidate set where very specific or
+less common contextual cues can be present in text. Sim-
+ilarly, it struggles to apply learned patterns effectively for
+the Random candidate set. Both these methods challenge the
+model’s capability to apply generalized knowledge effectively
+for the high specificity required by Cosine-similarity and the
+unpredictability introduced by the Random candidate selection
+method. Here, our SFAT model with the weighted sum of
+frames approach provides better contextualization, outperform-
+ing Video-ChatGPT for semantically rich and specific outputs.
+
+KLVCG [2] recalls knowledge and comments from other
+videos to enrich its inputs. The knowledge-enhanced model
+combines both local context from the immediate chat-context
+and video frames and external knowledge from similar com-
+ments in other videos. With tailored domain-specific knowl-
+edge enrichment mechanism, it performs better than Video-
+ChatGPT for the Popularity candidate-set. However, this ex-
+ternal knowledge may dilute the model’s ability to focus on
+the immediate context (e.g., unique visual or textual cues) of
+the target video. Hence, it is not performing so well for the
+Cosine-similarity candidate-set due to potential noise from less
+relevant content added during knowledge enrichment. In the
+future, we can integrate it with a better knowledge-filtering
+mechanism or dynamic weighting between the immediate
+context (current video and chat) and external knowledge for
+
+
+Related context comments:
+
+"Hi G I'm back", "kisses from rome, italy", "pizza does a body
+good", "oh im sorry, i even red it", ".... pizza this? /", "pizza does a body
+good”, "too much cheese and sauce probably lol", "too much
+sawce!!"....
+
+Generated comment:
+
+TTE: “! food bugs in the day? we know mc”
+Video-ChatGPT: “Pizza does indeed do a body good.”
+VideoIC: “don't do pizza”
+
+KLVCG: “ok but that was that was here”
+
+SFAT: “, good cheese pizza just good”
+
+Human: “Cheese to sauce ratio?”
+
+(a)
+
+Related context comments:
+
+..."awww u can do it", "face first", "the head", "yea this art ain ’ t
+H conna”, “hes so - hes so hot", "circle", "the quality went down","oh
+perfect circle”, "you got this shou”, "draw head",....
+
+i] Generated comment:
+
+TTE: “lol i just got here”
+
+Video-ChatGPT: “No problem let me try again, I”
+VideoIC: “let you love your first 211”
+
+KLVCG: “but it” s looks like a lot about”
+
+SFAT: “so good??? animation”
+
+Human: “drawing is very hard”
+
+()
+
+Related context comments:
+
+_..."yo", "hi frans", "ay d", "hi speedy’
+"i > m just done with work", "is that mistah speed:
+bread checks passed!", "streamer mans streamin"....
+
+dy to watch you",
+"12130 friendship
+
+Video-ChatGPT: “C'mon, let's watch some good”
+VideoIC: “gifting a subb™
+/CG: “you play ##list is broken”
+speedy! doing the hi”
+Human: “Senor Rapido!”
+
+(e)
+
+10
+
+Related context comments:
+....."looks cripsy", "ninja is fucking goated", "make a skin pls", "nah alot of people
+swear on the", "no ninja skin?", "what", "kinda dark", "no skin omegalul”, "it ’s nice",
+
+kdl Generated comment:
+
+TTE: “i was here pogu”
+
+Video-ChatGPT: “It's a bit dark in the area but”
+VideolIC: “he's so good”
+
+KLVCG: “k #itkon ##taw k ##kon ##a still good 7”
+SFAT: “what the ninja make?”
+
+Human: “how are you doing ninja?”
+
+(0)
+
+Related context comments:
+....."no such thing as TOO MANY airboats my man", "Just means he
+has to say airboats more", "When you air boat so hard the game
+
+crashes", "instant classic right here", "monkaS", "it’s airboat", "save
+
+the frames kill the airboats","You know what, 106 why not".....
+
+Generated comment:
+
+TTE: “airboat one more time! 1”
+
+Video-ChatGPT: “Alrighty Half day fit half dozen, recommend,”
+VideoIC: “the gg play”
+
+KLVCG: “i think the same i think i think its”
+
+SFAT: “always. try try!. run!. Remember”
+
+Human: “Airboats too strong”
+
+(d)
+
+Related context comments:
+
+", "there is only one mic", "no", "dream my
+", "they have mics lol", "what?",
+
+an she start asking question",
+
+", "ysahhhhh", "yesss niki".....
+Generated comment:
+TTE: “n0o00000000000000™
+Video-ChatGPT: “Ok guys, let' egg the real question”
+VideoIC: “she ’ s a cute to see”
+“its a #itya ya”
++ “no no nik dream yes dream”
+Human: “NIKI WHAT U DOING”
+
+(f)
+
+Fig. 4: Examples of video paired with related context comments (in black) and the generated comment for human evaluation
+
+on our proposed SFAT model (in blue) and the comparison me
+
+thods: TTE (in green), Video-ChatGPT (in red), VideoIC (in
+
+brown) and KLVCG (in purple). Human-posted comments are shown in grey.
+
+improved performance.
+
+The VideoIC [4] model shows relatively low performance
+compared to other methods as it is designed for tasks that rely
+on temporal relationships between past and future contexts.
+Without future context, the temporal prediction mechanism
+loses its effectiveness, leading to degraded performance for
+our dataset.
+
+We also observe from the results that audio modality does
+not make a substantial contribution to improving the model’s
+performance. This may arise from the audio content not
+aligning with the visuals and contextual dialogue in the dataset.
+It hinders the model’s ability to improve generation quality
+by effectively integrating visual, audio, and text correlations.
+Dropping audio modality from the SFAT (all modalities) im-
+proves the results significantly. In contrast, context comments
+modality plays a significant role, as removing it from the
+model significantly drops scores across all metrics. Hence, in
+our main SFAT model, we drop audio modality and only utilize
+context comments modality with video content.
+
+F. Human Evaluation
+
+Generating live comments from a given video is a sub-
+jective, creativity-driven process with no definitive correct
+answer. When evaluating creative comments, it is crucial to
+recognize that the goal is not to replicate a single ground
+truth reference. In some cases, a reasonable comment may
+be unfairly penalized simply because it deviates from the
+ground truth, even though it effectively aligns with the context
+
+of the live video. Consequently, such metrics may not fully
+capture the true performance or effectiveness for evaluating
+any method. To address this limitation, we additionally con-
+ducted a human evaluation to assess the relevance, fluency,
+and correctness of the generated comments.
+
+Figure 4 shows some samples of the generated comments
+selected from different video categories for human evaluation.
+Given the input video sample and related context comments,
+we asked five human annotators to score the responses of
+the five models (TTE, Video-ChatGPT, VideolC, KLVCG
+and SFAT ) and the human-posted comments based on three
+aspects: Fluency, Relevance, and Correctness [1]. Fluency
+is intended to evaluate whether the generated comments are
+fluent regardless of their relevance to the videos. Relevance
+focuses on assessing the relevance between the generated
+comment with the context comments and the video content.
+Correctness aims to assess how confident we can be that the
+generated live comments look close to human-generated in
+the context of the video. For each of the three aspects, we
+require an integer between 1 and 5 as score, with higher
+scores indicating better performance. The final results are
+then calculated by averaging the ratings from the 15 human
+annotators.
+
+The examples shown in Figure 4 highlight the challenging
+task of correlating video frames with viewer comments. SFAT
+attempts to generate comments that align with the context
+comments and video content. For instance, in the first example,
+it generates comments about the “cheese pizza” discussed in
+
+
+TABLE IV: Human evaluation metrics results on the test-set
+samples (higher is better).
+
+Model Fluency | Relevance | Correctness
+TTE 3.11 2.73 2.87
+Video-ChatGPT 3.35 2.85 2.75
+VideolIC 3.15 2.96 3.02
+KLVCG 2.14 2.16 2.12
+SFAT 3.33 3.92 3.83
+Human 3.81 3.97 4.03
+
+chat-contexts and visible in the video-frame. The nuanced
+understanding of both the visual content and the context aids
+in generating dynamic responses, capturing the essence of the
+conversation. In other examples (b) and (f), it generates a
+comment about the “ninja” avatar and “niki” being discussed
+in the chat-context. As discussed earlier, certain comments (for
+samples (b) and (f)) generated by KLVCG can contain some
+irrelevant content from external knowledge. Overall, we see
+that, compared to other models, SFAT generates context-aware
+comment that resonate with the viewer’s interest, instead of a
+generic response.
+
+Table IV presents the results of the human evaluation. Our
+model performs better than the other comparison methods:
+TTE, Video-ChatGPT, VideolC and KLVCG, for Relevancy
+and Correctness metrics as it prioritizes relevant frames than
+treating all frames with equal importance. Video-ChatGPT
+performs slightly better than our model in Fluency metrics
+because, being an LLM-based model, it has been trained on
+a large human-language corpus, which enhances its linguistic
+fluency. We also assess the reference comments in the test
+set, which are posted by humans. The results indicate that
+these human-posted comments generally score good across all
+metrics, particularly for Correctness. Live-video comments are
+typically made in real-time environment and reflect immediate,
+unfiltered reactions. Viewers might respond to specific mo-
+ments in the video, interact with other users, or even discuss
+unrelated topics, leading to a wide range of content in the
+comment section, often in informal language. Due to the spon-
+taneity and diversity of live interactions, they may not always
+be very fluent or directly related to the video content, making
+relevant comment generation a challenging task. Compared
+to other methods, the Relevance score of our model is very
+close to the human-posted comment, demonstrating its ability
+to generate improved contextually relevant comment using
+semantic frame-aggregation mechanism.
+
+G. Evaluation on LiveBot Chinese Dataset
+
+The primary goal of this work is to prioritize relevant frames
+from ongoing conversations to generate contextually aligned
+comments and build a diverse multimodal video-commenting
+dataset in a global language such as English. While we do
+not aim to develop a language-agnostic model, the proposed
+semantic weighted-sum approach can be extended to datasets
+in other languages with appropriate modifications. To train our
+model on the existing Chinese dataset, the following changes
+are required: using Chinese BERT embeddings for text and a
+Chinese-Clip model for visuals, followed by the semantically
+aggregated frame-embeddings mechanism. We evaluated our
+
+11
+
+SFAT model on the LiveBot dataset using available processed
+data with ResNet embeddings and without MLM-based pre-
+training. We obtained following results on LiveBot Chinese
+dataset: Recall@1: 17.41, Recall@2: 31.74, Recall@5: 67.99,
+MR: 4.44 and MRR: 0.39 using candidate-set of 10. The
+results are comparable with our model's performance (in
+Table III) on the English VideoChat dataset, demonstrating
+its versatility and adaptability for content beyond the English
+language.
+
+VII. LIMITATIONS AND FUTURE WORK
+
+Overall, live video comment generation is a relatively com-
+plex task requiring integrating video modality with multi-user
+comments. Our current work has some limitations, and we
+would like to address future research directions.
+
+Multi-user comments can be ambiguous and semantically
+diverse, as users may react differently to video events, re-
+spond to previous comments, or engage in dialogues, some-
+times independent of the live-streaming. Due to the intricate
+multimodal context and ambiguous content, there are some
+inherent limitations to improving the model’s performance
+beyond a certain score. The task becomes more challenging
+for English due to diverse global accents and dialects. Using
+slang, abbreviations, and gaming lingo in viewer conversations
+presents challenges for the model in accurately interpreting
+their meanings. It can also be difficult for the audio-to-text
+model to make accurate transcriptions. Another challenge in
+the dataset is that conversations sometimes diverge from the
+video content and focus more on ongoing dialogue. This makes
+it difficult for the model to correlate visual and textual ele-
+ments effectively, leading to suboptimal performance without
+the weighted frames approach.
+
+Moving forward, we aim to refine our dataset and enhance
+our model to handle better the nuanced demands of live
+comment generation across code-mixed languages and other
+multi-lingual datasets, enriching viewer engagement. Future
+enhancements in the transformer-based model will focus on
+optimizing attention mechanisms for the three modalities and
+improved integration techniques, capturing the nuances of
+emotes, slang, and informal expressions. Further, we will
+enhance our VideoChat dataset quality by adding more contex-
+tual details about the video, increasing the average comment
+length, and incorporating temporal sequences to capture con-
+versations over time.
+
+Most of the works in multimodal LLMs [18], [34] have
+focused on video-centric tasks such as visual question an-
+swering or video understanding with predefined queries and
+structured inputs. However, there is scope for exploring their
+potential in other complex multimodal interactive tasks, such
+as live video commenting, involving diverse and informal user-
+generated content.
+
+VIII. CONCLUSION
+
+In this research, we embarked on the intricate task of video
+comment generation in relevance to ongoing viewer conversa-
+tions. By introducing the Semantic Frame Aggregation-based
+Transformer (SFAT) model, our work effectively addresses the
+
+
+overlooked problem of prioritizing relevant video frames in
+alignment with ongoing viewer interactions. This prioritization
+ensures the generation of comments that are more coherent
+and engaging compared to traditional approaches that treat all
+video frames equally.
+
+Additionally, while previous datasets were limited to
+Chinese-language content, we developed a large-scale, diverse,
+multimodal English video comments dataset. It will cater to a
+wider global audience, supporting researchers and practition-
+ers in advancing video-commenting technologies for English
+content. Furthermore, we conducted extensive quantitative
+experiments and human evaluation on the existing methods,
+along with a state-of-the-art multimodal LLM, to demonstrate
+the effectiveness of the SFAT model in utilizing frame prior-
+itization to generate contextually relevant comments. We also
+demonstrated the adaptability of our semantic frame aggre-
+gation approach to Chinese-language content, highlighting its
+versatility beyond the English dataset. The insights gained
+have deepened our understanding of the complexities and
+limitations involved in this challenging task, thereby paving
+the way for future research in developing more advanced live
+commenting systems.
+
+IX. ETHICAL CONSIDERATIONS
+
+To mitigate the ethical risks associated with generating fake
+video comments, when employed on real-time platforms, a
+label can be included to distinguish Al-generated comments
+from human-posted ones, ensuring that viewers are aware of
+the source of the comments. Moreover, our current work fo-
+cuses on benign video categories such as video games, music,
+and arts, primarily focusing on user engagement, where ethical
+risks are generally less severe. However, stricter oversight
+will be required when applying this methodology to more
+serious content that influences public opinion, education, or
+other critical areas. Therefore, to ensure its ethical use, we
+will restrict the usage of our method and make our model
+available to the AI community, contributing to the responsible
+development of Al-generated comments from video content.
+
+X. ACKNOWLEDGEMENT
+
+Anam Fatima has been supported by the Center for Design
+and New Media (A TCS Foundation Initiative supported by
+Tata Consultancy Services) at IIIT-Delhi and partially funded
+for this work by the NII International Internship Program
+2023, Tokyo, Japan. We acknowledge Arnesh Batra’s valuable
+support in benchmarking the performance of our model.
+
+REFERENCES
+
+[1] S. Ma, L. Cui, D. Dai, F. Wei, and X. Sun, “Livebot: Generating live
+video comments based on visual and textual contexts,” in Proceedings
+of the AAAI Conference on Artificial Intelligence, vol. 33, no. 01, 2019,
+pp. 6810-6817.
+
+[2] J. Chen, J. Ding, W. Chen, and Q. Jin, “Knowledge enhanced model
+for live video comment generation,” arXiv preprint arXiv:2304.14657,
+2023.
+
+[3] M. Zhang, G. Luo, Y. Ma, S. Li, Z. Qian, and X. Zhang, “Vcmaster:
+Generating diverse and fluent live video comments based on multimodal
+contexts,” in Proceedings of the 31st ACM International Conference on
+Multimedia, 2023, pp. 4688-4696.
+
+[4
+
+=
+
+[5]
+
+[6
+
+[7
+
+[8
+
+[9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+15
+
+16
+
+17
+
+18
+
+19
+
+20
+
+21
+
+22
+
+23
+
+24
+
+12
+
+W. Wang, J. Chen, and Q. Jin, “Videoic: A video interactive comments
+dataset and multimodal multitask learning for comments generation,” in
+Proceedings of the 28th ACM International Conference on Multimedia,
+2020, pp. 2599-2607.
+
+R. Pasunuru and M. Bansal, “Game-based video-context dialogue,”
+in Proceedings of the 2018 Conference on Empirical Methods in
+Natural Language Processing, E. Riloff, D. Chiang, J. Hockenmaier,
+and J. Tsujii, Eds. Brussels, Belgium: Association for Computational
+Linguistics, Oct.-Nov. 2018, pp. 125-136. [Online]. Available:
+https://aclanthology.org/D18-1012
+
+L. Zhou, Y. Zhou, J. J. Corso, R. Socher, and C. Xiong, “End-to-end
+dense video captioning with masked transformer,” in Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recognition (CVPR),
+June 2018.
+
+K. Lin, L. Li, C.-C. Lin, FE. Ahmed, Z. Gan, Z. Liu, Y. Lu, and L. Wang,
+“Swinbert: End-to-end transformers with sparse attention for video
+captioning,” in Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), June 2022, pp. 17 949-17 958.
+X. Gu, G. Chen, Y. Wang, L. Zhang, T. Luo, and L. Wen, “Text
+with knowledge graph augmented transformer for video captioning,”
+in Proceedings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), June 2023, pp. 18941-18951.
+
+J. Lei, L. Yu, M. Bansal, and T. L. Berg, “Tvqa: Localized, compo-
+sitional video question answering,” arXiv preprint arXiv:1809.01696,
+2018.
+
+T. M. Le, V. Le, S. Venkatesh, and T. Tran, “Hierarchical conditional
+relation networks for video question answering,” in Proceedings of the
+IEEE/CVF conference on computer vision and pattern recognition, 2020,
+pp. 9972-9981.
+
+Z. Yang, N. Garcia, C. Chu, M. Otani, Y. Nakashima, and H. Takemura,
+“Bert representations for video question answering,” in Proceedings of
+the IEEE/CVF Winter Conference on Applications of Computer Vision
+(WACV), March 2020.
+
+Z. Zhang, Z. Yin, S. Ren, X. Li, and S. Li, “Dca: Diversified co-attention
+towards informative live video commenting,” in Natural Language
+Processing and Chinese Computing: 9th CCF International Conference,
+NLPCC 2020, Zhengzhou, China, October 14-18, 2020, Proceedings,
+Part II 9. Springer, 2020, pp. 3-15.
+
+G. Luo, Y. Ma, M. Zhang, J. Huang, S. Li, Z. Qian, and X. Zhang,
+“Engaging live video comments generation,” in Proceedings of the 32nd
+ACM International Conference on Multimedia, 2024, pp. 8034-8042.
+Z. Zeng, N. Gao, C. Xue, and C. Tu, “Plvcg: A pretraining based
+model for live video comment generation,” in Pacific-Asia Conference
+on Knowledge Discovery and Data Mining. Springer, 2021, pp. 690—
+702.
+
+H. Wu, F. Pitié, and G. Jones, “Cold start problem for automated live
+video comments,” in Proceedings of the Third Workshop on Multimodal
+Artificial Intelligence, 2021, pp. 54-62.
+
+K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image
+recognition,” in Proceedings of the IEEE conference on computer vision
+and pattern recognition, 2016, pp. 770-778.
+
+A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal,
+G. Sastry, A. Askell, P. Mishkin, J. Clark et al., “Learning transferable
+visual models from natural language supervision,” in International
+conference on machine learning. PMLR, 2021, pp. 8748-8763.
+
+M. Maaz, H. Rasheed, S. Khan, and F. S. Khan, “Video-chatgpt: Towards
+detailed video understanding via large vision and language models,”
+arXiv preprint arXiv:2306.05424, 2023.
+
+C. Ringer, M. A. Nicolaou, and J. A. Walker, “Twitchchat: a dataset for
+exploring livestream chat,” in Proceedings of the Sixteenth AAAI Con-
+ference on Artificial Intelligence and Interactive Digital Entertainment,
+ser. AIIDE’20. AAAI Press, 2020.
+
+J.-H. Huang, L. Murn, M. Mrak, and M. Worring, “Gpt2mvs: Generative
+pre-trained transformer-2 for multi-modal video summarization,” in Pro-
+ceedings of the 2021 International Conference on Multimedia Retrieval,
+2021, pp. 580-589.
+
+M. Narasimhan, A. Rohrbach, and T. Darrell, “Clip-it! language-guided
+video summarization,” Advances in neural information processing sys-
+tems, vol. 34, pp. 13988-14000, 2021.
+
+B. Zhao, M. Gong, and X. Li, “Hierarchical multimodal transformer to
+summarize videos,” Neurocomputing, vol. 468, pp. 360-369, 2022.
+
+S. Hochreiter and J. Schmidhuber, “Long short-term memory,” Neural
+computation, vol. 9, no. 8, pp. 1735-1780, 1997.
+
+A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez,
+L. Kaiser, and I. Polosukhin, “Attention is all you need,” Advances in
+neural information processing systems, vol. 30, 2017.
+
+
+[25
+
+[26
+
+[27
+
+[28
+
+[29
+
+[30
+
+[31
+
+[32
+
+[33
+
+[34
+
+H. Wu, G. J. Jones, and F. Pitie, “Response to livebot: Generating live
+video comments based on visual and textual contexts,” arXiv preprint
+arXiv:2006.03022, 2020.
+
+H. Wu, G. J. FE Jones, and F. Pitie, “Knowing where and what to
+write in automated live video comments: A unified multi-task approach,”
+in Proceedings of the 2021 International Conference on Multimodal
+Interaction, 2021, pp. 619-627.
+
+Z. Wang, J. Zhang, J. Feng, and Z. Chen, “Knowledge graph embedding
+by translating on hyperplanes,” vol. 28, no. 1, 2014.
+
+Z. Zeng, C. Tu, N. Gao, C. Xue, C. Ma, and Y. Shan, “Cmvcg:
+Non-autoregressive conditional masked live video comments generation
+model,” in 2021 International Joint Conference on Neural Networks
+(IJCNN), 2021, pp. 1-8.
+
+A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and
+I. Sutskever, “Robust speech recognition via large-scale weak super-
+vision,” in International Conference on Machine Learning. PMLR,
+2023, pp. 28492-28518.
+
+J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, “BERT: Pre-
+training of deep bidirectional transformers for language understanding,”
+in Proceedings of the 2019 Conference of the North American
+Chapter of the Association for Computational Linguistics: Human
+Language Technologies, Volume 1 (Long and Short Papers), J. Burstein,
+C. Doran, and T. Solorio, Eds. Minneapolis, Minnesota: Association
+for Computational Linguistics, Jun. 2019, pp. 4171-4186. [Online].
+Available: https://aclanthology.org/N19-1423
+
+K. Papineni, S. Roukos, T. Ward, and W.-J. Zhu, “Bleu: a method for
+automatic evaluation of machine translation,” in Proceedings of the 40th
+annual meeting of the Association for Computational Linguistics, 2002,
+pp. 311-318.
+
+C.-Y. Lin, “Rouge: A package for automatic evaluation of summaries,”
+in Text summarization branches out, 2004, pp. 74-81.
+
+W.-L. Chiang, Z. Li, Z. Lin, Y. Sheng, Z. Wu, H. Zhang, L. Zheng,
+S. Zhuang, Y. Zhuang, J. E. Gonzalez et al., “Vicuna: An open-source
+chatbot impressing gpt-4 with 90%* chatgpt quality,” See https://vicuna.
+Imsys. org (accessed 14 April 2023), vol. 2, no. 3, p. 6, 2023.
+
+Y. Li, C. Wang, and J. Jia, “Llama-vid: An image is worth 2 tokens in
+large language models,” arXiv preprint arXiv:2311.17043, 2023.
+
+13

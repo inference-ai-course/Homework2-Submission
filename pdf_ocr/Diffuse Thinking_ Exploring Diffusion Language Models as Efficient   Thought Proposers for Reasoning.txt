@@ -1,0 +1,1919 @@
+2510.27469v1 [cs.CL] 31 Oct 2025
+
+arXiv
+
+Diffuse Thinking: Exploring Diffusion Language Models as Efficient Thought
+Proposers for Reasoning
+
+Chenyang Shao”
+Fengli Xu
+
+Sijian Ren*
+Yong Li
+
+Department of Electronic Engineering, BNRist, Tsinghua University, Beijing, China
+fenglixu@tsinghua.edu.cn
+
+Abstract
+
+In recent years, large language models (LLMs) have witnessed
+remarkable advancements, with the test-time scaling law con-
+sistently enhancing the reasoning capabilities. Through sys-
+tematic evaluation and exploration of a diverse spectrum of
+intermediate “thoughts”, LLMs demonstrate the potential to
+generate deliberate reasoning steps, thereby substantially en-
+hancing reasoning accuracy. However, LLMs’ autoregressive
+generation paradigm results in reasoning performance scal-
+ing sub-optimally with test-time computation, often requir-
+ing excessive computational overhead to propose thoughts
+while yielding only marginal performance gains. In contrast,
+diffusion language models (DLMs) can efficiently produce
+diverse samples through parallel denoising in a single forward
+pass, inspiring us to leverage them for proposing intermediate
+thoughts, thereby alleviating the computational burden associ-
+ated with autoregressive generation while maintaining quality.
+In this work, we propose an efficient collaborative reasoning
+framework, leveraging DLMs to generate candidate thoughts
+and LLMs to evaluate their quality. Experiments across diverse
+benchmarks demonstrate that our framework achieves strong
+performance in complex reasoning tasks, offering a promis-
+ing direction for future research. Our code is open-source at
+https://anonymous.4open.science/r/Diffuse-Thinking-EC60.
+
+Introduction
+
+Since the explosive popularity of ChatGPT, transformer-
+based large language models (LLMs) have received unprece-
+dented attention, becoming a research hotspot and spark-
+ing a wave of applications. Influential models such as GPT-
+40 (OpenAl 2024a), Llama 3 (Meta 2024), and Deepseek-
+V3 (Liu et al. 2024), which adopt a decoder-only transformer,
+as well as encoder-decoder models like ChatGLM (GLM et al.
+2024), all adhere to the autoregressive generation paradigm.
+This paradigm necessitates a forward pass computation se-
+quentially for each token decoded, leading to significant in-
+ference cost concerns that remain a primary challenge.
+Moreover, many existing methods to enhance the reasoning
+accuracy of LLMs, such as Chain-of-Thought (CoT) (Wei
+et al. 2022) and Tree-of-Thought (ToT) (Yao et al. 2023),
+can be seen as attempting to scale greater token reasoning
+spaces to achieve higher reasoning accuracy. Recent work by
+OpenAl (OpenAl 2024c) has brought test-time scaling into
+
+“These authors contributed equally.
+
+Game-of-24
+
+w=
+
+Use 4
+numbers,
+apply +-*/
+
+to obtain 24
+
+oN
+
+Proposed
+Thought
+
+Input
+
+Layer .. Layer Layer .. Layer Tokens
+1 K-1 K N
+
+Autoregressive LLM Decode Sequentially
+x xX Proposed Thoughts
+
+3
+Decode /
+0.75]
+
+Diffusion Language Model Generate Tokens in Parallel
+
+Figure 1: Comparison of generation in DLM and LLM:
+DLMs generate in parallel, producing multiple tokens si-
+multaneously, while LLMs generate sequentially, one token
+at a time.
+
+the spotlight, garnering significant attention within the aca-
+demic and professional communities. This paradigm shifts
+the allocation of computational resources and time from the
+pretraining phase to the inference phase. Specifically, the
+reasoning models think more before the response, exploring
+a richer space of intermediate thoughts. By iteratively propos-
+ing diverse reasoning thoughts and coupling this process with
+systematic evaluation and optimization strategies, the models
+are able to improve their reasoning performance (Xu et al.
+2025; Kong et al. 2025).
+
+However, this shift comes at a significant cost, as exempli-
+fied by OpenAI’s ol model (OpenAl 2024b), which requires
+a hundredfold increase in token consumption to solve a single
+problem, thereby exacerbating the already substantial com-
+putational and monetary costs associated with large-scale
+generative models. Since generating tokens is more compu-
+tationally demanding than processing inputs, the process of
+proposing thoughts constitutes the primary computational
+load, motivating us to explore whether there exists a method
+capable of efficiently generating reasoning proposals.
+
+The advancement of diffusion language models (DLMs)
+offers a promising direction, characterized by their efficient
+thought-proposing capabilities. As shown in Figure 1, un-
+like LLMs which generate tokens sequentially and are con-
+strained by their step-by-step, left-to-right nature, DLMs can
+
+
+produce multiple tokens simultaneously through reverse de-
+noising. DLMs parallelize the denoising process effectively,
+enabling them to simultaneously generate multiple proposals.
+Moreover, while LLMs employ a uniform generation process
+for all tasks regardless of difficulty or quality requirements,
+DLMs can dynamically adjust their denoising steps, enabling
+a flexible trade-off between generation quality and speed
+tailored to the specific demands of the task.
+
+These advantages position the DLM as a promising ap-
+proach for proposing diverse proposals efficiently. On the
+other hand, while LLMs incur high output costs, they demon-
+strate relatively efficient input processing, as any length of
+text input can be processed and stored through a single for-
+ward pass. Combined with their strong semantic understand-
+ing capabilities, LLMs are well-suited to serve as evaluators,
+assessing and filtering intermediate reasoning proposals. This
+collaborative approach between the two models mitigates
+information loss in DLMs while enhancing the overall rea-
+soning process. In contradistinction to speculative decoding,
+which performs token-level mimicry followed by per-token
+verification, the DLM-LLM collaboration is instantiated at
+the level of entire reasoning thoughts, engendering a syner-
+gistic co-reasoning paradigm.
+
+However, directly employing existing DLMs as proposers
+for complex reasoning tasks presents several challenges. First,
+the collaboration mechanism between DLM and LLM is still
+unclear and the respective strengths of each model are not
+well understood. Second, while DLMs have certain advan-
+tages as proposers due to their ability to generate tokens in
+parallel, they are also prone to information loss during the
+generation process, as shown by information theory analysis.
+LLMs acting as an evaluator can mitigate the information loss
+that occurs when DLMs generate proposals. Informed by the
+aforementioned theoretical derivations, we propose a novel
+collaborative reasoning framework, “Diffuse Thinking” (DT).
+Specifically, we demonstrate that the parallel generation ca-
+pabilities of DLMs, when employed as proposers, combined
+with the evaluation and filtering capabilities of LLMs acting
+as evaluators, result in a more efficient and accurate reasoning
+process. To optimize this collaborative dynamic, we meticu-
+lously design the interaction between DLMs and LLMs. By
+focusing on single-step reasoning, DLMs can produce more
+relevant and accurate proposals. These proposals are subse-
+quently evaluated by LLMs in their capacity as evaluators,
+allowing them to select the most promising solutions. We
+further create single-step data specifically for targeted fine-
+tuning of DLMs in their role as proposers, thereby enhancing
+their ability to generate high-quality reasoning thoughts.
+
+We conduct extensive experiments on four logical and
+mathematical benchmarks. Across various benchmarks, the
+framework consistently outperforms baseline models in terms
+of accuracy while also achieving higher throughput. Specif-
+ically, the average accuracy and throughput of reasoning
+increase by 5% and 10%, respectively, compared to the most
+accurate baselines. Our contributions can be summarized in
+three points:
+
+* We design a novel framework that combines DLM and
+LLM, where DLM is used to efficiently propose many
+proposals, which are subsequently evaluated by LLM.
+
+* We theoretically reveal the sources of the advantages
+of our collaborative framework through information-
+theoretic and computational complexity analyses, demon-
+strating that it holds significant potential and is effective
+in practice.
+
+We validate the proposed framework across diverse log-
+ical and mathematical benchmarks, demonstrating that
+its synergistic design can achieve both higher reasoning
+accuracy and increased throughput simultaneously.
+
+Related works
+Test-time scaling law in LLM reasoning
+
+The reasoning ability of large models is crucial for their ap-
+plication (Shao et al. 2024). Pre-training once ruled LLM
+reasoning; recent work (OpenAl 2024c; Zhong et al. 2024)
+shows inference-time compute, yields large gains. This has
+led to the emergence of the Test-Time Scaling Law. Through
+exploration and experimentation, researchers (Wang et al.
+2024; Zhang et al. 2024; Qin et al. 2024) have converged on
+a consistent implementation framework: Decompose prob-
+lems, sample many thoughts, score a trained verifier (such
+as PRMs), and guide search (e.g., MCTS) (Snell et al. 2024;
+Xie et al. 2024). Among these steps, the generation of a large
+number of thoughts constitutes the primary computational
+and time cost. This drives the need to develop an efficient
+method for proposing reasoning thoughts. Existing methods
+primarily rely on the autoregressive generation capabilities
+of LLMs (Shao et al. 2025a,b), which are computationally in-
+tensive, our work introduces a novel collaborative framework
+that leverages the parallel generation capabilities of Diffusion
+Language Models (DLMs) to efficiently propose reasoning
+thoughts.
+
+Diffusion language models
+
+Diffusion models have garnered increasing attention in the
+field of text generation. To adapt the continuous diffusion
+latent space to the discrete nature of text tokens, two primary
+categories of DLMs have emerged: Discrete DLMs corrupt
+tokens via Markov transitions (Zou, Kim, and Kang 2023;
+Hoogeboom et al. 2021; Zheng et al. 2023; Lou, Meng, and
+Ermon); continuous DLMs embed tokens and apply Gaus-
+sian noise. Both achieve strong results in MT, dialogue, sum-
+marization and controllable text (Li et al. 2022). These ap-
+proaches have been applied to tasks such as machine trans-
+lation (Nachmani and Dovrat 2021), controllable genera-
+tion (Han, Kumar, and Tsvetkov 2022; Li et al. 2022), dia-
+logue (Gong et al. 2022), and text summarization (Zhang, Liu,
+and Zhang 2023), demonstrating their potential in natural lan-
+guage processing. Beyond traditional NLP tasks, diffusion
+models are also being explored for complex reasoning. Pre-
+trained models like Plaid (Gulrajani and Hashimoto 2024)
+and SEDD (Lou, Meng, and Ermon 2023) have shown text
+generation capabilities comparable to autoregressive mod-
+els of similar scale. Efforts to tackle reasoning tasks include
+Diffusion-of-Thought (Ye et al. 2024b), which integrates
+chain-of-thought reasoning into diffusion models, and work
+by (Ye et al. 2024a), which enhances training efficiency
+
+
+through token-level reweighting, achieving strong perfor-
+mance on tasks like Sudoku. However, the latter remains
+limited to numeric tokens, lacking general text understand-
+ing. LLADA(Nie et al. 2025) and DiffuLLaMA (Gong et al.
+2024) scale the DLMS to a size of 7-8B parameters. Mercury
+Coder(Khanna et al. 2025), a novel commercial-scale diffu-
+sion large language model for coding applications, achieves a
+remarkable generation speed of up to 1000 tokens per second,
+significantly outperforming traditional autoregressive mod-
+els in terms of efficiency. These advancements highlight the
+potential of diffusion models as a versatile tool for language
+processing and reasoning tasks. Our work builds on these
+advancements by proposing a novel collaborative framework
+that combines the parallel generation capabilities of DLMs
+with the strong semantic evaluation capabilities of LLMs.
+
+Preliminaries
+
+We begin by providing a formal description of the generation
+processes for DLMs and LLMs, establishing a foundation for
+the subsequent complexity analysis.
+
+Diffusion language models
+
+Forward diffusion process Given an input token se-
+
+quence = = [z(V,..., z(F)], mapped to embeddings © =
+[z(D,...,z(F)], the forward noising process at step t is de-
+fined as:
+
+Tt = VV To + Vv 1-— QE,
+where a; = I, aj, € ~ N(0,1), and oy = 1— 3; controls
+the noise schedule.
+
+Reverse generative process The reverse denoising process
+is modeled as a Markov chain. At each step ¢, the model
+predicts the noise 4 (+, t) and computes the denoised mean:
+
+Cy = (C0)
+Ho Tt, = Tt —€9 (Tt, .
+(e7 1— (a7
+The reverse process iteratively samples 2;_; from
+po(Z¢—1|%+) until Zg is obtained.
+
+Autoregressive large language models
+Inference process For an input sequence z<! =
+[#1,22,..., 2'71], the model predicts the next token z¢ by
+
+computing:
+p(xt|x<"; 0) = softmax(Wh<' +b),
+
+where h<t = Transformer (z=?) is the hidden state produced
+by a Transformer decoder or encoder-decoder, depending on
+the specific architecture, and W, b are model parameters. The
+joint probability of the sequence is:
+
+n
+
+p(x) = JJEC |z<t; 0).
+
+t=1
+
+Text generation proceeds iteratively, sampling tokens until an
+end token or maximum length is reached.
+
+Symbolic definition of network layer architecture
+
+As the subsequent discussion encompasses the derivation of
+the model’s computational complexity and time complexity,
+which will involve specific network layers, we establish a
+unified notation as follows: Assume the input text token
+length for the reasoning task is L;,, and the output length
+of the language model is Ly. For DLM, L;, = Loy. We
+require each model to generate K proposals. Moreover, we
+denote the transformer model dimension as I, embedding
+dimension as F, number of attention heads as H, number of
+Transformer blocks as NV, vocabulary size as V/, and number
+of denoising steps as 7.
+
+Methodology
+
+In this section, we introduce the proposed collaborative frame-
+work that integrates the DLM and LLM for problem-solving.
+The DLM leverages its strength in efficient parallel genera-
+tion by progressively denoising candidate proposals, while
+the LLM excels in comprehensive semantic understanding,
+enabling it to evaluate these proposals and provide well-
+reasoned selections. The overall framework follows an it-
+erative stepwise optimization paradigm: the reasoning prob-
+lem is naturally decomposed into several subproblems. For
+each subproblem, the DLM explores extensively by gener-
+ating multiple candidate thoughts through diverse inference
+and solution attempts. The LLM then evaluates and filters
+these thoughts, selecting the most promising ones to be incor-
+porated into the solution. This process continues iteratively,
+with the framework repeatedly proposing and evaluating until
+getting the final answer.
+
+DLM as thought proposer
+
+Computational complexity derivation of DLM For DLM,
+since the input and output lengths are fixed and equal, the
+computational complexity is primarily determined by the
+denoising transformer network layers and the number of
+denoising steps. For 1" denoising steps, the total FLOPs for
+the DLM can be expressed as:
+
+D
+Fon = (2:8 (121-0 2.22. 3)
+
+42.L.-D-E4+2.-L-(D+2-E).v) ©
+=0 (TL?
+For a more detailed derivation, please refer to Appendix.
+
+Considering the parallel generation of K samples, the overall
+computational cost becomes:
+
+pum) = K+ Fpm (2)
+
+Parallelization efficiency However, in actual computa-
+tions, when generating K proposals, the generation time does
+not increase linearly by a factor of K. For DLMs, the input
+and output lengths of multiple samples are the same, and the
+number of denoising steps remains identical. This setting en-
+ables fully parallel denoising. We define a parallel efficiency
+factor 8 to model the efficiency gains from parallelization,
+causing the time complexity to scale sublinearly:
+
+Town =O (Kppy- LT). 0SB<1 (3)
+
+
+Please propose next steps.
+
+from these proposals:
+
+Proposal;|1 — 0.75 = 0.3
+Proposal, 6/1=6
+Proposalz[1 — 0.75 = 0.25
+
+DLM Proposing Proposals
+
+Proposal;|1 — 0.75 = 0.3
+
+[Task]
+3/4 = 0.75
+
+Proposal, 6/1=6
+Proposals|l — 0.75 = 0.25
+
+Evalation
+
+Reasoning:
+The third proposal is
+correct, non-redundant,
+
+LLM Evaluating
+
+Select the best one
+
+and highly promising for
+reaching 24.
+
+Selection: Proposal 3
+
+Figure 2: Our proposed framework. The DLM efficiently generates multiple reasoning thoughts in parallel, exemplified by the
+Game of 24. These thoughts are then evaluated and selected by the LLM, which selects the most promising proposal.
+
+Parallel-time complexity. All matrix multiplications in-
+side self-attention and MLP are parallelizable over the se-
+quence dimension L, since the DLM processes the entire
+sequence simultaneously in forward passes. Assuming ideal
+hardware that provides O(L) parallel lanes, the wall-clock la-
+tency per denoising step collapses to the longest dependency
+path, yielding
+
+" KP .L2.T
+15, - o Kou LT) = OK} LT). C)
+
+Thus, under sufficient parallelism, the latency is linear in T'
+and linear in L, while the total FLOPs still scale as O(L?T).
+
+Computational complexity derivation of LLM In con-
+trast to DLM, the computational cost of LLMs is determined
+by both their backbone architecture and the variable length of
+output text. We denote the per-head dimension as: dj, = L.
+Considering KV-cache, the computational complexity of
+LLM can be expressed as:
+Flow = (2-D-V +24-N-D?) - Lou
++(2+424-N-D)-D- Ly,
+D
+F4.-N-
+H
+For a more detailed derivation, please refer to Appendix.
+When generating K samples, the complexity scales by a
+factor of K and is further affected by the length of the longest
+generated sequence:
+
+Tim = O( Kiam (LZ ymax + Lit + Lin Low) )
+
+= O (Kim L?)
+
+Sequential-time complexity. Unlike diffusion language
+models, autoregressive language models generate tokens one
+by one; each new token depends on all previously generated
+tokens. Consequently, self-attention and MLP layers cannot
+be parallelized across the sequence dimension Loy, even
+under ideal hardware.
+
+We also computationally demonstrate that K prs can
+reach 16 times as much as Kj ys for the same model ar-
+chitecture, computational resources, parameter sizes, and
+
+out 7
+
+: (LZ, } L? f Liy, : Lout)).
+
+®
+
+input/output lengths while best fitting our experimental setup.
+The above are all derived results considering KV-cache for
+LLM. If the KV-cache is not considered, the computational
+cost of the LLM increases rapidly as the sequence length
+increases, due to the cubic dependence on L,, while the
+computational cost of the diffusion model remains low. For a
+more detailed derivation, please refer to Appendix.
+
+The comparison of DLM and LLM highlights the signifi-
+cant advantage of DLM’s parallel generation, which inspires
+us to fully leverage the parallelism of DLMs to replace LLMs
+for proposing a number of thoughts, thereby greatly improv-
+ing inference efficiency. Assuming that the DLM generates
+M thoughts in parallel, then the denoising process can be
+defined as follows:
+
+P = {Denoised;) (Zo) | j = 1,...,M} (6)
+
+“Denoised” represents the process in which DLM grad-
+ually denoises from noise and generates final outputs. The
+equation as a whole indicates that DLM generates M thoughts,
+which are placed in a set P for subsequent derivation.
+
+LLM as thought evaluator
+
+The underlying mechanisms of inference in LLMs and DLMs
+differ fundamentally. For LLMs, with the support of KV
+cache, the process of handling inputs and generating tokens
+is separated into two phases. In the first phase, known as
+prefill, LLM processes all input tokens in parallel to initialize
+the KV cache, performing a single forward pass to output
+the first token. The second phase is decoding, where the
+model generates subsequent tokens one by one, requiring
+a forward pass for each generated token. The existence of
+these two phases explains why input tokens are cheaper than
+output tokens in current LLMs. However, for DLMs, handling
+inputs and generating outputs cannot be separated, and there
+is no advantage in processing inputs more efficiently than
+generating outputs. This indicates that LLMs exhibit high
+efficiency in processing input. Regardless of the input text
+length, an LLM only requires a single forward pass to encode
+the entire input into the initial state of the attention memory.
+This advantage is not present in DLMs, which inspires us
+to leverage LLMs as evaluators to assess and filter a large
+number of proposed thoughts. Moreover, LLMs inherently
+
+
+possess strong general semantic understanding capabilities,
+enabling them to identify the most promising and correct
+proposal from a set of candidates.
+
+Specifically, once the DLM generates a set of candidate so-
+lutions, LLM can be leveraged to evaluate and select the most
+appropriate one, taking into account the context provided by
+the problem and the proposals. The evaluation process can
+be formulated as follows:
+
+The LLM receives a prompt that includes the problem g¢,
+the candidate solutions P, and relevant guidance. The model
+then predicts both the most suitable solution index ¢* and the
+corresponding reasoning r in a unified process by computing
+the joint probability distribution:
+
+prim (i*, lq, P; 0) @))
+
+Here, i* represents the chosen solution index, and 7 is the
+reasoning behind the choice. This formulation encapsulates
+both solution selection and reasoning generation in a single
+model evaluation. This formulation enables the LLM to pro-
+vide both a solution and an explanation in one inference pass,
+significantly reducing computational overhead compared to
+evaluating each candidate solution individually.
+
+DLM-LLM collaborative reasoning framework
+
+Finally, we integrate the powerful capability of the DLM to
+efficiently generate diverse solutions with the reasoning and
+comprehension abilities of the LLM. By leveraging an itera-
+tive propose-evaluate tree-structured reasoning framework,
+we construct a highly efficient and comprehensive inference
+system. The overall process proceeds as follows: First, the
+diffusion model generates a set of candidate solutions P by
+
+reversing the noise from the initial noisy states Fad ) for each
+7 =1,..., M. After generating the candidate solutions, the
+problem input q is concatenated with P to form a prompt for
+the LLM.
+
+The LLM then evaluates all the candidates in one inference
+step, predicting the most suitable solution index ¢* and pro-
+viding the corresponding reasoning r. The selected solution
+is the one with the highest probability:
+
+it = arg max prim (ilg, P;0) 3)
+
+Finally, the selected solution z* is obtained as z* = z;«, and
+the reasoning r provides an explanation for the selection.
+
+We present a theoretical analysis that elucidates the funda-
+mental limits of error in diffusion language models from an
+information-theoretic perspective. Specifically, the per-step
+information loss AI, is defined as the difference between the
+model’s estimated mutual information and the true mutual
+information:
+
+Aly = Tingep( Xe Xi—1) — I(X4| X—1) > 0. ©)
+
+This loss quantifies the information about the dependencies
+between tokens x! within step ¢ (given X;_1) that is omitted
+by the model.
+
+Let [gear (X™*; Xo) be the mutual information achievable by
+an ideal T-step diffusion process (without the independence
+assumption), and Jingep (X*; Xo) be the mutual information
+achieved by the model using the independence assumption.
+
+The total accumulated information loss is:
+
+TotalLoss(T, L) = ideal (X; Xo) — Tingep (X™; Xo) > 0
+(10)
+This total loss reflects the cumulative impact of the per-step
+losses AI; across all denoising steps. We derive the following
+inequality using Fano’s inequality (Scarlett and Cevher 2019):
+
+Higeat(X™ | Xo) + TotalLoss(T, L)
+< H(Epige(T, L)) + Epige(T, L) log (|X| — 1). (11)
+
+TotalLoss(T, L) denotes the total accumulated information
+loss, while Hjgea1(X*|X0) represents the conditional entropy
+of the ideal denoising process. Ep;s¢(T, L) = P(X, # X*)
+denotes the final error probability, and X is a finite set of
+possible values for X*. A detailed derivation of this inequal-
+ity is provided in Appendix. This indicates that the lower
+bound of error in the diffusion language models is affected
+by the loss of information in the parallel prediction tokens,
+which is expected to increase as L increases. By integrating
+the diverse solution generation capabilities of diffusion mod-
+els with the global reasoning capabilities of large language
+models (LLMs), the proposed framework systematically op-
+timizes the solution for each step, narrowing the gap with the
+correct answer for that step. The LLM not only selects the
+optimal solution but also ensures transparency by providing
+a detailed explanation of its choice.
+
+Learning to propose thoughts
+
+To further elicit the intrinsic capability of DLMs for con-
+tinuous and incremental problem-solving through training,
+we meticulously design the construction of the training data.
+Specifically, for each reasoning task, we perform task de-
+composition, breaking down the complete reasoning process
+into sub-tasks that are more manageable and relatively easier
+to solve. Each sub-task corresponds to a specific and practi-
+cal reasoning thought, such as computation, concatenation,
+transformation, and so forth. Each ground truth thought is
+obtained through a search-based approach, where we explore
+and traverse the entire solution space. Ultimately, we filter
+and retain the most accurate and promising thoughts to be
+included in the dataset. Each thought constitutes a part of the
+solution, effectively advancing the problem-solving process.
+For each training instance, the input consists of the problem
+description of the reasoning task along with the preceding
+reasoning thoughts, while the output is the next reasoning
+thought.
+
+This dataset construction approach encourages our DLM
+to spontaneously adopt step-by-step reasoning to tackle prob-
+lems and propose the next-step reasoning thoughts. The DLM
+can perform parallel denoising on a batch to effectively gen-
+erate multiple next-step thoughts, forming a set of candidate
+proposals. These proposals are then evaluated and filtered,
+with one or several selected to proceed, enabling the iterative
+process of proposing and filtering until the problem is solved.
+
+Experiments
+We test the comprehensive reasoning performance and reason-
+ing efficiency of our proposed framework on four challenging
+logical benchmarks, and compared them with baselines.
+
+
+Table 1: Performance of our proposed framework(DT).
+
+Solutions Game of 24
+
+Trip-Planning GPQA ARC-C
+
+(Proposer + Evaluator) Acc ThroughtPut
+
+Acc ThroughtPut| Acc ThroughtPut| Acc ThroughtPut
+
+Llama3-8B + Llama3.3-70B  |0.12 0.30
+Mistral-7B + Llama3.3-70B 0.08 0.41
+Deepseek-7B + Llama3.3-70B 0.12 0.36
+
+DT(LLADA-8B + Llama3.3-70B)|0.12 0.48
+DT(Dream-7B + Llama3.3-70B) (0.13 0.45
+
+Experimental setup
+
+Benchmarks: We select the Game-of-24, GPQA, ARC-C
+and Trip-Planning problems as our evaluation benchmarks.
+Game-of-24 requires using four given numbers to compute
+the number 24 through addition, subtraction, multiplication,
+and division, assessing both fundamental arithmetic skills and
+the ability to maintain a global logical perspective through-
+out the reasoning process. GPQA presents a PhD-level task
+that demands identifying the single correct answer among
+four choices in biology, physics, or chemistry, foregrounding
+retrieval of rare factual knowledge, chaining of multi-step
+scientific reasoning, and resistance to subtle, expert-designed
+distractors. ARC-C tasks the solver with electing the single
+valid choice from four elementary-level science options, spot-
+lighting common-sense induction, unseen domain transfer
+over distant concepts, and immunity to surface-level semantic
+mirages. Trip-Planning entails composing a uniquely-valid
+multi-city itinerary under deterministic flight-connectivity
+and day-level duration constraints, foregrounding implicit
+constraint propagation, cross-domain temporal reasoning.
+
+For the Game-of-24 , we exhaustively enumerated num-
+ber combinations and employed a backtracking approach to
+solve it. We considered all non-repetitive, diverse solutions,
+resulting in a dataset of 168,046 24-point problems, with
+the maximum value for the four numbers limited to 30. For
+GPQA benchmark, we used the original dataset from (Rein
+et al. 2024). For ARC-C, we used the the challenge set from
+the original dataset from (Clark et al. 2018). For trip planning,
+we used the 3-city subset of the original dataset from (Zheng
+et al. 2024). All the datasets used and created in this paper
+will be open-sourced at the project link.
+
+Metrics Acc With the exception of the Game-of-24, all
+other benchmarks possess a unique solution. We compare
+the generated results against the ground truth to compute the
+accuracy of reasoning. For the Game-of-24, in addition to
+verifying whether the final result equals 24, we also scrutinize
+the correctness of the intermediate steps, such as whether all
+four numbers have been utilized adequately and whether each
+computational step is free from errors.
+
+Throughput Furthermore, adhering to a broad experimen-
+tal setup, we employ throughput as a metric to measure the
+number of samples processed per minute (it/min) during in-
+ference with a batch size of one, thereby evaluating the time
+efficiency of the framework in problem-solving.
+
+Time To intuitively demonstrate efficiency, we adopt time
+as the measurement standard in single step evaluation, mea-
+suring the average time (in seconds) used during inference.
+
+0.04 0.23 0.32 0.13 0.80 0.49
+0.07 0.18 0.33 0.19 0.81 0.57
+
+Table 2: Quality of single step proposals
+
+Models Game of 24 |Trip-Planning] GPQA ARC-C
+pass@5 Time [pass@5 Time [pass@5 Time |pass@5 Time
+Llama3-8B | 0.15 6.43] 0.33 42.12] 0.55 78.28] 0.88 28.32
+Mistral-7B | 0.065 4.76 | 0.33 40.62| 0.25 49.94) 0.83 18.88
+Deepseek-7B| 0.125 18.06] 0.36 38.94| 0.33 55.71) 0.85 15.21
+LLaDA-8B | 0.165 2.16 | 0.60 23.86 0.57 10.19) 0.87 13.25
+Dream-7B | 0.185 3.97 | 047 2991] 0.56 28.48 0.89 18.31
+
+Pass@5 To examine the quality of the thoughts, we mea-
+sure the probability that at least one of the five proposals is
+correct for a single sub-question.
+
+Baselines
+
+Given that the parameter count of the DLM model falls
+within the range of 7 and 8 billion, to ensure a fair compar-
+ison, we restrict our consideration to LLM models with pa-
+rameters close to 8 billion. Ultimately, we select the recently
+released and widely recognized models: Llama3-8B (Meta
+2024), Mistral-7B (Jiang et al. 2023) and Deepseek-7B (Bi
+et al. 2024) as proposers. We configure the evaluation model,
+Llama3-70B (Meta 2024), to assess the thoughts generated
+by each proposer.
+
+Implementation details In inference, the number of sam-
+pling steps 1" is dynamic. This demonstrates the flexibility
+of Diffusion LM and improves the efficiency of proposal
+generation. We set T' = 8 for Game-of-24, T' = 64 for
+GPQA Trip-Planning and ARC-C. In the sections pertaining
+to Main results and Quality of proposals, our DLM leverages
+two open-source DLMs, specifically Dream (Ye et al. 2025)
+and LLADA (Nie et al. 2025). We finetune our model on
+one NVIDIA A100-80G GPUs with a batch size of 2, and
+the sampling process is also conducted on a single NVIDIA
+A100-80G GPU. Our DLM is finetuned based on the pre-
+trained discrete diffusion language model, LLADA (Nie et al.
+2025). During finetuning, we set the learning rate to le-5 and
+the maximum sequence length to 4096.
+
+Main results
+
+The comparison between our proposed method and the base-
+line results is presented in Table 1. In Table 1, DLM has not
+been fine-tuned.
+
+Under the same evaluator, our framework achieves compa-
+rable accuracy to the baseline model while attaining a higher
+throughput, demonstrating improved generation efficiency.
+Notably, on the Trip-Planning benchmarks, our framework
+exhibits a clear advantage in accuracy, highlighting the capa-
+bility of DLMs as proposers to generate high-quality reason-
+ing thoughts on par with LLMs.
+
+
+Pass@k for Different Models (Game of 24)
+
+Llama3-8B
+Mistral-7B
+Deepseek-7B
+LLaDA-8B
+Dream-7B
+
+brit
+
+Fass@k
+
+0.10
+0.05
+2 a 6 fi 10
+
+(a) Game of 24
+
+Pass@k for Different Models (GPQA)
+
+—e— Llama3-8B
+—e— Mistral-7B
+—e— Deepseek-7B
+0s{ —— LLaDA-8B
+—e— Dream-78
+
+04 ys
+03 So
+2 3 [3 : To
+
+Pass@k
+
+(c) GPQA
+
+Pass@k for Different Models (Trip-Planning)
+
+—e— Llama3-8B
+06, —e— Mistral-7B
+—e— Deepseek-7B
+—e— LLaDA-8B
+051 —e— Dream-7B
+
+(b) Trip planning
+
+Pass@k for Different Models (ARC-C)
+
+—e— Llama3-8B
+—e— Mistral-7B
+
+0901 —e— Deepseek-7B
+—o— LLaDA-8B
+——
+
+Dream-7B
+
+0.85
+
+2 a 6 fi 10
+k
+
+(d) ARC-C
+
+Figure 3: Proposal accuracy scaling with varying proposal quantities (1-10) across different benchmarks.
+
+Quality of proposals
+
+Furthermore, to examine the quality of the thoughts proposed
+by the DLM without finetuning, we omitted the LLM evalu-
+ator and independently assessed the quality of the thoughts
+generated by several proposers. The results in Table 2 clearly
+demonstrate that on different benchmarks, the quality of rea-
+soning generated by DLM is better than that of the baseline
+models or at least comparable to the baseline models. The
+average accuracy advantage exceeds 10%, and the generation
+efficiency is also notably better, with an average through-
+put advantage surpassing 15%. This fully corroborates our
+previous complexity analysis of the DLM and LLM models.
+
+Scaling of Proposals
+
+In this section, we conduct an in-depth analysis of the 7est-
+time Scaling properties of the DLMs, focusing on how rea-
+soning performance scales with the number of generated
+proposals. Specifically, we analyze the trade-off between
+reasoning accuracy and compute time by examining how
+varying the number of proposed thoughts impacts the single-
+step performance. We randomly select 100 tasks and con-
+ducted small-scale experiments by incrementally increasing
+the number of proposals from 1 to 10.
+
+The results, presented in Figure 3, show that increasing
+the number of proposals continuously enhances reasoning
+accuracy. However, after reaching 8 the rate of improvement
+gradually levels off and approaches a deterministic maxi-
+mum. This indicates that there exists a threshold in the trade-
+off between benefit and efficiency. Beyond this threshold,
+increasing the number of proposals results in diminishing
+
+improvements in inference accuracy. Through this analysis,
+we aim to identify the optimal operating points that balance
+computational resources with performance gains.
+Learning to propose thoughts
+
+0.30 0.90
+m= Acc (Game-of-24)
+
+m= Acc (ARC-C) 0:88
+
+: 082
+5
+010 0.80 ©
+ES
+0.05 078
+0.76
+0.00
+
+use? oe soe et cred Et
+Ne
+
+°
+No
+bl
+
+Accuracy (Game-of-24)
+°
+G
+
+Re i)
+
+Figure 4: Performance improvements on different bench-
+marks after fine-tuning.
+
+In this subsection, we demonstrate the significant perfor-
+mance improvements achieved by fine-tuning our model on
+two benchmarks: ARC-C and Game of 24. Figures 4 illus-
+trates the performance gains on the ARC-C and Game of 24
+datasets, respectively. As shown in the figures, the model’s
+performance on the ARC-C dataset increased from 13% to
+21% after fine-tuning, while on the Game of 24 dataset, the
+performance improved from 83% to 87%. These results un-
+derscore the effectiveness of fine-tuning DLM as an effi-
+cient proposer in enhancing our framework’s reasoning and
+problem-solving capabilities.
+
+Conclusion
+
+This paper proposes integrating DLMs with LLMs to tackle
+complex logical and mathematical reasoning. By using DLMs
+
+
+to propose effective subproblem solutions and leveraging
+LLMs for evaluation and selection, the framework improves
+reasoning accuracy and efficiency.
+
+References
+Alibaba. 2024. Tongyi Qianwen 2.5 is officially released.
+Author, N. N. 2021. Suppressed for Anonymity.
+Bi, X.; Chen, D.; Chen, G.; Chen, S.; Dai, D.; Deng, C.;
+Ding, H.; Dong, K.; Du, Q.; Fu, Z.; et al. 2024. Deepseek
+Ilm: Scaling open-source language models with longtermism.
+arXiv preprint arXiv:2401.02954.
+Clark, P.; Cowhey, L.; Etzioni, O.; Khot, T.; Sabharwal, A.;
+Schoenick, C.; and Tafjord, O. 2018. Think you have solved
+question answering? try arc, the ai2 reasoning challenge.
+arXiv preprint arXiv:1803.05457.
+Cobbe, K.; Kosaraju, V.; Bavarian, M.; Chen, M.; Jun, H.;
+Kaiser, L.; Plappert, M.; Tworek, J.; Hilton, J.; Nakano, R.;
+Hesse, C.; and Schulman, J. 2021. Training Verifiers to Solve
+Math Word Problems. arXiv:2110.14168.
+
+Deng, Y.; Prasad, K.; Fernandez, R.; Smolensky, P.; Chaud-
+hary, V.; and Shieber, S. 2023. Implicit chain of thought
+reasoning via knowledge distillation. arXiv preprint
+arXiv:2311.01460.
+
+Duda, R. O.; Hart, P. E.; and Stork, D. G. 2000. Pattern
+Classification. John Wiley and Sons, 2nd edition.
+
+Gan, Z.; Liao, Y.; and Liu, Y. 2025. Rethinking External
+Slow-Thinking: From Snowball Errors to Probability of Cor-
+rect Reasoning. arXiv preprint arXiv:2501.15602.
+
+GLM, T.; Zeng, A.; Xu, B.; Wang, B.; Zhang, C.; Yin, D.;
+Zhang, D.; Rojas, D.; Feng, G.; Zhao, H.; et al. 2024. Chat-
+glm: A family of large language models from glm-130b to
+glm-4 all tools. arXiv preprint arXiv:2406.12793.
+
+Gong, S.; Agarwal, S.; Zhang, Y.; Ye, J.; Zheng, L.; Li, M.;
+An, C.; Zhao, P.; Bi, W.; Han, J.; et al. 2024. Scaling Diffu-
+sion Language Models via Adaptation from Autoregressive
+Models. arXiv preprint arXiv:2410.17891.
+
+Gong, S.; Li, M.; Feng, J.; Wu, Z.; and Kong, L. 2022. Dif-
+fuseq: Sequence to sequence text generation with diffusion
+models. arXiv preprint arXiv:2210.08933.
+
+Gulrajani, I.; and Hashimoto, T. B. 2024. Likelihood-based
+diffusion language models. Advances in Neural Information
+Processing Systems, 36.
+
+Han, X.; Kumar, S.; and Tsvetkov, Y. 2022. Ssd-Im:
+Semi-autoregressive simplex-based diffusion language model
+for text generation and modular control. arXiv preprint
+arXiv:2210.17432.
+
+Hoogeboom, E.; Nielsen, D.; Jaini, P.; Forré, P.; and Welling,
+M. 2021. Argmax flows and multinomial diffusion: Learning
+categorical distributions. Advances in Neural Information
+Processing Systems, 34: 12454-12465.
+
+Jiang, A. Q.; Sablayrolles, A.; Mensch, A.; Bamford, C.;
+Chaplot, D. S.; de las Casas, D.; Bressand, F.; Lengyel, G.;
+Lample, G.; Saulnier, L.; Lavaud, L. R.; Lachaux, M.-A.;
+Stock, P.; Scao, T. L.; Lavril, T.; Wang, T.; Lacroix, T.; and
+Sayed, W. E. 2023. Mistral 7B. arXiv:2310.06825.
+
+Kearns, M. J. 1989. Computational Complexity of Machine
+Learning. Ph.D. thesis, Department of Computer Science,
+Harvard University.
+
+Khanna, S.; Kharbanda, S.; Li, S.; Varma, H.; Wang, E.;
+Birnbaum, S.; Luo, Z.; Miraoui, Y.; Palrecha, A.; Ermon, S.;
+Grover, A.; and Kuleshov, V. 2025. Mercury: Ultra-Fast Lan-
+guage Models Based on Diffusion. https://drive.google.com/
+file/d/1xrqTqF880ZblfONgMjr1REU4do YIKNXf/view.
+Kojima, T.; Gu, S. S.; Reid, M.; Matsuo, Y.; and Iwasawa, Y.
+2022. Large language models are zero-shot reasoners. Ad-
+vances in neural information processing systems, 35: 22199-
+22213.
+
+Kong, D.; Guo, Q.; Xi, X.; Wang, W.; Wang, J.; Cai, X.;
+Zhang, S.; and Ye, W. 2025. Rethinking the Sampling
+Criteria in Reinforcement Learning for LLM Reasoning:
+A Competence-Difficulty Alignment Perspective. arXiv
+preprint arXiv:2505.17652.
+
+Lake, B.; and Baroni, M. 2018. Generalization without
+systematicity: On the compositional skills of sequence-to-
+
+sequence recurrent networks. In International conference on
+machine learning, 2873-2882. PMLR.
+
+Langley, P. 2000. Crafting Papers on Machine Learning.
+In Langley, P, ed., Proceedings of the 17th International
+Conference on Machine Learning (ICML 2000), 1207-1216.
+Stanford, CA: Morgan Kaufmann.
+
+Li, X.; Thickstun, J.; Gulrajani, I.; Liang, P. S.; and
+Hashimoto, T. B. 2022. Diffusion-lm improves controllable
+text generation. Advances in Neural Information Processing
+Systems, 35: 4328-4343.
+
+Liu, A.; Feng, B.; Xue, B.; Wang, B.; Wu, B.; Lu, C.; Zhao,
+C.; Deng, C.; Zhang, C.; Ruan, C.; et al. 2024. Deepseek-v3
+technical report. arXiv preprint arXiv:2412.19437.
+
+Lou, A.; Meng, C.; and Ermon, S. 7??? Discrete Diffusion
+Modeling by Estimating the Ratios of the Data Distribution.
+In Forty-first International Conference on Machine Learning.
+
+Lou, A.; Meng, C.; and Ermon, S. 2023. Discrete diffu-
+sion language modeling by estimating the ratios of the data
+distribution.
+
+Meta. 2024. Introducing Meta Llama 3: The most capable
+openly available LLM to date.
+
+Michalski, R. S.; Carbonell, J. G.; and Mitchell, T. M., eds.
+1983. Machine Learning: An Artificial Intelligence Approach,
+Vol. I. Palo Alto, CA: Tioga.
+
+Mitchell, T. M. 1980. The Need for Biases in Learning Gener-
+alizations. Technical report, Computer Science Department,
+Rutgers University, New Brunswick, MA.
+
+Nachmani, E.; and Dovrat, S. 2021. Zero-shot translation
+using diffusion models. arXiv preprint arXiv:2111.01471.
+
+Newell, A.; and Rosenbloom, P. S. 1981. Mechanisms of
+Skill Acquisition and the Law of Practice. In Anderson, J. R.,
+ed., Cognitive Skills and Their Acquisition, chapter 1, 1-51.
+Hillsdale, NJ: Lawrence Erlbaum Associates, Inc.
+
+Nie, S.; Zhu, FE; You, Z.; Zhang, X.; Ou, J.; Hu, J.; ZHOU,
+J.; Lin, Y.; Wen, J.-R.; and Li, C. 2025. Large Language Dif-
+fusion Models. In ICLR 2025 Workshop on Deep Generative
+Model in Machine Learning: Theory, Principle and Efficacy.
+
+
+OpenAl. 2024a. Hello GPT-4o.
+
+OpenAl. 2024b. Introducing OpenAl ol.
+
+OpenAl. 2024c. Learning to reason with LLMs.
+
+Qin, Y.; Li, X.; Zou, H.; Liu, Y.; Xia, S.; Huang, Z.; Ye,
+Y.; Yuan, W,; Liu, H.; Li, Y.; et al. 2024. O1 Replication
+Journey: A Strategic Progress Report—Part 1. arXiv preprint
+arXiv:2410.18982.
+
+Rein, D.; Hou, B. L.; Stickland, A. C.; Petty, J.; Pang, R. Y.;
+Dirani, J.; Michael, J.; and Bowman, S. R. 2024. Gpqa:
+A graduate-level google-proof q&a benchmark. In First
+Conference on Language Modeling.
+
+Samuel, A. L. 1959. Some Studies in Machine Learning
+Using the Game of Checkers. IBM Journal of Research and
+Development, 3(3): 211-229.
+
+Scarlett, J.; and Cevher, V. 2019. An Introductory Guide to
+Fano’s Inequality with Applications in Statistical Estimation.
+arXiv:1901.00555.
+
+Shao, C.; Li, T.; Pu, C.; Xu, F; and Li, Y. 2025a.
+AgentStealth: Reinforcing Large Language Model for
+Anonymizing User-generated Text. ArXiv, abs/2506.22508.
+Shao, C.; Liu, X.; Lin, Y.; Xu, F.; and Li, Y. 2025b. Route-
+and-Reason: Scaling Large Language Model Reasoning with
+Reinforced Model Router. ArXiv, abs/2506.05901.
+
+Shao, C.; Xu, F.; Fan, B.; Ding, J.; Yuan, Y.; Wang, M.; and
+Li, Y. 2024. Beyond Imitation: Generating Human Mobility
+from Context-aware Reasoning with Large Language Models.
+ArXiv, abs/2402.09836.
+
+Si, C.; Yang, D.; and Hashimoto, T. 2024. Can llms generate
+novel research ideas? a large-scale human study with 100+
+nlp researchers. arXiv preprint arXiv:2409.04109.
+
+Snell, C.; Lee, J.; Xu, K.; and Kumar, A. 2024. Scaling
+IIm test-time compute optimally can be more effective than
+scaling model parameters. arXiv preprint arXiv:2408.03314.
+Wang, J.; Fang, M.; Wan, Z.; Wen, M.; Zhu, J.; Liu, A.;
+Gong, Z.; Song, Y.; Chen, L.; Ni, L. M.; et al. 2024. OpenR:
+An Open Source Framework for Advanced Reasoning with
+Large Language Models. arXiv preprint arXiv:2410.09671.
+Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Xia, F.; Chi,
+E.; Le, Q. V,; Zhou, D.; et al. 2022. Chain-of-thought prompt-
+ing elicits reasoning in large language models. Advances in
+Neural Information Processing Systems, 35: 24824-24837.
+Xie, Y.; Goyal, A.; Zheng, W.; Kan, M.-Y; Lillicrap, T. P;
+Kawaguchi, K.; and Shieh, M. 2024. Monte Carlo Tree
+Search Boosts Reasoning via Iterative Preference Learning.
+arXiv preprint arXiv:2405.00451.
+
+Xu, F.; Hao, Q.; Shao, C.; Zong, Z.; Li, Y.; Wang, J.; Zhang,
+Y.; Wang, J.; Lan, X.; Gong, J.; Ouyang, T.; Meng, F.; Yan,
+Y.; Yang, Q.; Song, Y.; Ren, S.; Hu, X.; Feng, J.; Gao, C.;
+and Li, Y. 2025. Toward large reasoning models: A survey of
+reinforced reasoning with large language models. Patterns,
+6.
+
+Yao, S.; Yu, D.; Zhao, J.; Shafran, 1.; Griffiths, T. L.; Cao,
+Y.; and Narasimhan, K. 2023. Tree of thoughts: Deliberate
+problem solving with large language models. arXiv preprint
+arXiv:2305.10601.
+
+Ye, J.; Gao, J.; Gong, S.; Zheng, L.; Jiang, X.; Li, Z.; and
+Kong, L. 2024a. Beyond autoregression: Discrete diffu-
+sion for complex reasoning and planning. arXiv preprint
+arXiv:2410.14157.
+
+Ye, J.; Gong, S.; Chen, L.; Zheng, L.; Gao, J.; Shi, H.; Wu, C.;
+Jiang, X.; Li, Z.; Bi, W,; et al. 2024b. Diffusion of thoughts:
+Chain-of-thought reasoning in diffusion language models.
+arXiv preprint arXiv:2402.07754.
+
+Ye, J.; Xie, Z.; Zheng, L.; Gao, J.; Wu, Z.; Jiang, X.; Li, Z.;
+and Kong, L. 2025. Dream 7B. Accessed: 2025-08-02.
+Zhang, D.; Wu, J; Lei, J.; Che, T.; Li, J.; Xie, T.; Huang, X.;
+Zhang, S.; Pavone, M.; Li, Y.; et al. 2024. Llama-berry: Pair-
+wise optimization for o1-like olympiad-level mathematical
+reasoning. arXiv preprint arXiv:2410.02884.
+
+Zhang, H.; Liu, X.; and Zhang, J. 2023. Diffusum: Generation
+enhanced extractive summarization with diffusion. arXiv
+preprint arXiv:2305.01735.
+
+Zheng, H. S.; Mishra, S.; Zhang, H.; Chen, X.; Chen, M.;
+Nova, A.; Hou, L.; Cheng, H.-T.; Le, Q. V.; Chi, E. H.; et al.
+2024. Natural plan: Benchmarking Ilms on natural language
+planning. arXiv preprint arXiv:2406.04520.
+
+Zheng, L.; Yuan, J.; Yu, L.; and Kong, L. 2023. A reparam-
+eterized discrete diffusion model for text generation. arXiv
+preprint arXiv:2302.05737.
+
+Zhong, T.; Liu, Z.; Pan, Y.; Zhang, Y.; Zhou, Y.; Liang, S.;
+Wu, Z.; Lyu, Y.; Shu, P.; Yu, X.; et al. 2024. Evaluation
+of openai ol: Opportunities and challenges of agi. arXiv
+preprint arXiv:2409.18486.
+
+Zou, H.; Kim, Z. M.; and Kang, D. 2023. A survey of diffu-
+sion models in natural language processing. arXiv preprint
+arXiv:2305.14671.
+
+
+Detailed FLOPs calculation for diffusion
+language model
+
+In this section, we will provide a detailed derivation and
+computation of the forward inference computational cost (in
+FLOPs) for diffusion models that use a transformer decoder
+as their backbone.
+
+Symbol definitions and assumptions
+
+The following symbols are used: sequence length L = 4096,
+model dimension D = 4096, embedding dimension EF =
+4096, number of attention heads H = 32, number of Trans-
+former blocks N = 32, vocabulary size V = 126, 464, and
+number of denoising steps 1" (variable). Moreover, Fs rep-
+resents FLOPs for a single self-attention operation. Fup
+represents FLOPs for a single feedforward network. Fomers
+represents FLOPs for embedding and other operations.
+
+FLOPs for self-attention and feedforward
+
+The self-attention (SA) mechanism includes the follow-
+
+ing components: 1. Generating queries, keys, and values:
+
+Foxy = 2-3 L- D% 2. Computing attention scores and
+
+normalization: Fyuention scores = 2 + L? + D /H. 3. Weighted
+
+sum and output projection: Fieighted sum + Fout projection =
+
+2.-12.-D+2-L-D2
+
+Thus, the total FLOPs for SA is:
+
+Fsn=8-L-D*+4-1>-D/H (12)
+
+The feedforward network (MLP) consists of up-projection
+and down-projection, each contributing 8 - L - D?, resulting
+in:
+
+Fyip = 16- L- D? (13)
+For one Transformer block, the total FLOPs is:
+
+Fock = Fsa + Fsp =24-L-D* +4-L°- D/H (14)
+
+Full model FLOPs per step
+
+Considering N Transformer blocks, the total FLOPs for the
+blocks is:
+
+Fotocks = N + Fook = N + (24- L-D* +4-L*- D/H).
+15)
+In addition, the embedding and output layers contribute:
+
+Fores =2-L-D-E+2-L-(D+2-E)-V (16)
+The total FLOPs per step is then:
+Fep = Fhlocks + Floers- a7
+Total FLOPs for T' steps
+For T' denoising steps, the total FLOPs is:
+Ipim =T + Fyep
+=T-(N-(24-L-D*+4-L* D/H)
++2-L-D-E+2-L-(D+4-FE)-V) (18)
+
+Obviously, the square term of L occupies an absolute dom-
+inant position in the amount of calculation. So the time com-
+plexity can be written as:
+
+Tom =O (L*- T) (19)
+
+It can be seen that the final time complexity is propor-
+tional to the number of denoising steps T and proportional
+to the square of the sequence length L. For DLMs, T' is a
+hyperparameter that can be less than the number of tokens
+generated. By adjusting 7", multiple tokens can be generated
+simultaneously, balancing quality and efficiency.
+
+Parallel-time complexity. All matrix multiplications in-
+side self-attention and MLP are parallelizable over the se-
+quence dimension L, since the DLLM processes the entire
+sequence simultaneously in forward passes. Assuming ideal
+hardware that provides O(L) parallel lanes, the wall-clock la-
+tency per denoising step collapses to the longest dependency
+path, yielding
+
+ste LD? [?’D/H
+Tork = of tT
+Multiplying by the number of denoising steps T', the end-to-
+
+end parallel-time complexity is therefore
+
+TR, = O(T - L). 21)
+
+) = O(D?+ LD/H). (20)
+
+Thus, under sufficient parallelism, the latency is linear in T'
+and linear in L, while the total FLOPs still scale as O(L?T).
+
+Detailed FLOPs calculation for autoregressive
+LLM
+
+In this section, we provide a detailed derivation of the forward
+
+inference computational cost (in FLOPs) for decoder-only
+
+autoregressive large language models. The analysis includes
+
+key components such as attention, feedforward layers, and
+
+token embeddings.
+
+Definitions and notations
+We define the following symbols:
+» L: Sequence length.
+* D: Model dimension.
+* H: Number of attention heads.
+* N: Number of Transformer blocks.
+* V: Vocabulary size.
+* FE: Embedding dimension (equal to D).
+
+FLOPs of each module
+Embedding Layer
+* Token embedding: Fipp = 2 L- D.
+* Output projection: Foy =2-L-D-V.
+Thus, the total FLOPs for the embedding layer is:
+
+Fembeading =2-L-D+2-L-D-V. (22)
+
+Multi-Head Self-Attention Mechanism (MHSA) For a
+single Transformer block:
+* Linear projections for , K, and V: 6 - L - D? (Consider
+KV-cache: 6 - D?)
+* Attention score computation: Fin scores = 4 - L?
+LD (Consider KV-cache: 4 - L - Dy
+* Output projection: Fyn ont = 2 L - D? (Consider KV-
+cache: 2 - D?)
+
+
+The total FLOPs for self-attention is:
+D
+2 2
+Fspa=8-L-D“+4-L Ii 23)
+(Consider KV-cache: 8 - D* +4 L- 8).
+Feedforward Network (FFN) The FEN consists of two
+linear transformations:
+* Up projection: Fy up = 8 L + D? (Consider KV-cache:
+8. D?).
+* Down projection: Fi down
+D? (Consider KV-cache: 8- D?).
+Thus, the total FLOPs for the FFN is:
+
+Fypny = 16 - L- D? (Consider KV-cache: 16 - D?) (24)
+
+Transformer Block The total FLOPs for a single Trans-
+former block is:
+
+Fyiock = Fsa + Fren
+
+= 8§ - L
+
+_o4.L.D* 44.02. 2, (25)
+H
+(Consider KV-cache: 24 - D* +4-L- 5) (26)
+So for N Transformer blocks, the total FLOPs are:
+Fioeks = N(24-L-D*) + N(4-L*- 2),
+
+(Consider KV-cache:
+
+Fleas =N(24-D*) + N(4-L-2)) (27)
+Total generation FLOPs
+
+Since each token in the autoregressive language model is
+generated sequentially, each step requires recomputing self-
+attention and feedforward layers. The sequence length at each
+step increases from Li, to Li, + Loy. Thus, we approximate
+the total FLOPs for generation as:
+
+Flotal =F embedding
+
++ Lou : Folocks
+L— Lin+ Lou
+
+=2-Lip- D+2 -Loyy-D-V
++24 N+ Lou + (Lin + Low) -
+
+SISA]
+
++4-N- Lou : (Lin + Low)? : (28)
+
+(Consider KV-cache:
+
+Flot = Fembeddin + Lou : 2d ;
+¢ a FAR
+
++ Fhlocks
+L— Li,
+=2. Ly D+2-Low-D-V
+
++24 N+ Loy - D?
+
++4 -N Loy : (Lin + Low) :
+
+To
+
++24. NL, - D?
+
+D
+FAN LG) (29)
+
+Expanding terms:
+
+Fow=2 Lin D+2- Low D-V
++24 N- Loy - Lin - D?
++24 N-L2,- D?
+D
+
++N Low Li
+
++8 N+ Lou + Lin * Lou
+D
+out H
+(Consider KV-cache:
+Fow = (2:D-V +24: ND?) Loy
++(2+24-N-D)-D- Li,
+D
+
+4.-N.-=Z.12
++ H m
+
+D
+on Do,
+
+D
++4-N- Fei : Lin : Loy.) 31D
+
+Asymptotic Complexity:
+Fo =O (L3,) (Consider KV-cache: Fp = O (L2,))-
+(32)
+
+Sie
+
++4-N-L (30)
+
+Sequential-time complexity. Unlike diffusion language
+models, autoregressive language models generate tokens one
+by one; each new token depends on all previously generated
+tokens. Consequently, self-attention and MLP layers cannot
+be parallelized across the sequence dimension Loy, even
+under ideal hardware.
+
+Batch generation comparison
+
+Assuming the same model architecture, computational re-
+source, parameter sizes, and input/output lengths(L;, +
+Loy: = L), the difference in GPU memory occupied by
+DLM and LLM in the inference process lies in the activation
+values and KV-cache. For LLM, the number of parameters in
+the K'V-cache can be expressed as:
+
+Memorygy, = 2 . N . Krom -D- (Lin + Lout)- (33)
+
+ache
+
+As for activation values, only the most numerous parts
+
+need to be counted:
+
+« MHSA: Memoryy asa = Krom . L? -H.
+
+* FFN: Memoryrrn =4. Krom : Lin -D.
+For DLM, there is no KV-cache, only the activation values
+need to be considered:
+
+« MHSA: Memoryy asa = KprLm . L? -H.
+
+* FEN: Memoryrrny = 4 Kpry + L- D.
+If4.-D > L- H (typically, and in line with our experimental
+setups):
+
+2L;, + N (Lin + Low)
+
+2(Liy + Low) (34)
+
+Kprv/Krov =
+
+
+Substituting N = 32:
+Kpru/Kroav > 16. (35)
+IfL-H>4-D>L;,  H:
+
+ALin- D+2- DN - (Lin + Lou)
+H - (Lin + Lou)?
+
+Kprv/Kriv =
+
+(36)
+Substituting H = 32,N = 32:
+
+Kpryv/Kroym >2- D/L. (37)
+If L;,-H>4-D:
+
+L?2-H+2-D-N-(Lpn+ Low)
+K Kip == .
+pm /Krom H- (Ln + Low)?
+(38)
+Substituting H = 32,N = 32:
+
+Kprm/Krpoym >2- D/L. (39)
+
+Error analysis in diffusion language models
+
+We extend the information-theoretic approach in Gan et
+al. (Gan, Liao, and Liu 2025) to analyze diffusion language
+models. Diffusion models generate a sequence Xg of length
+L by iteratively denoising an initial noise sequence Xr over
+T steps: Xo — Xr—1 — +--+ = X37 — Xp. A common
+practice is to predict tokens in parallel at each step for effi-
+ciency.
+
+Information loss from independence assumption
+
+Let X; = (2%, ...,z}) be the sequence at denoising step t.
+Consider the transition from X;_1 to X;. The true conditional
+probability is p(X;|X;_1), and the associated conditional
+entropy is H(X;|X;—1).
+
+Many diffusion models approximate the reverse process
+by assuming conditional independence of tokens given the
+previous state:
+
+L
+po(Xi|Xi-1) = [[ poe Xin) (40)
+i=1
+
+Under this assumption, the conditional entropy calculated by
+the model is:
+
+L
+Hingep(X2| X11) = > H(x}| Xs 1) (41)
+i=1
+where the entropy H(x!|X;_1) is computed based on the
+marginal pg (x! X;_1).
+As derived from the chain rule of entropy and the property
+that conditioning reduces entropy:
+
+L
+1
+
+t
+iq, Xeo1)
+
+-.
+Il
+
+M] =
+
+< H(z! X, 1) = Hingep(X¢| X¢—1)
+
+1
+
+-.
+Il
+
+(42)
+
+Thus, the independence assumption leads to an overestima-
+tion of the conditional entropy:
+
+H(X:|Xi—1) < Hindep(X¢|Xe—1) (43)
+
+This implies an underestimation of the mutual information
+between consecutive steps:
+
+Tindep (Xt; Xio1) = H(Xy) - Hindep (Xt X¢—1) (45)
+=> Jindep (X43 Xi—1) < I(Xy; Xia) (46)
+Definition 1 (Per-Step information loss in diffusion) The
+information loss at denoising step t due to the independence
+
+assumption is the difference between the model’s estimated
+conditional entropy and the true conditional entropy:
+
+AHp = Hinaop(Xi| Xi—1) — H(X¢|X—1) 20 (47)
+Alternatively, it’s the difference in mutual information:
+AL = I(X4; Xi—1) = Tindep( Xe: X4—1) > 0 (48)
+
+This loss Al; quantifies the information about the depen-
+dencies between tokens x! within step t (given X;_1) that is
+discarded by the model. This loss is expected to increase with
+sequence length L.
+
+Cumulative loss and final error probability
+Let X™* be the ground truth sequence the model aims to
+generate. The difference in mutual information hinders the
+model’s ability to maximize the mutual information between
+the final output X and the target X*, denoted I(X*; Xj).
+Let Jigea1 (X™*; Xo) be the mutual information achievable by
+an ideal T-step diffusion process (without the independence
+assumption), and Jingep (X*; Xo) be the mutual information
+achieved by the model using the independence assumption.
+The total accumulated information loss is:
+
+TotalLoss(T, L) = ideal (X; Xo) — Tingep (X™; Xo) > 0
+(49)
+This loss reflects the cumulative impact of Al; for t =
+Let Ep, ss(T,L) = P(X, # X*) be the final error prob-
+ability. Using Fano’s inequality on the pair (X*, Xo):
+
+H(X"| Xo) < H(Epifs(T, L))+Episs(T, L) os)
+
+where X is the space of possible sequences.
+The conditional entropy for the actual process is:
+
+Hingep(X*| Xo) = H(X™) = Lingep(X™; Xo) ~~ (51)
+Substituting the definition of TotallLoss:
+
+Hingep(X™| Xo) = H(X™) - (Ligeat (X™; Xo) (52)
+
+—TotalLoss(T, L))
+
+Hingep(X™ | Xo) = (H(X™) - Tigea (X™; Xo))
+
++TotalLoss(T, L)
+
+Hingep (X~ | Xo) = Higea (X™ | Xo) + TotalLoss(7, L) (54)
+
+(33)
+
+
+where Higea (X*| Xo) is the conditional entropy of the ideal
+process.
+Plugging this back into the Fano inequality bound:
+
+Higea(X™ | Xo) + TotalLoss(7T, L) < H(Episy (T, L))
++Epifs(T, L)log(|X] — 1)
+(55)
+Implication: This inequality shows that the final er-
+ror probability Ep;s¢(T, L) is lower-bounded by a term
+that grows with the total accumulated information loss
+
+TotalLoss(T, L) resulting from the independence assumption
+across the 71 steps.
+
+Dependence on L and T
+Sequence length (L): Since the per-step loss Al likely in-
+creases with L (more dependencies to ignore), the cumulative
+loss TotalLoss(T, L) also increases with L. Therefore, the
+final error Ep, f(T, L) is expected to increase with L.
+Number of steps (7): The dependence is complex. Increas-
+ing T" allows more denoising (information recovery about
+X*, reducing Higea (X*|X0)). Empirically, Ep; (7, L) de-
+creases with 1" up to a point, indicating the denoising benefit
+usually dominates. However, the minimum error is limited
+by TotalLoss(7T', L).
+
+Discussions
+Implementation details
+
+Module Element Detail
+OS Ubuntu 20.04.6 LTS
+CUDA 12.4
+Python 3.10.16
+Pytorch 2.6.0
+System deepspeed 0.16.8+ee492c30
+accelerate 1.4.0
+peft 0.15.1
+Device 1*NVIDIA A100 80G
+Framework vLLM(0.9.2)
+Tensor Parallel 2
+Llama3-70B Data Type FP16
+Max Length 8192
+GPU Utilization 0.93
+Mode Lora
+Batch size 2
+Number of epochs 1
+SET Max token length 4096
+LoRA rank 128
+Optimzer AdamW
+
+Learning rate 0.00001
+
+Table 3: Detailed Experimental Settings
+
+Here we provide detailed experimental settings to facilitate
+the reproducibility of our results in Table 3. All experiments
+were run three times except for the scaling of proposals for
+one time.
+
+Code of ethics
+
+In this paper, we use open-source models, which involve
+no problem regarding privacy and copyright. We use open-
+source datasets and self-constructed datasets, which involve
+no problem regarding privacy and copyright. Except for
+Game-of-24, we all use open-source datasets. For the Game-
+of-24 , we exhaustively enumerated num- ber combinations
+and employed a backtracking approach to solve it. We consid-
+ered all non-repetitive, diverse solutions, resulting in a dataset
+of 168,046 24-point problems, with the maximum value for
+the four numbers limited to 30 to make it more challenging.
+We have cited all open-source resources. Our project code
+has also been released and is available through the following
+anonymous link: https://anonymous.4open.science/r/Diffuse-
+Thinking-EC60. The self-constructed data used in this paper
+is also released at the provided anonymous link.
+
+Broader impacts
+
+This research enhances complex reasoning efficiency by com-
+bining diffusion language models (DLMs) with large lan-
+guage models (LLMs), making problem-solving faster and
+more scalable. The work also advances Al research by explor-
+ing collaborative frameworks, inspiring new methodologies.
+These improvements can be applied to real-world issues in
+various fields, leading to more efficient solutions and benefit-
+ing society through technological advancements.
+
+Case study
+
+To better understand the mechanism of our framework, we
+examined a representative case study on the game of 24.
+
+We have four numbers: 1, 14, 16, and 25. We provide DLM
+with prompt:
+
+1 Here is a task for you: use these
+numbers <<1,14,16,25>> to
+obtain 24 through the basic
+operation of (+- x/). Each
+number can only be used once
+and must be used.
+
+2 Please output the next possible
+operation directly for only one
+
+line, in the format of:
+
+Equation (remaining numbers)
+
+DLM generates the following text in parallel:
+
+1 r16-1=15 (14,25,15)", "16-1=15
+(14,25,15)", ’"1%x25=25
+(15,16,25)", "16%x6=15
+(14,25,15)", "16-1=15
+(14,25,15)", ’"1x15=15
+(25,14,15)", "1%25=25
+(25,14,25)", ’"14+1=15
+(16,25,15)", ’"14+1=15
+(16,25,15)", ’"1+14=15
+(16,25,15)", ’"1x11=15
+
+
+
+14,25,15)", "1+25=16
+25,16,25)", "14+1=15
+25,16,15)", "lée+6=17
+14,25,17)", "20-1=19
+14,16,19)", '1l6-1=15
+25,16,17)", "1%15=15
+25,14,16)", "16-1=15
+14,25,15)", "le+l=17
+14,25,17)", "1%25=16
+26,14,16)"
+
+Then we label them and provide LLM with prompt:
+
+1 You must consider whether th
+
+2 wh
+
+3 wh
+
+4 wh
+
+6 Pl
+
+expression calculation in the
+next thought proposal<<>>is
+
+correct,
+ther the number on the left side
+
+of the equation is in the
+remaining<<>>,
+
+ther the number on the right
+side of the equation is in the
+left<<>>, and
+
+ther the number in the left<<>>
+is only ’'24’ left or more
+likely to achieve 24 through
+basic arithmetic operations (+-
+*/).
+
+5 Here are some candidate solutions
+for the next step.Their serial
+numbers are in [].[1]16-1=15
+14,25,15),[2]116-1=15
+14,25,15), [3]11%25=25
+15,16,25), [4]11l6%x6=15
+14,25,15), [5]11l6-1=15
+14,25,15), [6]1%15=15
+25,14,15), [7]11x25=25
+25,14,25), [8]1l4+1=15
+16,25,15), [9]114+1=15
+16,25,15), [10]1+14=15
+16,25,15), [11]1%11=15
+14,25,15), [12]1+25=16
+25,16,25), [13]114+1=15
+25,16,15), [l4]l6+6=17
+14,25,17), [15]20-1=19
+14,16,19), [le6]l6-1=15
+25,16,17), [17]11x15=15
+25,14,16), [18]1l6-1=15
+14,25,15), [19]1l6+1=17
+14,25,17), [20]1%25=16
+26,114,106)
+
+ase choose the best one and tell
+me the serial number you have
+chosen .OUTPUT FORMAT:’ Reasons
+
+HE [serial number]’.
+
+LLM responses:
+
+1 After analyzing the given options,
+
+3 The
+
+4
+
+I found that most of the
+correct calculations are not
+achieving the target of getting
+closer to 24 or ensuring that
+the numbers involved are or can
+lead to 24 through basic
+arithmetic operations.
+
+correct calculations that lead
+to correct results but do not
+necessarily help achieve 24 or
+are not the focus based on the
+provided context are numerous.
+However, to identify the best
+candidate that fits the
+criteria of correct calculation
+and the potential to
+contribute to reaching 24 or
+being part of a sequence that
+could, with further operations,
+result in 24, I must consider
+the arithmetic operations’
+correctness and the numbers
+involved.
+
+5 Given the constraints and looking
+
+6
+
+at the patterns and potential
+for leading to 24, I notice
+that many of these equations
+simply demonstrate arithmetic
+operations without a clear
+progression towards achieving
+24. To select the best option,
+I would look for operations
+that either directly involve
+numbers close to 24 or
+demonstrate a path that could,
+with additional operations,
+lead to 24.
+
+7 However, since most provided
+
+8
+
+equations do not directly aim
+at achieving 24 or do not
+specify the next steps in
+calculations that would lead to
+
+24, the choice seems to be
+more about identifying correct
+arithmetic rather than
+progression towards a specific
+goal.
+
+9 Given this context and looking for
+
+an option that seems plausible
+or directly correct in its
+arithmetic without the
+additional context of how it
+leads to 24 (since such context
+is not provided in most
+options), I would choose an
+equation that is both correct
+
+
+and involves numbers that could
+potentially lead to
+interesting further
+calculations.
+
+10
+
+11 Considering the arithmetic
+correctness and the involvement
+of numbers that could be part
+of further calculations leading
+to 24 (though none directly
+achieve this), I pick an option
+that demonstrates a
+straightforward and correct
+arithmetic operation.
+
+12
+
+13 Reasons: The equation is simple,
+the arithmetic is correct, and
+it involves basic addition
+which could be a starting point
+for further operations.
+However, given the constraint
+and looking for the best
+representation of arithmetic
+that could lead to further
+calculations, [8] stands out
+for its simplicity and
+correctness: 14+1=15, which is
+a straightforward and correct
+operation, even though it doesn
+"t directly aim for 24.
+
+14 [8]
+
+We obtain [8] 14+1=15 (16, 25, 15), and then this process
+will continue to iterate until the problem is solved.

@@ -1,0 +1,878 @@
+arXiv:2510.27063v1 [cs.LG] 31 Oct 2025
+
+TOWARDS A MEASURE OF ALGORITHM SIMILARITY
+
+A PREPRINT
+
+ShairozSohail@gmail. com taher.dasten@gmail. com
+
+November 3, 2025
+
+ABSTRACT
+
+Given two algorithms for the same problem, can we determine whether they are meaningfully
+different? In full generality, the question is uncomputable, and empirically it is muddied by competing
+notions of similarity. Yet, in many applications (e.g., clone detection, program synthesis) a pragmatic,
+consistent similarity metric is necessary. We review existing equivalence and similarity notions
+and introduce the EM OC—an Evaluation-Memory-Operations-Complexity framework that embeds
+algorithm implementations into a feature space suitable for downstream tasks. We compile PACD,
+a curated dataset of verified Python implementations across three problems, and show that EMOC
+features support clustering and classification of algorithm types, detection of near-duplicates, and
+quantification of diversity in LLM-generated programs. Code, data, and utilities for computing
+EMOC embeddings are released to facilitate reproducibility and future work on algorithm similarity.
+
+Keywords algorithms - metric - program synthesis
+
+1 Introduction
+
+The analysis of algorithms has a long and storied history, one that predates any notions of computation At its core,
+algorithm analysis is about understanding problem-solving procedures. Given a problem and an algorithm to solve it,
+one can ask many interesting questions:
+
+. Does this algorithm always provide a solution (does it ever stop running)?
+
+. Does this algorithm always provide the correct solution?
+
+. What kinds of problem instances is this algorithm well suited for?
+
+. What structure of the problem does this algorithm exploit?
+
+. As the problem gets more complicated, how much longer does this algorithm take to run?
+
+[© NY EE EE
+
+. Is this algorithm the same as a previous algorithm for the problem?
+
+Unfortunately, under the current theoretical frameworks, none of these questions can be answered for an arbitrary
+algorithm using a computing procedure (that is, they are uncomputable for an arbitrary Turing maching!#2%). Obviously
+that has neither stopped people from writing algorithms nor people from analyzing them The key is that if we
+meaningfully constrain the space of algorithms and a relevant domain of inputs, carrying out these kinds of analysis is
+perfectly valid, and at the heart of many fields including complexity theory, compiler design, software validation, and
+runtime analysis
+
+This raises the question - what kind of constraints can we place on algorithms such that they can be meaningfully
+compared? The most obvious one is that they solve the same problem, using the same inputs. There is no meaningful
+comparison between a recipe for baking a cake and the recipe for rebuilding a transmission. It is also dubious to
+compare a recipe for baking a cake from scratch with one from a mix. However, it is intuitive to compare two recipes for
+baking a cake that both use the same ingredients - we may ask which one takes longer, which one has more steps, which
+
+
+arXiv Template A PREPRINT
+
+one results in a tastier cake etc. Similarly, in many fields like Group Theory, we can ask and answer many questions
+about functions with specific domains (such as the group of isomorphic functions that map from a set to itself®). Thus,
+we only consider algorithms that have the same domain and attempt to solve the same problem.
+
+Additionally, we would really like to compare algorithms not only as they are written (static analysis) but also as they
+are executed (dynamic analysis). This requires that the algorithms provide an answer in some reasonable amount of
+time - otherwise their outputs cannot be compared. Thus, we only consider algorithms that halt on our (pre-selected and
+finite) domain within a fixed amount of clock time.
+
+This involves us assuming the answers to question (1) in the positive so we can continue towards answering (6) - when
+are two algorithms equal?
+
+2 Intuition and Formal Definitions
+
+Utilizing the definition of algorithm as a "set of rules that precisely defines a finite sequence of operations" [3] we first
+observe that algorithms can exist at various levels of abstraction (i.e pseudocode or Turing machine specification).
+We first differentiate between an algorithm and its implementation. Fixing a language L, we write L(A) to illustrate
+algorithm A implemented in language L. It is important to note that a single algorithm A has a potentially infinite number
+of expressions under a fixed language L (including a minimal one L*( A), whose derivation may be uncomputabléZ2). It
+is possible to convert an algorithm between two languages L(A) — Lo(A). This is discussed further in section 5.
+
+To build intuitive understanding, we appeal to the area of image classification. Specifically, we consider the mapping
+from algorithms to algorithm implementations to be the same as the mapping from natural objects to images. Similar
+to algorithm implementations, this mapping is not one-to-one (there may be many distinct images of a particular
+object), and there are an infinite number of ways to generate an image of an object by enumerating all possible imaging
+conditions. Importantly, it is common practice to define metrics to measure the separation of two images of the same
+object and classification procedures to separate them? In this way, we hypothesize that a metric defined on a set of
+algorithm implementations can serve to reliably discriminate more abstract notions of algorithm equivalency (such as
+developer intent) as well.
+
+Formally, Let P : {0,1}"™ — {0,1} be a computable function that maps from binary] n-dimensional vectors to
+binary m-dimensional vectors, where m may equal n and P may not be bijective. Let A1, As be distinct algorithms
+that attempt to compute P over a finite domain set Q = {¢1...qn |g; € {0,1}"}. Now, fix a language L|*|and consider
+the (possibly infinite) set of implementations of Ay, Ay under L: { L(A), L?(Ay)...} and {L* (A), L7(As)...} . We
+would like to define a distance metric D such that:
+
+D(L'(A1), I (A1)) < D(L"(A1), L"(A2))
+
+This constraint forces the distance between implementations of the same algorithm to be less than when compared to an
+implementation of another algorithm. This ensures invariance to superficial implementation details (such as variable
+naming or order of associative operations). An additional constraint that would yield even more discriminative power
+would be:
+
+m=n,i#j= DL (An), (A,)) =0
+
+which would force all implementations of the same algorithm to return a zero distance. However, in image embedding
+such a constraint has been known to cause undesirable properties (such as representation collapse in self-supervised
+learning’). We resort to only designing a distance metric that captures the first constraint, in addition to the necessary
+
+axioms of distance measures
+
+3 Existing Measures of Similarity
+
+There are a number of existing notions of algorithm similarity, each with their own advantages and disadvantages. We
+enumerate the most common approaches below, then categorize them in section 4.6 by modification invariances.
+
+Tthis may be relaxed to Z without loss of generality
+
+Note that if L(A), L(A) are Turing Machines, then under traditional notions of TM equality they are already equal since they
+compute the same function (over (Q).In this paper we refer to this as functional equality and try to also take into account the internal
+logic of L(A1), L(Az2) in our distance measure.
+
+
+arXiv Template A PREPRINT
+
+3.1 Functional Equivalency
+
+We consider two Turing Machines M, Mo that are complete over some input set IV. If, for every n € N we have
+Mj (n) = Ms(n) (they provide the same output symbol m when started on a tape containing symbol n) we say that
+M; = Ms. This is known as functional (or extensional) equivalence for computer programs. In general, it is impossible
+to algorithmically determine functional equivalence for arbitrary machines or programs when the set V is infinite 18]
+However, when the set N is finite, we can determine equivalence by simply comparing the outputs for each n € N.
+There are an infinite number of algorithms which are functionally equivalent to any given algorithm over a finite set IV,
+
+hence this is the weakest form of algorithm equivalency.
+
+More broadly (and for algorithms implemented outside of computer languages), functional equivalency says two
+algorithms are equal when they always produce the same output given the same input.
+
+3.2 Instruction Equivalency
+
+When implemented in a high-level programming language such as Java or Python, an algorithm is often compiled into
+an intermediate state known as bytecode Bytecode is not pure machine code and thus has the benefit of being machine
+independent, often intended for use in a VM (Virtual Machine) such as the JVM (Java Virtual Machine 1% or Python
+interpreter. When two algorithms compile to identical bytecode, this means that they are functionally equivalent when
+conditioned on the virtual machine. However, the converse is not true: If two algorithms are functionally equivalent,
+this says nothing about their potential instruction-bytecode equivalence. Consider the two algorithms below:
+
+def return181 (num):
+solutions = []
+for n in range (led):
+for x in range (led):
+if (2%*n) - 7 == x*x2:
+solutions. append (x)
+return (max (solutions))
+
+def returni181 (num) :
+return (181)
+
+While these two algorithms will produce the same answer (181) for any input value, they clearly have a different set of
+instructions and will compile to different bytecode. Instruction equivalence (as represented by bytecode) is a stronger
+condition than functional equivalence.
+
+For algorithms implemented outside of computer languages, it is possible to view the bytecode as simply the set of
+instructions needed to carry out the algorithm. Clearly it is possible, lacking a complete set of instructions, to arrive
+at the same set of input/output pairs without reproducing the original set of instructions (an example of functional
+equivalence without instruction equivalence).
+
+3.3 AST equivalency
+
+An Abstract Syntax Tree (AST) is a higher level representation of a program or algorithm that exists for computer
+languages which are eventually compiled into bytecode] The purpose of an AST is to provide a human readable repre-
+sentation of the structure of the algorithm. Similar to the relationship between instruction and functional equivalency,
+AST equivalency guarantees instruction equivalency without the converse being true. Consider the two algorithms
+below:
+
+
+arXiv Template A PREPRINT
+
+def returni181_1():
+assert 0O==
+return (181)
+
+def returni181_2():
+return (181)
+
+When compiled with the built-in Python compiler, both algorithms are functionally equivalent and instruction equivalent,
+however they are not AST equivalent.
+
+For algorithms implemented outside of computer languages, there is no direct analogue of AST equivalence.
+
+3.4 Encoding/string equivalency
+
+Finally, we view algorithms as being implemented using a set of symbols (such as the English alphabet or binary
+number system) and assign equivalency to two algorithms when their encoded representations are the same. This is
+the strongest and most restrictive form of equivalency - encoding equivalency implies AST equivalency (for computer
+language encodings), instruction equivalency, and functional equivalency. However, the restrictive nature of encoding
+equivalency often causes many false negatives (such as those caused by changing the name of an intermediate variable).
+For any algorithm, there may be (depending on the encoding scheme) an infinite number of ways to break encoding
+equivalency while maintaining instructional and functional equivalence, but only one way to maintain it - duplicating
+the algorithm symbol by symbol.
+
+4 Difficulties
+
+Despite the algorithm constraints outlined in section 1 and the notions of equivalency in section 3, there are still
+numerous challenges to comparing any two algorithms. These informally come down to the fact that while the set of
+meaningful changes to an algorithm may be small, the set of extraneous or superficial changes is usually infinite. To
+build intuition, we introduce several examples of "extraneous" changes, how these affect the notions of equivalency
+described above, and techniques on how to detect and mitigate such changes.
+
+Note that pre-processing algorithm implementations to filter unmeaningful changes (such as those described above) can
+be seen as trying to approximate the minimal implementation L*( A) described in section 1.
+
+4.1 Renaming Variables
+
+The simplest example of an extraneous change to an algorithm is changing the names of variables. In algorithms
+implemented in computer languages, such changes are easy to detect and mitigate (by using the AST representation, for
+example). While this changes the encoding equivalence of two algorithms, it does not change their AST, instruction, or
+functional equivalence.
+
+4.2 Extraneous Calculation
+
+Occasionally, algorithms may contain calculations that are discovered to be non-essential to the final outcome (or
+redundant to an existing calculation). For example, suppose we are writing a program to check if 3 numbers form a
+Pythagorean Triple, that is a? + b? = ¢2. Our algorithm takes in three positive integers (already sorted, so we do not
+require a check on which element is ¢) and returns 1(True) or O(False). That is our program maps from N3 to {0,1}
+
+(commonly called a decision proble . One implementation might be as follows:
+
+def ptriple(a,b,c):
+return (a**2 + b**2 == c*x2)
+Now we add an extraneous calculation to the implementation (summing the factorials of a and b:
+
+def ptriple(a,b,c):
+z = factorial(a) + factorial (b)
+return (a**2 + b*x*x2 == c**x2)
+
+The resulting function will still return the same answer on all inputs, however it is meaningfully different in that it
+calculates an additional quantity (one that happens to take quite a bit of time and memory). Without awareness that the
+
+
+arXiv Template A PREPRINT
+
+quantity calculated is extraneous and does not affect the output, we could be led to conclude that this is a new algorithm.
+To avoid this kind of scenario, we must invoke dead code elimination methods?! to compare only the portions of the
+algorithm that contribute to the result.
+
+4.3 Intermediate Variables
+
+Consider again the Pythagorean triple algorithm from above, except with the calculation being split using an intermediate
+variable z
+
+def ptriple(a,b,c):
+Zz = a**2 + bxkx2
+return(z == c**2)
+
+From a runtime analysis standpoint, this function will consume more memory and compute despite there being no
+new program logic introduced. Most functions can be arbitrarily split into intermediate variables that are stored to
+memory instead of computed on the fly, and this is usually a design decision from the programmer. Introduction of an
+intermediate variable will change the encoding, AST, and instructional (depending on compiler) equivalences of an
+algorithm, without changing the functional equivalences.
+
+To force invariance to this type of decision, inlining of intermediate variable assignments can be performed?! before
+calculating the EMOC score.
+
+4.4 Order of Associative Operations
+
+A more difficult way that two algorithms can be equal is if they implement the same set of associative operations in a
+different order. Consider the following two implementations of ptriple:
+
+def ptriplel (a,b,c):
+result = a*x2
+result += b**x2
+return (result == z)
+
+def ptriple2(a,b,c):
+result = b*x2
+result += a**2
+return(z == result)
+
+When compiled using the built-in Python compiler, both of these algorithms contain different AST and bytecode
+representations, though they are functionally equivalent. To resolve when two algorithms differ by the order of
+associative operations, we must be able to determine which of the used operations are associative on the input data
+types - a highly challenging task even in limited domains such as mathematics and cooking?
+
+4.5 Changing of Variable Precision
+
+Algorithms that operate on the set of real numbers or rational numbers must do so with a fixed level of precision when
+the machine they are operating on has a finite amount of computational power. In many computer languages, the level
+of precision can be set manually (and otherwise defaults to the precision of the machine executing the code). Thus,
+the same algorithm may produce different results (even while being encoding equivalent) when run on machines with
+different precision. We specifically assume that the algorithm itself does not contain any instructions on the numerical
+precision desired.
+
+4.6 Algorithm Changes vs. Maintained Equivalences
+4.7 A Note on Complexity equivalences
+
+Another approach to categorizing algorithms is related to the scaling of dynamic properties as the size of the input
+grows. This approach is central to the area of Complexity Theory 2 with the most commonly studied properties being
+algorithm runtime and memory consumption. Utilizing algorithm complexity measures as a way to compare algorithms
+is nuanced. Complexity classes are broad and often encapsulate many different algorithms for a problem under a certain
+class. Some problems have lower bounds on the best complexity that can be achieved (such as O(nlog(n)) for runtime
+complexity of sorting algorithms that use element comparison’) and thus most algorithms still utilized in practice reach
+
+
+arXiv Template A PREPRINT
+
+Encoding equivalence AST equivalence Instructional equivalence Functional equivalence
+
+Rename variables | Not maintained | Maintained | Maintained | Maintained |
+Add extraneous calculation | Not maintained | Not maintained | Compiler dependent | Maintained |
+Store intermediate variables | Not maintained | Not maintained | Compiler dependent | Maintained |
+Change order of associative operations | Not maintained | Not maintained | Not maintained | Maintained |
+Change variable precision | Maintained | Maintained | Maintained | Not maintained |
+
+this bound up to some constant. However, it is unlikely that two implementations of the same algorithm have different
+runtime or memory complexities. Thus, utilizing complexity classes can serve as a strong sufficiency test (in terms of
+low false positive rate) for two algorithms being different.
+
+5 The Correct Abstraction Scale for Algorithm Classification
+
+Many formal statements about algorithm existence and decidability are stated in terms of Turing Machines or an
+equivalently powerful model of computation. In this setting, the formality of an algorithm (a Turing Machine) and the
+problem it solves (computing a well-defined function) are made precise.
+
+However, the development and assessment of algorithms is often done using the more abstracted languages of
+programming or mathematics. Introduction of these abstracted languages comes with the "emergence" of high-level
+properties (such as backtracking, or dynamic programming) that are not well-defined at the levels of Turing Machine
+instruction. In fact, many seemingly unique operations (such as division and subtraction) become reduced to the same
+operations at the level of Turing Machine instruction. Thus, it is important to define a point on the "abstraction scale" at
+which we wish to discriminate algorithms. Similarly to natural systems, the chosen scale may reveal differing points of
+similarity, and the properties of algorithms may not be scale-invariant. The transition between these scales is the topic
+of the area of compiler theory.
+
+Levels of Algorithm Implementation
+
+More abstract
+
+Turing Assembly Low-level High-level Pseudocode
+Machine language programming programming
+language language
+
+Figure 1: Levels of abstraction in algorithm implementation
+
+The runtime analysis included in the EMOC score may minimize the effect of this dependence on implementation
+level. We believe that the Python programming language provides a sufficiently rich level of abstraction to make static
+analysis valuable while maintaining enough flexibility to allow for many distinct algorithms (and algorithm design
+decisions) to be clearly expressed. Discrimination of algorithms in a language-independent manner is an active area of
+research
+
+6 A Dataset for Algorithm Similarity
+
+To test any algorithm similarity metric, we must first possess a dataset that reflects the natural variation in implementation
+for different algorithms. This entails a number of requirements:
+
+. A variety of algorithmic problems must be considered
+
+. A variety of algorithms for each problem must be considered
+
+1
+
+2
+
+3. All algorithms must be self-contained
+
+4. All algorithms must be in the same programming language
+5
+
+. The algorithm type must be pre-specified by the developer and then confirmed by a reviewer
+
+
+arXiv Template A PREPRINT
+
+To our knowledge, no existing benchmarks serve all of these requirements. Certain clone detection datasets come close,
+but the elements under consideration are entire scripts and not isolated algorithm implementations, and scripts are not
+human reviewed for evidence of isolated functionality Thus, we compile and publicly release a small dataset of
+unconstrained algorithm implementations in Python.
+
+Our dataset, PACD (Python Algorithm Classification Dataset), consists of 350 algorithms implementations against 3
+problems (list sorting, PRIMES, and list search). For each problem, different algorithms are compiled with manual
+verification of each algorithm for correctness, accuracy, and lack of runtime bugs.
+
+7 EMOC Components, Algorithm Encoding
+
+7.1 A Note on Function Domains and Sampling
+
+One challenge for sampling based analysis of algorithms is that algorithm runtime is not consistent on all cases of a
+fixed size. Certain arrangements (such as a list in reverse sorted order) can require substantially more time/runtime
+operations than an "average" case - thus empirical analysis of algorithms may easily be biased by the likelihood that a
+worst-case example is generated during random sampling
+
+We bypass this by explicitly generating worst-case examples (when they are known for the algorithm) or by enforcing
+highly varied arrangements using maximal variance sampling strategies. As a companion to the dataset provided above,
+we provide sample inputs for each algorithm that include worst-case and best-case examples.
+
+7.2 E-Component
+
+The notion of functional equivalency outlined in section 3.1 can be approximated by evaluating algorithms against
+a carefully sampled set of inputs. When disagreements occur, we can state that (up to the precision of the machine
+evaluating the algorithms) they are functionally unequal. We assign a value of 1 to the E-component when there is a
+disagreement in output values for the same input value, otherwise we assign a 0. Finer-grained notions of difficulty rely
+on manually setting a tolerance unit and are problem-specific.
+
+7.3 M-Component
+
+Another notion of algorithm equivalence is memory complexity. As described in section 4.7, differences in complexity
+measures like scaling of memory usage serve as a necessary but not sufficient condition to declare two algorithms to be
+the "same". To estimate the M-component, we provide inputs of increasing size to the algorithm and take the ratio of
+successive inputs to approximate the scaling behavior. For example, with 10 inputs of increasing size we would end up
+with 9 ratios of memory usage between each pair of inputs. This allows for some invariance to overall memory usage
+and approximates the pure scaling effect.
+
+7.4 O-Component
+
+To approximate instruction equivalence, we pick a set of primitive operations (such as addition, multiplication, bitwise
+XOR etc.), Then, two algorithms can be set to be instruction equivalent if they utilize the same operations in the same
+order. If the set of operations is associative, then we can discard the requirement for them to be in the same order.
+Given the complex nature of determining circumstances where this associativity holds, we use the much simpler format
+of simply counting the number of distinct primitive operations and encoding the results into a N-length count vector,
+where N is the number of primitive operations we would like to consider.
+
+7.5 C-Component
+
+Similar to the M-component, we can utilize the runtime complexity of an algorithm to compare it to other algorithms
+for the same problem. This term is estimated the same way as the M-component, except utilizing runtime estimates (in
+clock time) for inputs of increasing sizes instead of memory usage.
+
+
+arXiv Template A PREPRINT
+
+8 Results
+
+Observe that combining the outputs from the E-component (single binary value), M-component (n-length vector of
+floats), O-component (k-length vector of binary values), and C-component (m-length vector of floats) allows us to
+compute a 1 + N + K + M length numeric vector embedding of an algorithm. This vector represents what we believe
+to be all the key elements of an algorithm needed to differentiate it from other algorithms for the same task.
+
+8.1 Classifying Algorithm Implementations using EMOC
+
+Utilizing our dataset and different components of the EMOC metric, we can set up a natural classification task with the
+target being algorithm type (as specified by the developer, and vetted by manual curation).
+
+For this classification task, we utilize K-means clustering with K set to the number of different algorithms present in the
+dataset for the specific problem.
+
+The benefit of utilizing a K-means approach is it can be replicated for data where we don’t have ground truth labels
+(such as output from a large language model, as discussed in section 8.3).
+
+Below are the results for utilizing this procedure to cluster the sorting algorithms in our PACD dataset. While only the
+C-term and M-term are shown, the full EMOC score was utilizing for the clustering.
+
+Predicted Algorithm Types - LogisticRegression
+
+GT Algorithm Types EMOC Embedding
+2.5- ° hd ~ BubbleSort 2.5- ° * ~ BubbleSort
+B [] ® Quicksort B ° ® Quicksort
+° Heapsort ° ® MergeSort
+220 > : ® MergeSort 2 20- > . Heapsort
+= og *8
+oO oO
+(V3) [J (Va) LJ
+£ 15- £ 15-
+IS IS
+=] ° =] °
+« . ° ° & . ° °
+— 1.0- —~ 10-
+= D = °
+E  ) © opt po E . op pe
+S L ° ®e 2 CL} ° ® 9
+£ os- ° = L os- © =.
+> ° > °
+- -
+° ° py °
+0.0- E “Desde woes of ® Toe 00 ° 0.0- Evert weee of @® Teme G0 ®@ °
+0 1 2 3 a 0 1 2 3 a
+Log(M-term) - Memory Scaling Log(M-term) - Memory Scaling
+
+Figure 2: Utilizing EMOC Embeddings to Classify Sorting Algorithm Implementations from PACD (Test acc = 79.1%)
+
+8.2 Clone Detection using EMOC
+
+In computing, a program clone refers to creating a duplicate of a program, often involving replicating the program’s
+settings, activities, and even its source code We can use the EMOC embedding of an algorithm to find it’s nearest
+neighbors (other algorithm implementations that have the same outputs, similar memory/runtime scaling, and similar
+operations). This can sometimes yield surprising results. For example, below are the two most similar BubbleSort
+implementations in PACD:
+
+def bubbleSort (alist):
+for passnum in range (len(alist)-1,0,-1):
+for i in range (passnum):
+if alist[il>alist[i+1]:
+temp = alist[i]
+alist[i] = alist[i+1]
+alist [i+1] = temp
+return (alist)
+
+
+arXiv Template A PREPRINT
+
+def ordenar_lista(lista):
+# obtAIm o tamanho da lista
+len_lista = len(lista)
+# loop mais externo comeAgando de (len_lista - 1) atA’ 1 com decremento -1
+for i in range(len_lista - 1, 0, -1):
+# for mais interno que vai de 0 atdl (i - 1)
+for j in range (i):
+# a funkghco lower () converte todos os caracteres de uma string para
+mindZsculo
+# isso serve para ignorar o case-sensitive
+# o "if" testa se a string acessada pelo Anpndice (j + 1)
+# precede a string acessada pelo Anndice "jr
+if (listal[j] > listalj + 11):
+# faz a troca dos elementos
+aux = listalj]
+listal[j] = listalj + 1]
+listalj + 1] = aux
+
+return(lista)
+
+8.3 Measuring Novelty in Large Language Model Program Synthesis
+
+Equipped with a measure that captures algorithm similarity, we attempt to use it to answer several questions about
+LLM-based algorithm generation:
+
+1) Does the diversity of LLM generated algorithms correlate with sampling temperature?
+2) Do LLMs with more parameters generate more diverse algorithm types?
+
+3) Can we directly bias an LLM to generate novel algorithms via the input prompt?
+
+We tackle these questions in the above order.
+
+For (1), we fix the problem (list sorting) and LLM while increasing the sampling temperature from 0.75 to 1.1. We then
+inspect the variance in each of the EMOC components for the generated algorithms from each sampling temperature.
+The E-component has 0 variance, indicating all (functional) sorting algorithms from the LLM (gpt-40) performed
+sorting correctly. Below, we plot the differences in the O-component:
+
+Given two algorithms for the same problem, can we determine whether they are meaningfully different? In full
+generality, the question is uncomputable, and empirically it is muddied by competing notions of similarity. Yet, in many
+applications (such as clone detection and program synthesis) a pragmatic, consistent similarity metric is necessary.
+We review existing equivalence and similarity notions and introduce EMOC: An Evaluation-Memory-Operations-
+Complexity framework that embeds algorithm implementations into a feature space suitable for downstream tasks. We
+compile PACD, a curated dataset of verified Python implementations across three problems, and show that EMOC
+features support clustering and classification of algorithm types, detection of near-duplicates, and quantification of
+diversity in LLM-generated programs. Code, data, and utilities for computing EMOC embeddings are released to
+facilitate reproducibility and future work on algorithm similarity.
+
+We can observe that as sampling temperature increases, we see more unique operations utilized in the sorting algorithms
+generated by the LLM.
+
+For (2), we fix the problem (list sorting) and the sampling temperature (1.0), and utilize models with an increasing
+number of parameters.
+
+When LLMs are trained with higher parameter counts, the resulting algorithms they generate are more varied (as
+measured by memory and computational complexity). Furthermore, this trend holds when looking at the primitive
+operations utilized by the algorithms:
+
+For (3), we fix the problem (list sorting), the LLM (gpt-40), and change the prompt to attempt to directly encourage
+novelty:
+
+
+arXiv Template
+
+A PREPRINT
+
+gpt-40 (n=50, temp=0.75)
+
+gpt-40 (n=50, temp=0.86)
+
+gpt-40 (n=50, temp=0.97)
+
+Unique Ops seen: 6
+
+gpt-40 (n=50, temp=1.1)
+
+Unique Ops seen: 7
+
+I. Unique Ops seen: 4 I. Unique Ops seen: 6 I. o -
+8 g g g
+o- Q- o- o-
+o> ® © ® ®
+xX
+3
+MT O - o - o - o -
+ee 8 8 8
+[7
+[=
+IH
+Sg g- 8 g-
+a
+[S]
+o- o- ° o-
+H R H H
+IAI VS A IPE TL IAI VS OAV ES
+a5 88 aat 858 08 08a %aad 85s 1G a8 88 aa’858 08 a 888 aa’558 08
+SC JC noo Jx22s CS 9 woo JxEds 6 CO goo Js 6 oC uo o ox
+SEY DoE EE EOE SEY EooEEEE 0k SEYE oo EEEE DE DEY Eo oEEEE DE
+gcse < 2g gS facasZgz I 2 gfe <3 Zgr EEE EEE EERE]
+§:E:§88§:z88253 §sE8:5§:s58z323 £:2:5§£:558223 SSES5§£25852:53
+£525: "° a = £528::"® az £5z25:z:°® a = £5235: "® a Z
+098 0g ao co © 8035 ao co © 803g ao 0 © 8 0gao
+oO Oo 0 Oo Oo 0 Oo Oo 0 Oo Oo 0
+Figure 3: Utilizing EMOC embeddings to measure diversity of LLM generated sorting algorithms
+im Sorting Algorithms Generated by Different LLMs
+Q
+2 ° ® gpt-3.5-turbo (~175b params)
+> 0.5- [] ° ° : 8 ° ® gpt-40-mini (~8b params)
+A LJ [J LJ
+< [} ® 9 o ® gpt-4o0 (~1.8t params)
+2 0.4- . gpt-4.1 (~1.8t params)
+£ ° °
+S
+— LJ
+5 03 4 . . ° °8
+5 ° ° t EJ
+2 ° °
+ST 02
+3
+g o
+- °
+g 01 i) .
+£ od
+bi 0.0 - ald 0° (XR XIX XX ANN}
+0 0 1 2 3 4 5 6 7
+M-term (Memory Complexity Slope)
+Figure 4: Directly encouraging novelty by modifying prompt
+Original prompt
+
+Write a function that takes in a list of integers and returns the list in sorted ascending order. Do not use the
+builtin sorted() function.
+
+Modified prompt
+
+Write a function that takes in a list of integers and returns the list in sorted ascending order. Do not use the
+builtin sorted() function. Focus on generating a novel or unique algorithm.
+
+10
+
+
+
+arXiv Template
+
+A PREPRINT
+
+gpt-3.5-turbo (~175b params) gpt-40-mini (~8b params)
+
+Unique Ops seen: 5
+
+[=
+=}
+1
+
+20 40 60
+-
+
+COMPARE_OP_< -|
+
+o -
+
+COMPARE_OP_!
+
+COMPARE_OP_>
+
+COMPARE_OP,
+
+I=) I=) I<) I=) —
+N » o ® 5)
+
+M-term (Memory Complexity Slope)
+°
+
+I=) o I=) ° =
+N » o ® o
+
+M-term (Memory Complexity Slope)
+°
+
+COMPARE_OP_<
+
+COMPARE_OP_>
+
+BINARY_OP_+
+
+BINARY_OP_* -
+BINARY_OP_- -
+
+BINARY_OP_** -
+
+BINARY_OP_+
+
+BINARY_OP_// -
+
+gpt-40 (~1.8t params)
+
+Unique Ops seen: 6
+Nl
+
+10
+
+8
+80
+
+60
+40 60
+
+40
+
+20
+20
+
+nA Iv
+
+- Unique Ops seeg. 5 OS"
+S
+0
+
+>=
+
++ 5 All V + ¥ x
+ha Tia VA alas 1+ a al "ial V Vale's nit a
+a'0,% 0a'a'5 92540 a'C, 30 a'a S,° 16'S,
+
+J | >
+Ow Jw OO zE 0% Ow tw O00 zz S10
+we yr ww LT > g we PT ywEggx>
+cfg zZ2gx cd daca SZc
+sf ggZ2Z252c2 fefag%zz223%2
+£22258 °%52® £3:3283°%5z20
+£030== ES =030== EH
+cY9govoo 5980508
+o (Wi v) ()
+
+100
+
+80
+
+60
+
+40
+
+20
+
+gpt-4.1 (~1.8t params)
+
+Unique Ops seen: 11
+
+-
+Il A Il vi! Il + EN RN
+[1 - V A a o I +
+a la a a a
+a'6,80,a'a'6 993% aS,
+|
+Su ows 8 zy 5:
+wed cyuwrFase »E
+ci%dcacdSZgsad
+sfc Z=sF52<2
+£3z53s¢2°%5=2®
+c08050o
+oO (SR)
+
+Figure 5: Diversity of generated algorithms by LLM size
+
+Generated Sorting Algorithms - Original prompt (GPT-40, N = 50, Temp=1.5)
+
+oe oe
+2 a 6
+Generated Sorting Algorithms - Modified prompt (GPT-40, N = 50, Temp=1.5)
+[J
+HE ° ° Lad
+. LJ
+° ° °o ®
+(EE ENN J [J
+2 a 6
+
+C-term (Computational Complexity Slope)
+
+Figure 6: Diversity in generated algorithms by prompt used
+
+9 Conclusions and Future Work
+
+Our results show promising utility for the EMOC criteria as a method for embedding algorithms into a space where
+they can be meaningfully compared. We demonstrate the ability to perform classification on both human and LLM
+generated sorting algorithms, predicting labels that are consistent with the original intention of the algorithm authors.
+We also demonstrate the ability to utilize EMOC scores as a way to detect potentially novel algorithms generated by
+LLM sampling. A natural application is to directly utilize the EMOC score within the LLM prompt. This may provide
+a more direct method of encouraging novelty as compared to simply increasing the sampling temperature, which did
+not yield a high variety of algorithm types in our tests. We hope that this framework (along with the provided codebase)
+finds utility not only in traditional algorithm analysis tasks but also in supporting the discovery of novel algorithms
+
+using deep generative models.
+
+11
+
+10
+
+10
+
+
+arXiv Template A PREPRINT
+
+References
+
+[1] Alan Beadle. Historical origins of data structures and algorithms.
+
+[2] Sanjeev Arora and Boaz Barak. Computational Complexity: A Modern Approach. Cambridge University Press,
+Cambridge; New York, 2009.
+
+[3] K.D. Cooper and L. Torczon. Engineering a Compiler. Elsevier Science, 2004.
+
+[4] James R. Cordy, J. Dingel, T. Wigg, and C. Dean. A practical language-independent approach to detecting cloned
+code in large software systems. In International Conference on Software Maintenance (ICSM), pages 156-165.
+IEEE, 2004.
+
+[5] Thomas H Cormen, Charles E Leiserson, Ronald L Rivest, and Clifford Stein. Introduction to Algorithms. MIT
+Press, 3rd edition, 2009.
+
+[6] S. Daghighfarsoodeh, A. A. Ghorbani, and Q. Wang. Deep learning for source code vulnerability detection: A
+systematic review. IEEE Transactions on Software Engineering, 2025. Scheduled for publication or accepted.
+Assuming future date is correct.
+
+[7] Leonardo De Moura and Nikolaj Bjgrner. Z3: An efficient SMT solver. In International Conference on Tools and
+Algorithms for the Construction and Analysis of Systems, pages 337-340. Springer, 2008.
+
+[8] Jayce R. Getz and Heekyoung Hahn. An Introduction to Automorphic Representations: With a view toward trace
+formulae, volume 300 of Graduate Texts in Mathematics. Springer International Publishing, 2024.
+
+[9] Alex Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto,
+
+2009. http://www.cs.toronto.edu/ kriz/cifar.html
+
+[10] Tim Lindholm, Frank Yellin, Gilad Bracha, and Alex Buckley. The Java Virtual Machine Specification: Java SE 9
+
+Edition. Oracle America, Inc., 2017. https://docs.oracle.com/javase/specs/jvms/se9/html/index
+
+html
+[11] James R. Munkres. Topology. Prentice Hall, second edition, 2000.
+
+[12] G.J. Myers, C. Sandler, T. Badgett, and T.M. Thomas. The Art of Software Testing. Business Data Processing: A
+Wiley Series. Wiley, 2004.
+
+[13] R. Poler, J. Mula, M. Diaz-Madroiiero, and R. Sanchis. Operations Research Problems: Statements and Solutions.
+Springer London, 2025.
+
+14] Michael Sipser. Introduction to the Theory of Computation. Cengage Learning, Boston, MA, third edition, 2013.
+15
+16
+
+17] Yuandong Tian, Xinlei Chen, and Surya Ganguli. Understanding self-supervised learning dynamics without
+contrastive pairs. In International Conference on Machine Learning, pages 10268-10278. PMLR, 2021.
+
+Harold S. Stone. Introduction to Computer Organization and Data Structures. McGraw-Hill, New York, 1971.
+
+[14]
+[15]
+[16] D. Thain. Introduction to Compilers and Language Design. Lulu Press, Incorporated, 2016.
+[17]
+
+[18] A.M. Turing. On computable numbers, with an application to the entscheidungsproblem. Proceedings of the
+London Mathematical Society, 2(1):230-265, 1937.
+
+[19] Yevgen Vislavski and Rik Wettel. LICCA: A language-independent code clone analysis approach based on abstract
+syntax trees. In International Working Conference on Source Code Analysis and Manipulation (SCAM), pages
+21-30. IEEE, 2018.
+
+[20] Mahesh Viswanathan. Rice’s theorem.
+[21] B. Wikipedians. Compiler Construction. PediaPress.
+
+[22] Damien Woods and Turlough Neary. The complexity of small universal turing machines: A survey. Theoretical
+Computer Science, 410(4):443-450, 2009. Computational Paradigms from Nature.
+
+[23] Mykola Zavershynskyi, Vladyslav Kurbatov, Svitlana Zhydenko, and Iryna Gurevych. NAPS: Neural abstractive
+Program Summarization. In Annual Meeting of the Association for Computational Linguistics (ACL), pages
+2291-2301, 2018.
+
+[24] Siyuan Zhuo, Ziyang Li, Jinbo Huang, and et al. BigCodeBench: A comprehensive benchmark for large language
+models of code. arXiv preprint arXiv:2407.03961, 2024.
+
+12

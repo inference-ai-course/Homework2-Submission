@@ -1,0 +1,2183 @@
+2510.27052v2 [cs.CL] 6 Nov 2025
+
+arxiv
+
+VISTA Score: Verification In Sequential Turn-based Assessment
+
+Ashley Lewis and Andrew Perrault and Eric Fosler-Lussier and Michael White
+The Ohio State University
+{lewis.2799, perrault.17, fosler-lussier.1, white.1240}@osu.edu
+
+Abstract
+
+Hallucination—defined here as generated state-
+ments unsupported or contradicted by available
+evidence or conversational context—remains
+a major obstacle to using conversational Al
+systems in settings that demand factual reli-
+ability. Existing metrics evaluate isolated re-
+sponses or treat unverifiable content as errors,
+limiting their use for multi-turn dialogue. We
+introduce VISTA (Verification In Sequential
+Turn-based Assessment), a framework for eval-
+uating conversational factuality via claim-level
+verification and sequential consistency track-
+ing. VISTA decomposes each turn into atomic
+claims, verifies them against trusted sources
+and dialogue history, and categorizes unverifi-
+able statements (subjective, contradicted, lack-
+ing evidence, or abstaining). Across eight large
+language models and four dialogue factuality
+benchmarks (AIS, BEGIN, FAITHDIAL, and
+FADE), VISTA substantially improves halluci-
+nation detection over FACTSCORE and LLM-
+as-Judge baselines. Human evaluation confirms
+that VISTA’s decomposition improves annota-
+tor agreement and reveals inconsistencies in
+existing benchmarks. By modeling factuality
+as a dynamic property of conversation, VISTA
+offers a more transparent, human-aligned mea-
+sure of truthfulness in dialogue systems.
+
+1 Introduction
+
+Despite advances in reasoning and retrieval, large
+language models (LLMs) still hallucinate, produc-
+ing fluent but false statements that erode user trust
+and limit deployment in factual settings. Existing
+metrics often treat each generation as isolated text,
+ignoring the sequential and pragmatic nature of di-
+alogue, where earlier claims constrain or ground
+later ones. Recent analyses (Kalai et al., 2025)
+further show that factuality progress depends on
+distinguishing abstentions, or when a model de-
+clines to answer, from hallucinations, which assert
+falsehoods with confidence.
+
+Initialize Agent Knowledge
+Start with a list of information that the
+
+guide knows (base facts), which consists of verified,
+static information that the agent knows at the start
+of the conversation.
+
+1. Atomic Claim Extraction
+Break agent turn into atomic facts
+
+claim : 3 Yes 2. Check Verifiability of Each Claim
+N
+
+. J N Can this information be verified
+Claim 3 0 given the document?
+
+: 3. Categorize Unverifiable Claims
+4
+Q.Giaim : 5 © Out-of-Scope (subjective)
+! KX Contradicted
+Claim 3 © Q Lacking Evidence
+
+ource
+Document
+
+if Abstention
+
+4. Update Agent Knowledge
+Add verified and out-of-scope
+claims to the Agent Knowledge
+
+J
+
+3
+.- 5. Iterate Through Conversation
+Repeat Steps 2-5 for each Guide Turn
+
+6. Take Inventory
+
+iE 15% Out-of-Scope
+1 659 ©
+& ganNeriied 6% Contradicted
+
+X
+X 35% Unverified 4 Q 129, Lacking Evidence
+; 2% Abstention
+
+J
+
+Figure 1: Overview of the VISTA Score pipeline. Each
+assistant turn undergoes claim extraction, verification,
+and categorization, with accumulated background facts
+informing subsequent turns.
+
+We argue that factuality in dialogue should be
+modeled as a dynamic, turn-based process rather
+than a static property of text. To do so, we pro-
+pose VISTA Score (Verification In Sequential Turn-
+based Assessment), a framework that reconceptu-
+alizes hallucination detection as sequential claim
+verification. Each assistant turn is decomposed into
+atomic factual statements, verified against trusted
+references and dialogue history, and categorized by
+unverifiability type: contradicted, lacking evidence,
+subjective, or abstaining. This decomposition re-
+veals interactions between factual precision, dia-
+logue consistency, and pragmatic appropriateness
+that prior metrics collapse.
+
+
+Unlike prior work including FActScore (Min
+et al., 2023) and LLM-as-Judge (Zha et al., 2023;
+Peisakhovsky et al., 2025), which evaluate isolated
+responses or conflate unverifiable and subjective
+content, VISTA captures factual reliability as it
+unfolds across turns. While it also leverages LLMs
+for claim extraction and verification, these models
+operate within a structured, turn-based pipeline
+rather than as monolithic judges, bridging claim-
+level verification and conversational coherence.
+
+From a linguistic perspective, the approach
+aligns with the notion of common ground, or
+the evolving set of propositions treated as shared
+knowledge (Stalnaker, 1978; Clark, 1996), but
+adopts a stricter formulation: VISTA tracks what
+can be established as verifiably true, not merely
+believed.
+
+We evaluate VISTA on four retrieval-augmented
+generation (RAG) dialogue benchmarks—AIS, BE-
+GIN, FaithDial, FADE) (Rashkin et al., 2023; Dziri
+etal., 2022b; Das et al., 2022; Dziri et al., 2022a)—
+and eight open- and closed-weight LLMs, includ-
+ing GPT, Llama, Deepseek, Qwen, and Mistral.
+VISTA achieves higher hallucination-detection ac-
+curacy than existing metrics, with exceptionally
+large boosts for smaller, open-weight models. Hu-
+man evaluation confirms that claim-level decompo-
+sition improves annotator agreement and exposes
+inconsistencies in current benchmarks. Our contri-
+butions are:
+
+* A dialogue-aware factuality framework that
+integrates claim verification with sequential
+consistency tracking, providing fine-grained,
+interpretable labels that distinguish factual er-
+rors, abstentions, and opinions.
+
+Empirical evidence that VISTA improves fac-
+tuality assessment across diverse models and
+datasets.
+
+* A human evaluation showing that claim-level
+decomposition increases annotation reliability
+and clarifies benchmark inconsistencies.
+
+A dataset of 140 annotated conversations sup-
+porting future research on conversational fac-
+tuality.
+
+By reframing factuality as an evolving property
+of conversation, VISTA moves beyond static cor-
+rectness toward a more transparent and human-
+aligned measure of truthfulness in dialogue sys-
+
+tems. Our implementation and dataset are publicly
+available on Github.
+
+2 Related Work
+
+Decomposition-Based Methods. Recent ap-
+proaches to hallucination detection emphasize
+breaking model outputs into smaller factual units
+for verification. This decomposition allows evalua-
+tors to isolate true and false claims that may coexist
+in a single generation. Min et al. (2023) introduced
+FActScore, which decomposes text into atomic fac-
+tual statements and verifies each against a trusted
+source to produce a fine-grained score. Zha et al.
+(2023) extended this idea through AlignScore, a
+learned alignment model that assesses factual con-
+sistency across diverse tasks such as NLI and QA.
+While both enable interpretable, claim-level judg-
+ments, they treat all unverifiable, abstaining, or
+subjective statements as hallucinations—a simplifi-
+cation poorly suited to dialogue, which often blends
+factual, uncertain, and opinionated content.
+
+Within dialogue, Chen et al. (2025) proposed
+FineDialFact, a benchmark for fine-grained fact
+verification that explicitly labels subjective or in-
+sufficiently supported claims as “not enough infor-
+mation.” However, this conflates subjectivity with
+evidential uncertainty, limiting diagnostic value.
+VISTA builds on this decomposition tradition but
+introduces a pragmatic distinction between unver-
+ifiable subjective claims and unsupported factual
+ones. By modeling these distinctions sequentially
+across dialogue turns, it provides a more faithful
+view of factual reliability in conversation.
+
+LLM-as-Judge Approaches. Another promi-
+nent line of work uses LLMs themselves as fac-
+tuality evaluators. Liu et al. (2023) and others
+demonstrated that models such as GPT-4 can pro-
+duce reliable judgments of coherence and fac-
+tual accuracy. In hallucination detection, Man-
+akul et al. (2023) introduced SelfCheckGPT, which
+compares a model’s output with resampled con-
+tinuations to flag unsupported content. More
+recently, Peisakhovsky et al. (2025) proposed
+the FINAL benchmark, which reframes halluci-
+nation detection as localizing factual inconsisten-
+cies through natural-language explanations. De-
+spite their scalability, these LLM-as-judge meth-
+ods remain sensitive to prompt design, model bias,
+and domain familiarity—limitations that also affect
+decomposition-based approaches.
+
+VISTA embeds LLM evaluators within a struc-
+
+
+tured, multi-stage pipeline, narrowing the model’s
+role to subtasks of claim extraction, verification,
+and categorization. Rather than relying on judg-
+ments from a single model pass, this decomposition
+facilitates clearer analysis and more consistent eval-
+uation, and can be implemented with open-weight
+models for greater accessibility and reproducibility.
+
+Benchmarks for Dialogue Factuality. Several
+benchmarks have advanced the study of factuality
+in dialogue. Dziri et al. (2022b) introduced BE-
+GIN, augmenting Wizard-of-Wikipedia with hal-
+lucination labels. The AILS benchmark (Rashkin
+et al., 2023) evaluates attribution to identified
+sources, while FaithDial (Dziri et al., 2022a) pro-
+vides human-corrected faithful dialogue variants.
+FADE (Das et al., 2022) synthetically introduces
+factual errors, and DialFact (Gupta et al., 2022)
+formulates dialogue verification as fact-checking
+against Wikipedia. These datasets standardize fac-
+tuality assessment but largely operate at the single-
+turn level, overlooking how factual claims evolve
+or contradict each other throughout a conversation.
+VISTA is designed specifically for this sequential
+setting: it tracks verified information across turns,
+detects contradictions, and distinguishes genuine
+hallucinations from subjectivity or abstention.
+
+HaluEval (Li et al., 2023) is another benchmark
+for hallucination detection, but we exclude its dia-
+logue subset due to inconsistent evidence format-
+ting and annotation variability. In particular, its
+guidelines offer limited clarity on distinguishing
+subjective from factual statements, making it less
+suitable for per-claim verification in sequential dia-
+logue settings.
+
+Other Methods. Beyond decomposition and
+LLM-judging, other approaches estimate or pre-
+dict hallucination risk through auxiliary signals.
+Uncertainty-based methods such as semantic en-
+tropy (Farquhar et al., 2024) gauge model confi-
+dence by measuring semantic variability across gen-
+erations, while entailment-based techniques like
+FactCC (Kryscinski et al., 2020) and Q? (Hon-
+ovich et al., 2021) frame factual verification as
+natural language inference. Broader suites such as
+TRUE (Honovich et al., 2022) compare these met-
+rics across domains, showing that entailment-style
+models generalize well but often mishandle the
+pragmatic and subjective dimensions of dialogue.
+
+VISTA extends this trajectory toward inter-
+pretable, fine-grained factuality evaluation that
+bridges claim-level verification with conversational
+context, offering a scalable yet human-aligned
+
+framework for assessing dialogue truthfulness.
+
+3 Methodology
+
+VISTA operates as a sequential evaluation pipeline
+that processes each dialogue turn in order, as illus-
+trated in Figure 1. Appendix A.1 provides the full
+set of prompt templates for each stage.
+
+Step 0: Initialize Agent Knowledge. This step
+defines an optional initialization phase that estab-
+lishes the agent’s prior or contextual knowledge
+before dialogue evaluation begins. Conceptually,
+this step is similar to augmenting the grounding
+documents with persistent information, but it treats
+that information as a distinct and dynamically up-
+datable source rather than a static reference. In
+practice, this “background knowledge” acts as a
+living document: verified and out-of-scope claims
+from later turns are appended to it, allowing the
+factual state to evolve over time.
+
+For example, in a virtual museum guide set-
+ting, initialization could include details such as the
+guide’s name, the museum location, and any per-
+manent exhibit facts that should be assumed known
+at the outset. These facts serve as a secondary ev-
+idence source during claim verification. Because
+the dialogue datasets used in our experiments do
+not specify agent personas or scenario-level priors,
+this component is left empty here, but it provides
+a mechanism for adapting VISTA to more special-
+ized or knowledge-rich systems.
+
+Step 1: Claim Decomposition. This step ex-
+tracts all distinct factual or belief-based statements
+from the assistant’s current turn ¢;, using the pre-
+ceding dialogue history #y...t;—1 as context. Each
+utterance is decomposed into atomic claims so that
+complex sentences and presuppositions are fully
+enumerated. For example, the sentence “I didn’t
+know that embroidery is a needlework technique”
+produces both “Embroidery is a needlework tech-
+nique” and “The assistant didn’t know that embroi-
+dery is a needlework technique.”
+
+While conceptually related to the decomposition
+procedure in FActScore (Min et al., 2023), VISTA’s
+implementation differs in several ways. First, de-
+composition operates at the turn level rather than at
+the sentence level: utterances are not pre-split into
+sentences before analysis, as we found that this sep-
+aration substantially reduced recall of implied or
+co-referential content. For fair comparison, we also
+remove the sentence splitting in our instantiation
+of FActScore, as it led to improved scores. Sec-
+
+
+ond, the prompt provides explicit instructions for
+handling presuppositions and coreference resolu-
+tion, ensuring that all implicit factual commitments
+are surfaced as standalone statements. This richer
+guidance yields more complete and contextually
+grounded claim sets, which serve as the input to
+the verification stage.
+
+This stage is implemented via a structured
+prompt template with few-shot exemplars (n=6),
+instructing the model to output a numbered list of
+atomic claims.
+
+Step 2: Verification. Each extracted claim is
+passed to the verification stage, which evaluates its
+factual status against two evidence sources: (1) the
+accumulated Background Knowledge (verified or
+out-of-scope claims from prior turns) and (2) the
+turn-specific Reference Text (retrieved document
+or supporting passage). The model classifies each
+claim as either VERIFIED or UNVERIFIABLE.
+
+Although this stage follows the general structure
+of FActScore (Min et al., 2023), it differs in both
+scope and prompt design. FActScore performs ver-
+ification in isolation—each claim is compared only
+to a static reference document—whereas VISTA
+conditions verification on an evolving dialogue
+state that incorporates previously verified informa-
+tion. The prompt explicitly instructs the model
+to treat evidence from prior turns as valid support
+when it remains consistent with current context,
+enabling detection of contradictions or shifts in
+factual grounding across the conversation.
+
+To ensure strict textual grounding, claims are
+marked as VERIFIED only when directly sup-
+ported by the provided sources. The resulting
+outputs update the dialogue’s factual memory and
+serve as input to Step 3 for further categorization
+of unverifiable content.
+
+Step 3: Unverifiable Categorization. Claims
+marked as UNVERIFIABLE in Step 2 are further
+analyzed to determine the reason for unverifiability.
+This step constitutes the third prompting stage and
+assigns each claim to one of four categories:
+
+1. Out-of-Scope: Subjective, experiential, or
+opinion-based content that cannot be exter-
+nally verified.
+
+2. Contradicted: Explicitly refuted by the refer-
+ence material or prior verified facts.
+
+3. Lacking Evidence: Potentially factual but
+unsupported given the available context.
+
+4. Abstention: Statements expressing uncer-
+tainty or a refusal to answer.
+
+The categorization prompt includes few-shot ex-
+emplars (n=9) emphasizing pragmatic distinctions
+among claim types, ensuring consistent treatment
+of subjective versus unsupported content. The re-
+sulting labels, together with verified claims from
+Step 2, update the background knowledge used in
+subsequent dialogue turns.
+
+Steps 4-5: Sequential Memory and Aggrega-
+tion. The verified and out-of-scope claims from
+each turn are appended to the running Background
+Knowledge list (initialized in Step 0), forming a
+dynamic factual memory that conditions all sub-
+sequent verifications. This mechanism enables
+VISTA to track consistency across turns: verified
+claims can reinforce prior knowledge, while con-
+tradictions trigger penalties for factual drift. Over
+the course of a conversation, this evolving record
+effectively becomes a “living context,” allowing
+the metric to capture how factual reliability unfolds
+over time rather than treating each turn in isolation.
+
+At the end of evaluation, the aggregated results
+summarize the proportion of claims in each verifi-
+cation category and the dialogue-level consistency
+across turns. This final inventory step produces the
+overall VISTA Score.
+
+Implementation. VISTA is implemented in
+Python as a modular evaluation pipeline, with
+prompt templates dynamically formatted per model
+family (e.g., OpenAl, Hugging Face Transformers,
+DeepSeek). The system supports both zero-shot
+and few-shot configurations and exposes a unified
+API for model substitution and dataset integration.
+
+4 Models and Datasets
+4.1 Datasets
+
+We evaluate VISTA across four dialogue factu-
+ality benchmarks—FAITHDIAL, BEGIN, FADE,
+and AIS—that cover a broad spectrum of hallu-
+cination phenomena in knowledge-grounded and
+RAG dialogue. Each provides turn-level supervi-
+sion suitable for claim-level evaluation while differ-
+ing in grounding sources, annotation protocols, and
+treatment of subjectivity. We sample 500 random
+conversations from the test sets of each benchmark.
+
+FAITHDIAL (Dziri et al., 2022a) The unedited
+FAITHDIAL corpus contains naturally occur-
+ring hallucinations from Wizard-of-Wikipedia di-
+alogues. Each assistant turn is annotated for faith-
+
+
+fulness to supporting Wikipedia evidence. While
+subjective statements are often labeled as halluci-
+nations, the dataset offers complete turn-level cov-
+erage, making it ideal for sequential metrics like
+VISTA. There are 2229 annotated turns in the 500
+sampled conversations.
+
+BEGIN Dziri et al. (2022b) extend WoW with
+model-generated responses from GPT-2 and TS,
+annotated for entailment, hallucination, and contra-
+diction via human Likert ratings. It reflects how hal-
+lucinations manifest in model outputs rather than
+human-written text. Only the final turn in each
+conversation is annotated (500 in our sample).
+
+FADE (Das et al., 2022) FADE uses OPENDI-
+ALKG dialogues grounded in a knowledge graph
+and includes human-verified annotations on GPT-
+2-generated responses. We use the observed subset,
+which captures entity- and relation-level hallucina-
+tions distinct from text-grounded datasets. Not all
+assistant turns are annotated but often more than
+one turn in a dialogue is, giving us a total of 639
+annotated turns in our sample.
+
+AIS (Rashkin et al., 2023) AIS (Attribution and
+Information-Seeking) evaluates factual attribution
+in retrieval-augmented conversational QA, combin-
+ing items from QRECC and WoW. Responses are
+labeled by multiple annotators for attribution reli-
+ability. Only the final turn in each conversation is
+annotated (500 total in our sample).
+
+Summary. Three datasets—FAITHDIAL, BE-
+GIN, and parts of AIS—derive from the Wizard-
+of-Wikipedia corpus (Dinan et al., 2019) but differ
+in generation source and annotation design, while
+FADE contributes structured-knowledge ground-
+ing. Together they provide diverse coverage across
+human and model responses, textual and graph
+grounding, and various treatments of subjectivity,
+enabling comprehensive evaluation of VISTA’s
+sequential factuality assessment.
+
+4.2 Models
+
+We evaluate VISTA SCORE across a representa-
+tive suite of LLMs spanning both closed- and open-
+weight architectures to test generalization across
+training paradigms and alignment methods. Closed
+models include GPT-40 and GPT-5, which rep-
+resent state-of-the-art instruction-tuned conversa-
+tional systems (OpenAl, 2024, 2025). Open-weight
+models include DEEPSEEK-V 3-CHAT (DeepSeek-
+Al et al., 2025), LLAMA-3.1- INSTRUCT (70B
+
+and 8B) (Grattafiori et al., 2024), MISTRAL-7B-
+INSTRUCT-VO0.3 (Jiang et al., 2023), and QWEN-3
+(32B and 8B) (Yang et al., 2025).
+
+All models are evaluated through a unified infer-
+ence interface with identical prompting, few-shot
+examples temperature, and context settings to en-
+sure comparability. This setup allows us to iso-
+late differences in factual consistency from model-
+dependent artifacts and to test VISTA’s robustness
+across model families and scales.
+
+5 Human Evaluation
+
+We conducted a human evaluation of 140 conversa-
+tions (227 turns) sampled from all four benchmarks
+(40 conversations from AIS, BEGIN, FADE, and
+and 20 from FaithDial). We annotated only the
+final turn for AIS and BEGIN, all turns for Faith-
+Dial, and multiple turns for FADE, following each
+dataset’s labeling conventions. The final sample
+contained 888 claims (3.9 per turn on average).
+
+Following the human-evaluation protocol of
+Min et al. (2023), each turn was paired with
+its retrieved supporting document and automat-
+ically decomposed into factual claims using
+Deepseek-v3-Chat. This step made the task more
+manageable for annotators by not requiring them
+to write claims from scratch. Annotators could add,
+edit, or delete claims before assigning one of five
+labels: verifiable, contradicted, lacking evidence,
+out-of-scope, or abstention. To ensure represen-
+tation of rare phenomena, we included five con-
+versations with abstentions and five with contradic-
+tions (identified via Deepseek’s VISTA predictions)
+from each of the four datasets. These categories
+remain underrepresented in existing benchmarks,
+and future work should evaluate them more system-
+atically to assess how well VISTA distinguishes
+deliberate abstention from factual error. The re-
+maining items were randomly sampled. Appendix
+B shows screenshots of the interface our evaluators
+used.
+
+Three undergraduate linguistics majors served
+as annotators. Training consisted of a one-hour live
+session (jointly labeling seven non-test examples)
+and a 15-minute instructional video. Annotators
+then worked independently (under six hours total)
+and received $200 compensation.
+
+Inter-annotator agreement was assessed at two
+levels. Table 2 reports pairwise overlap in the sets
+of identified claims, showing substantial consis-
+tency (mean Jaccard 0.75, F1 0.86). For label agree-
+
+
+AIS BEGIN FaithDial FADE
+
+Fact LLM-as- Fact LLM-as- Fact LLM-as- Fact LLM-as-
+Model VISTA Score Judge VISTA Score Judge VISTA Score Judge VISTA Score Judge
+GPT-5 60.20 59.20 57.40 | 87.20" 71.00 70.00 | 79.54" 67.03 64.65 | 63.38" 59.87 59.47
+GPT-40 63.00" 56.80 56.80 | 83.201 65.80 70.40 | 79.957 62.81 60.43 | 64.16% 55.87  61.82f
+Deepseek | 59.60" 58.80" 53.20 | 84.60" 59.80 70.80 | 81.70" 63.75! 55.45 | 65.26" 57.75  62.13f
+Llama-70B | 62.40" 56.00 55.80 | 77.40% 53.00 79.00 | 72.36" 54.60 72.90° | 65.107 56.65 62.28"
+Llama-8B | 62.20" 51.60 51.80 | 73.80%" 53.80 61.007 | 65.19% 54.60" 4823 | 62.44% 54.93" 4523
+Qwen-32B | 64.40% 5320" 46.40 | 80.60% 64.40" 46.80 | 75.73% 58.41" 3589 | 64.79% 57.28" 47.73
+Qwen-8B 63.67 5620 5320 | 80.607 64.40 70.20° | 75.10% 58.19 5647 | 64.79% 56.18 57.43
+Mistral-7B | 58.607 52.60 48.80 | 72.007 53.80 57.40 | 72.01" 4841 4643 | 66.04" 4585 41.63
+
+Table 1: Model performance across AIS, BEGIN, FaithDial, and FADE benchmarks. Superscripts indicate
+statistically significant improvements over the indicated system for that model on that dataset (McNemar’s test,
+p < 0.05): "= vs. FActScore; ! = vs. LLM-as-Judge. No other results were significant.
+
+Annotator Pair  Jaccard F1
+
+Al1-A2 0.828 0.906
+Al-A3 0.745 0.854
+A2-A3 0.684 0.812
+Mean 0.752 0.857
+
+Table 2: Pairwise claim-set agreement between annota-
+tors. Scores reflect overlap in identified claim sets.
+
+Label Count Percent
+Verifiable 418 45.7%
+Lacking evidence 213 23.8%
+Out of scope 227 26.9%
+Abstention 22 2.7%
+Contradicted 8 0.9%
+Total 888 100%
+
+Table 3: Distribution of consensus labels across all an-
+notated claims. Krippendortf’s ae = 0.832.
+
+ment, we computed Krippendorff’s a over matched
+claims. Claims were treated as the same if their text
+matched exactly or had cosine similarity > 0.9 un-
+der sentence embeddings. The resulting a = 0.832
+indicates high reliability. The final consensus set
+comprised 888 labeled claims (distribution shown
+in Table 3). Disagreements were resolved by major-
+ity vote when possible, or through discussion when
+all three annotators diverged. IAA is calculated on
+the raw annotations (not taking into account the
+consensus/discussion).
+
+Beyond measuring inter-annotator reliability, we
+compared our consensus labels against the origi-
+nal dataset annotations to identify systematic dis-
+crepancies. Annotators diverged from the original
+labels in 26.4% of turns, and 86.7% of those dis-
+agreements were cases our annotators judged as
+UNVERIFIABLE but that the original datasets
+marked as verifiable. Table 4 summarizes these dif-
+ferences: of the 52 turns newly identified as unver-
+ifiable, 34 contained unsupported or contradicted
+claims, while 18 involved subjective or uncertain
+
+Category Count
+1. Verified (agreed) 30
+2. Unverifiable (agreed) 137
+3. Missed Hallucination 34
+4. Mishandled Abstentions and Out of Scope 18
+5. Verifiable from dialogue context 6
+
+6. Disfluent text 2
+
+Table 4: Categorization of differences between our an-
+notator judgments and the original annotations from the
+datasets. Categories 3 and 4 are errors in the original
+annotations. Category 5 refers to when the original an-
+notation is unverifiable, but in reality it can be verified
+if you take into account the conversation context. Cate-
+gory 6 is where annotations differed but the target turn
+contained disfluencies that might have confused annota-
+tors. Analysis done by first author.
+
+statements. This pattern suggests that earlier an-
+notations often conflated unverifiable subjective
+content with factual correctness.
+
+Although the decomposition process may en-
+courage annotators to inspect claims more care-
+fully, differences in instructions or task framing
+could also contribute to the higher rate of unverifi-
+able labels. More extensive re-annotation using a
+decomposition-based protocol would help clarify
+this effect and improve consistency across factual-
+ity benchmarks. Our re-annotated subset is released
+with the project repository.
+
+6 Results
+
+6.1 Automatic Evaluation
+
+As shown in Table 1, VISTA consistently outper-
+forms both FActScore and LLM-as-Judge across
+almost all datasets and model families. Note that
+because these datasets essentially count everything
+that cannot be verified given a document as hal-
+lucinated/unverifiable, we consider any turn that
+
+
+ato Lobes ond ew AmRGraTr Labels Setting Acc. (%)
+VISTA (No Ablation) 81.70
+No Background Context (Step 2 Ablation) 81.74
+No Dialogue History (Step 1, 2 Ablation) 77.24
+Zero-Shot (Examples ablated) 70.17
+
+gots gpt-40 deepseek  Uama-708  Uama-88 ~~ Qwen3-328  Qwen3-88  Mistral-76
+
+m= VISTA Original mem LLM-as-judge original mmm FactScore original
+VISTA new wm LLM-as-judge new mm Factscore new
+
+Figure 2: Accuracy of models on hallucination detection
+on the 140 conversations (227 turns) selected for human
+evaluation. The darker color bars represent accuracy
+according to the original datasets’ labels. The lighter
+color bars represent accuracy according to the human
+evaluators’ consensus labels in this study.
+
+Model Turn Acc. Claim Ace. Macro F1
+Maj. baseline - 47.07 13.00
+gpt-5 92.51 81.53 69.09
+gpt-4o 91.19 75.68 62.41
+deepseek 92.51 79.73 67.15
+Llama-70B 79.74 69.82 46.12
+Llama-8B 84.14 70.38 51.80
+Qwen3-32B 86.34 68.69 52.19
+Qwen3-8B 89.87 72.30 55.16
+Mistral-7B 84.14 65.43 43.99
+
+Table 5: Model-level classification results on the VISTA
+benchmark using consensus claim annotations. We
+report turn-level accuracy (verifiable vs. unverifiable),
+claim-level accuracy, and macro-F1. The majority base-
+line predicts the most frequent claim label (VERIFIED).
+
+contains a claim that is labeled with something
+other than VERIFIED as unverifiable. LLM-as-
+Judge prompts contain instructions to label such
+information as unverifiable as well, and FActScore
+does this by default. In general, the largest gains
+occur on open-weight models (LLaMA, Mistral,
+and Qwen). All reported differences are statisti-
+cally significant under McNemar’s test (p < 0.05).
+See Appendix C for significance testing details.
+
+6.2 Human Evaluation
+
+In addition to automatic evaluation, we compare
+each metric’s outputs against the consensus human
+annotations described in Section 5. Table 5 summa-
+rizes accuracy with respect to the consensus labels,
+and Figure 2 visualizes model performance on this
+subset. To ensure comparability with the original
+dataset definitions, we merge VISTA’s out-of-scope
+
+Table 6: Accuracy performance on ablations using the
+FaithDial dataset and Deepseek-v3-chat.
+
+and abstention categories into the broader UN-
+VERIFIABLE class used by prior benchmarks.
+
+Across metrics, VISTA demonstrates the
+strongest alignment with human judgments, reflect-
+ing its ability to distinguish unsupported or con-
+tradicted claims from genuinely subjective content.
+Section 5 provides additional analysis of annotation
+quality and labeling discrepancies.
+
+6.3 Ablations
+
+While VISTA consistently outperforms both
+FActScore and LLM-as-Judge on crowdsourced di-
+alogue datasets, it is important to understand which
+components drive these gains. The three methods
+differ along several dimensions: (1) conversational
+contextualization (present in LLM-as-Judge but not
+FActScore), (2) decomposition into atomic claims
+(present in FActScore but not LLM-as-Judge), (3)
+use of few-shot exemplars (present in FActScore
+but not LLM-as-Judge), and (4) multi-class catego-
+rization of unverifiable claims (unique to VISTA).
+Further complicating this picture is the lack of a
+consistent ranking between FActScore and LLM-
+as-Judge across datasets (Table 1).
+
+To disentangle these factors, we performed three
+ablation analyses using the FaithDial dataset—
+the largest and most conversationally grounded
+benchmark—and the DeepSeek-v3-Chat model,
+which achieved the highest baseline accuracy on
+this dataset. We focus on Stage 2 (verification),
+which determines whether a claim is VERIFIED
+or UNVERIFIABLE, as the dataset does not con-
+tain fine-grained labels for Stage 3 categories.
+
+Ablation setup. We consider the following vari-
+ants of the full VISTA pipeline:
+
+1. No Background Context: Removes prior
+turns (“background knowledge’) from the ver-
+ification prompt, so claims are judged solely
+against the retrieved reference text.
+
+2. No Dialogue History: Removes conversa-
+tional context from both decomposition and
+verification stages, isolating the effect of se-
+quential grounding.
+
+
+3. Zero-Shot: Runs both stages without few-
+shot exemplars, using only task instructions.
+
+Results. Table 6 reports the performance of
+these variants. Removing background knowledge
+from the verification stage produces no change, sug-
+gesting that models primarily rely on the retrieved
+reference to verify claims. In contrast, omitting dia-
+logue history in the decomposition and verification
+steps and removing few-shot examples both lead to
+clear drops in accuracy. These results indicate that
+VISTA’s main advantage over FActScore lies in its
+ability to contextualize each turn within the evolv-
+ing dialogue and to leverage few-shot examples
+that better capture conversational phenomena.
+
+7 Discussion
+
+The limited impact of conversational context at the
+verification stage (Step 2) is noteworthy. One likely
+explanation is that the benchmark datasets were de-
+signed for RAG-style evaluation, where annotators
+were instructed to validate claims only against the
+retrieved document. As a result, turns that depend
+on conversational context are often labeled as un-
+verifiable even when previous dialogue clearly sup-
+ports them. In our reannotations, only eight cases
+were reclassified from unverifiable to verified, six
+of which required prior context to resolve refer-
+ences (see Table 4). For instance, a turn stating
+“The EDM-pop duo achieved a breakthrough with
+their 2014 song #Selfie” was originally marked un-
+verifiable but becomes trivially verifiable once the
+earlier mention of The Chainsmokers is considered
+(full example in Appendix E). Such cases suggest
+that the effect of conversational context may be
+underestimated without broader reannotation.
+
+Despite these ambiguities, VISTA consistently
+outperforms existing baselines for hallucination
+detection in RAG dialogue settings, with the
+largest gains observed for smaller open-weight
+models. We hypothesize that this improvement
+stems from decomposing evaluation into smaller,
+well-defined subtasks—claim extraction, verifica-
+tion, and categorization—which reduces the cogni-
+tive and representational load at each step. Larger
+models can integrate these reasoning operations
+within a single prompt, but smaller models struggle
+when multiple demands are combined. VISTA’s
+modular structure effectively serves as external
+scaffolding, allowing weaker models to perform
+each operation independently and thereby narrow
+the performance gap with larger systems.
+
+More broadly, as conversational AI systems
+become increasingly ubiquitous and human-like,
+there is a growing need for evaluation metrics that
+do not conflate subjectivity and abstentions with
+factual error. Many factuality benchmarks and met-
+rics implicitly assume that unverifiable content is
+hallucinated, an assumption that breaks down in
+many types of dialogue. Human conversation natu-
+rally includes opinions, hedging, and expressions
+of uncertainty—all of which can be appropriate and
+truthful within context.
+
+By explicitly distinguishing between subjective,
+abstaining, and unsupported claims, VISTA bet-
+ter reflects the pragmatic diversity of dialogue and
+provides a more human-aligned notion of factual
+reliability. As Al systems are deployed in increas-
+ingly social, educational, and advisory roles, such
+distinctions become essential for ensuring that fac-
+tuality metrics promote transparency and trust with-
+out penalizing natural conversational behavior.
+
+8 Conclusion
+
+We introduced VISTA Score, a framework for
+evaluating factual accuracy in multi-turn dialogue
+through claim-level verification and sequential con-
+sistency tracking. Unlike prior metrics that assess
+isolated responses, VISTA models factuality as an
+evolving property of conversation, decomposing
+assistant turns into atomic claims verified against
+retrieved knowledge and dialogue history.
+
+Across four dialogue factuality benchmarks and
+eight language models, VISTA consistently out-
+performs FActScore and LLM-as-Judge, with the
+largest gains for smaller open-weight models. Hu-
+man evaluation shows that VISTA’s decomposition
+improves annotator agreement and exposes incon-
+sistencies in existing benchmarks, underscoring the
+need for context-aware reannotation.
+
+By distinguishing subjective, unsupported, con-
+tradicted, and abstaining claims, VISTA offers
+a more human-aligned view of factual reliabil-
+ity—one that recognizes uncertainty as part of
+truthful dialogue. Looking ahead, we plan to ex-
+plore VISTA as a training signal for reinforcement
+learning and self-training. In line with recent find-
+ings that progress on hallucination mitigation de-
+pends on recognizing abstention as distinct from
+error (Kalai et al., 2025), future work will test how
+VISTA can support more calibrated, trustworthy
+generation.
+
+
+Limitations
+
+Although VISTA substantially improves over prior
+automatic factuality metrics, several limitations re-
+main. First, all comparisons used a single, uni-
+form prompt design across models to ensure con-
+trolled evaluation. This design choice supports
+clean experimental contrast but may not reflect
+each model’s best achievable performance. In par-
+ticular, stronger reasoning models could potentially
+benefit from prompt variants tuned to their internal
+calibration or interpretive style.
+
+Second, the verification and scoring stages rely
+on LLM-based judgments. While the pipeline re-
+duces single-model bias by separating evidence
+identification from decision-making, each stage
+still depends on model priors about truthfulness,
+subjectivity, and style. In particular, the prompt
+design intentionally omits explicit guidance about
+handling subjective or unverifiable content to pre-
+serve stability across models, which may lead to
+inconsistent treatment of borderline cases.
+
+Third, VISTA has been evaluated only on En-
+glish, retrieval-augmented dialogue datasets, using
+a modest-scale human annotation set for validation.
+All of these datasets contain relatively short source
+documents, which may not reflect the challenges
+of verifying more complex or multi-document ev-
+idence. Assessing robustness to longer or more
+involved contexts is an important direction for fu-
+ture work. In addition, our current implementation
+does not use the initialization stage of the pipeline,
+and its effect on downstream verification accuracy
+remains an open question.
+
+Finally, the pipeline introduces additional infer-
+ence cost and sequential dependence: early-stage
+verification errors can propagate through the rea-
+soning chain, and the multi-step structure makes
+large-scale benchmarking more resource-intensive
+than direct evaluation. Future work could ex-
+plore adaptive prompt optimization across models,
+model-agnostic verification strategies, and more di-
+verse human studies to broaden VISTA’s coverage
+and reliability.
+
+Ethics Statement
+
+This work aims to improve the reliability of auto-
+matic factuality evaluation for dialogue systems.
+All datasets used in this study—AIS, BEGIN,
+FAITHDIAL, and FADE—are publicly available
+and contain only English-language conversations
+without personally identifying information. Human
+
+annotations were collected by trained linguistics
+undergraduates, who provided informed consent
+and were compensated at or above local fair-wage
+standards. The human evaluation protocol was re-
+viewed by our institutional ethics board and deter-
+mined to be Not Human Subjects Research under
+applicable IRB guidelines.
+
+Because VISTA relies on large language mod-
+els as evaluators, its outputs may inherit biases or
+factual blind spots present in those models. The
+proposed pipeline mitigates single-model bias by
+separating evidence retrieval from factual verifica-
+tion, but it cannot eliminate model-specific priors
+about truthfulness, subjectivity, or social norms.
+Care should be taken when applying VISTA to
+domains involving sensitive topics or non-factual
+evaluation criteria.
+
+Finally, automated evaluation systems should
+complement, not replace, human judgment. We
+encourage responsible use of this framework as a
+research tool for improving transparency and con-
+sistency in model assessment, rather than as an
+unquestioned authority on conversational truthful-
+ness.
+
+References
+
+Xiangyan Chen, Yufeng Li, Yujian Gan, Arkaitz Zu-
+biaga, and Matthew Purver. 2025. Finedialfact: A
+benchmark for fine-grained dialogue fact verification.
+
+Herbert H. Clark. 1996. Using Language. “Using”
+Linguistic Books. Cambridge University Press.
+
+Souvik Das, Sougata Saha, and Rohini Srihari. 2022.
+Diving deep into modes of fact hallucinations in dia-
+logue systems. In Findings of the Association for
+Computational Linguistics: EMNLP 2022, pages
+684-699, Abu Dhabi, United Arab Emirates. Associ-
+ation for Computational Linguistics.
+
+DeepSeek-Al, Aixin Liu, Bei Feng, Bing Xue, Bingx-
+uan Wang, Bochao Wu, Chengda Lu, Chenggang
+Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan,
+Damai Dai, Daya Guo, Dejian Yang, Deli Chen,
+Dongjie Ji, Erhang Li, Fangyun Lin, Fucong Dai,
+and 181 others. 2025. Deepseek-v3 technical report.
+Preprint, arXiv:2412.19437.
+
+Emily Dinan, Stephen Roller, Kurt Shuster, Angela
+Fan, Michael Auli, and Jason Weston. 2019. Wizard
+of wikipedia: Knowledge-powered conversational
+agents. Preprint, arXiv:1811.01241.
+
+Nouha Dziri, Ehsan Kamalloo, Sivan Milton, Os-
+mar Zaiane, Mo Yu, Edoardo M. Ponti, and Siva
+Reddy. 2022a. FaithDial: A faithful benchmark for
+information-seeking dialogue. Transactions of the
+
+
+Association for Computational Linguistics, 10:1473—
+1490.
+
+Nouha Dziri, Hannah Rashkin, Tal Linzen, and David
+Reitter. 2022b. Evaluating attribution in dialogue sys-
+tems: The BEGIN benchmark. Transactions of the
+Association for Computational Linguistics, 10:1066—
+1083.
+
+Sebastian Farquhar, Jannik Kossen, Lorenz Kuhn, and
+Yarin Gal. 2024. Detecting hallucinations in large
+language models using semantic entropy. Nature,
+630:625-629.
+
+Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri,
+Abhinav Pandey, Abhishek Kadian, Ahmad Al-
+Dahle, Aiesha Letman, Akhil Mathur, Alan Schel-
+ten, Alex Vaughan, Amy Yang, Angela Fan, Anirudh
+Goyal, Anthony Hartshorn, Aobo Yang, Archi Mi-
+tra, Archie Sravankumar, Artem Korenev, Arthur
+Hinsvark, and 542 others. 2024. The llama 3 herd of
+models. Preprint, arXiv:2407.21783.
+
+Prakhar Gupta, Chien-Sheng Wu, Wenhao Liu, and
+Caiming Xiong. 2022. DialFact: A benchmark for
+fact-checking in dialogue. In Proceedings of the
+60th Annual Meeting of the Association for Compu-
+tational Linguistics (Volume 1: Long Papers), pages
+3785-3801, Dublin, Ireland. Association for Compu-
+tational Linguistics.
+
+Or Honovich, Roee Aharoni, Jonathan Herzig, Hagai
+Taitelbaum, Doron Kukliansy, Vered Cohen, Thomas
+Scialom, Idan Szpektor, Avinatan Hassidim, and
+Yossi Matias. 2022. TRUE: Re-evaluating factual
+consistency evaluation. In Proceedings of the 2022
+Conference of the North American Chapter of the
+Association for Computational Linguistics: Human
+Language Technologies, pages 3905-3920, Seattle,
+United States. Association for Computational Lin-
+guistics.
+
+Or Honovich, Leshem Choshen, Roee Aharoni, Ella
+Neeman, Idan Szpektor, and Omri Abend. 2021.
+¢*: Evaluating factual consistency in knowledge-
+grounded dialogues via question generation and ques-
+tion answering. In Proceedings of the 2021 Confer-
+ence on Empirical Methods in Natural Language Pro-
+cessing, pages 7856-7870, Online and Punta Cana,
+Dominican Republic. Association for Computational
+Linguistics.
+
+Albert Q. Jiang, Alexandre Sablayrolles, Arthur Men-
+sch, Chris Bamford, Devendra Singh Chaplot, Diego
+de las Casas, Florian Bressand, Gianna Lengyel, Guil-
+laume Lample, Lucile Saulnier, Lélio Renard Lavaud,
+Marie-Anne Lachaux, Pierre Stock, Teven Le Scao,
+Thibaut Lavril, Thomas Wang, Timothée Lacroix,
+and William El Sayed. 2023. Mistral 7b. Preprint,
+arXiv:2310.06825.
+
+Adam Tauman Kalai, Ofir Nachum, Santosh S. Vem-
+pala, and Edwin Zhang. 2025. Why language models
+hallucinate. Preprint, arXiv:2509.04664.
+
+10
+
+Wojciech Kryscinski, Bryan McCann, Caiming Xiong,
+and Richard Socher. 2020. Evaluating the factual
+consistency of abstractive text summarization. In
+Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP),
+pages 9332-9346, Online. Association for Computa-
+tional Linguistics.
+
+Junyi Li, Xiaoxue Cheng, Xin Zhao, Jian-Yun Nie, and
+Ji-Rong Wen. 2023. HaluEval: A large-scale hal-
+Iucination evaluation benchmark for large language
+models. In Proceedings of the 2023 Conference on
+Empirical Methods in Natural Language Processing,
+pages 6449-6464, Singapore. Association for Com-
+putational Linguistics.
+
+Yang Liu, Dan Iter, Yichong Xu, Shuohang Wang,
+Ruochen Xu, and Chenguang Zhu. 2023. G-eval:
+NLG evaluation using gpt-4 with better human align-
+ment. In Proceedings of the 2023 Conference on
+Empirical Methods in Natural Language Processing,
+pages 2511-2522, Singapore. Association for Com-
+putational Linguistics.
+
+Potsawee Manakul, Adian Liusie, and Mark Gales. 2023.
+SelfCheckGPT: Zero-resource black-box hallucina-
+tion detection for generative large language models.
+In Proceedings of the 2023 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+9004-9017, Singapore. Association for Computa-
+tional Linguistics.
+
+Sewon Min, Kalpesh Krishna, Xinxi Lyu, Mike Lewis,
+Wen-tau Yih, Pang Koh, Mohit Iyyer, Luke Zettle-
+moyer, and Hannaneh Hajishirzi. 2023. FActScore:
+Fine-grained atomic evaluation of factual precision
+in long form text generation. In Proceedings of the
+2023 Conference on Empirical Methods in Natural
+Language Processing, pages 12076-12100, Singa-
+pore. Association for Computational Linguistics.
+
+OpenAl. 2024. Gpt-4o system card. arXiv preprint
+arXiv:2410.21276.
+
+OpenAl 2025. Gpt-5 system card. preprint.
+
+Yehonatan Peisakhovsky, Zorik Gekhman, Yosi Mass,
+Liat Ein-Dor, and Roi Reichart. 2025. Fine-grained
+detection of context-grounded hallucinations using
+lms.
+
+Hannah Rashkin, Vitaly Nikolaev, Matthew Lamm,
+Lora Aroyo, Michael Collins, Dipanjan Das, Slav
+Petrov, Gaurav Singh Tomar, Iulia Turc, and David
+Reitter. 2023. Measuring attribution in natural lan-
+guage generation models. Computational Linguistics,
+49(4):777-840.
+
+Robert Stalnaker. 1978. Assertion. Syntax and Seman-
+tics (New York Academic Press), 9:315-332.
+
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+Chengen Huang, Chenxu Lv, Chujie Zheng, Day-
+iheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao
+Ge, Haoran Wei, Huan Lin, Jialong Tang, and 41
+
+
+others. 2025. Qwen3 technical report. Preprint,
+arXiv:2505.09388.
+
+Yuheng Zha, Yichi Yang, Ruichen Li, and Zhiting Hu.
+2023. AlignScore: Evaluating factual consistency
+with a unified alignment function. In Proceedings
+of the 61st Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers),
+pages 11328-11348, Toronto, Canada. Association
+for Computational Linguistics.
+
+11
+
+
+A Prompts
+
+A.1 VISTA Prompts
+A.1.1 Stagel
+
+INSTRUCTIONS:
+Extract all distinct factual or belief-based statements from the TARGET TURN only.
+
+- Break down compound or complex sentences into individual, atomic claims.
+- Resolve any references (e.g., use proper names instead of "he", "it", etc.).
+- Capture each idea as stated or implied by the speaker, regardless of accuracy.
+- Treat presuppositions as mandatory outputs. If an utterance contains a presupposition, you MUST
+list it as one or more separate atomic statements.
+For example, if the utterance is "wizard: I didn't know that embroidery is a needlework technique”,
+you MUST list "Embroidery is a needlework technique” as an atomic statement as well as
+"The wizard didn't know that embroidery is a needlework technique”.
+- Do NOT evaluate or comment on whether a statement is correct.
+- Simply list the statements as they appear to be intended.
+- Format your output as a numbered list of standalone claims.
+- Do not include any commentary or qualification.
+- Only include what was communicated in the TARGET TURN.
+
+*CONVERSATION 1%
+CONVERSATION HISTORY:
+
+apprentice: Hi Dr. Ilsa, what can I expect at the COSI museum?
+
+wizard: Welcome! At COSI, you can explore live science shows, special exhibits, and other activities
+that make science fascinating and fun. You'll definitely enjoy your trip!
+
+apprentice: Are there any live science shows happening right now?
+
+wizard: Absolutely! You can check the program schedule at the Box Office or Guest Services Desk for
+details about the current live shows.
+
+apprentice: I heard there was an outdoor exhibit?
+
+TARGET TURN:
+
+wizard: Big Science Park is an outdoor laboratory full of exciting science activities. You can try
+lifting a car with a lever or even roll a giant granite sphere!
+
+DECOMPOSITION:
+
+1. Big Science Park is an outdoor laboratory.
+
+2. Big Science Park features exciting science activities.
+
+3. Visitors can try lifting a car using a lever at Big Science Park.
+4. Visitors can roll a giant granite sphere at Big Science Park.
+
+*CONVERSATION 2x
+
+CONVERSATION HISTORY:
+
+apprentice: Hi! What's your name?
+
+wizard: My name is Dr. Ilsa. I'm named after the woman who founded the OSU Linguistics department, Dr.
+Ilsa Lehiste. What's your name?
+apprentice: My name is Marie!
+
+TARGET TURN:
+
+wizard: Hello Marie, welcome to COSI.
+DECOMPOSITION:
+
+1. The apprentice's name is Marie.
+
+2. The apprentice and wizard are at COSI.
+
+*CONVERSATION 3%
+
+CONVERSATION HISTORY:
+
+12
+
+
+apprentice: Hi Dr. Ilsa. Where did your name come from?
+TARGET TURN:
+
+wizard: I'm named after Dr. Ilse Lehiste who founded the Department of Linguistics at the Ohio State
+University.
+
+DECOMPOSITION:
+
+1. The wizard is named after Dr. Ilse Lehiste.
+
+2. Ilse Lehiste founded the Department of Linguistics at the Ohio State University.
+
+*CONVERSATION 4x*
+
+CONVERSATION HISTORY:
+
+apprentice: Hi! What is this place?
+
+TARGET TURN:
+
+wizard: Hello! The Language Pod is a research lab from Ohio State University. Here we study different
+
+aspects of language like how people talk differently, how children learn language, and how computers
+and humans can interact using language.
+
+DECOMPOSITION:
+
+1. The Language Pod is a research lab.
+
+2. The Language Pod is from Ohio State University.
+
+3. The Language Pod studies different aspects of language.
+
+4. One focus of the Language Pod is how people talk differently.
+
+5. Another focus of the Language Pod is how children learn language.
+
+6. The Language Pod also studies how computers and humans can interact using language.
+
+*CONVERSATION 5%
+CONVERSATION HISTORY:
+
+apprentice: Could you recommend a few Pixar movies, please?
+
+wizard: Have you seen A Bug’s Life? That was one of their earlier films.
+
+apprentice: I haven’t! Is that one of their more popular ones?
+
+wizard: It came out in 1998, right after Toy Story. Would you like me to suggest a couple more Pixar
+films?
+
+apprentice: Yes, please. Maybe one or two more, just so I have some options.
+
+TARGET TURN:
+
+wizard: I'll give you my personal favorite, Finding Nemo. Do you know that one?
+
+DECOMPOSITION:
+
+1. The wizard is giving the apprentice a recommendation for a Pixar movie.
+2. The wizard recommends the movie Finding Nemo.
+
+3. Finding Nemo is a Pixar movie.
+
+4. Finding Nemo is the wizard's personal favorite Pixar movie.
+
+*CONVERSATION 6%
+
+CONVERSATION HISTORY:
+
+apprentice: I love superhero movies.
+
+wizard: Me too. I'm a big fan of Iron Man.
+apprentice: Yeah Robert Downey Jr. is a favorite.
+TARGET TURN:
+
+wizard: I didn't know that RDJ was in that movie.
+
+DECOMPOSITION:
+
+13
+
+
+1. Iron Man is a movie.
+
+2. Robert Downey Jr. was in Iron Man.
+
+3. The wizard did not know that Robert Downey Jr. was in Iron Man.
+*CONVERSATION 7x
+
+CONVERSATION HISTORY:
+
+[Conversation history]
+
+TARGET TURN:
+
+[Target turn]
+
+DECOMPOSITION:
+
+A.1.2 Stage 2
+
+INSTRUCTIONS:
+
+Determine whether the CLAIM can be verified using only the BACKGROUND KNOWLEDGE and REFERENCE TEXT.
+- If the CLAIM is supported as factually TRUE using only the BACKGROUND KNOWLEDGE and REFERENCE TEXT,
+classify as: VERIFIED
+
+- If the CLAIM cannot be confirmed as factually TRUE given the provided information, classify as:
+UNVERIFIABLE
+
+Return ONLY the category name.
+
+*EXAMPLE 1%
+
+BACKGROUND KNOWLEDGE :
+
+1. The wizard is a virtual tour guide at a museum.
+
+2. The museum is called the Center of Science and Industry (COSI).
+
+3. The wizard can talk about the museum exhibits.
+
+REFERENCE TEXT:
+
+EXHIBIT: Big Science Park
+
+This laboratory in the sun is proof that science is anything but boring. Its outdoor, larger-than-life
+activities are designed to let your inner scientist stomp around and shout out loud. Lift a car with
+the help of a lever, roll a giant granite sphere, and play with air pressure.
+
+Ready for a workout? Try lifting a 2,437-1b car, or giving Big Science Park's two-and-a-half-ton
+granite sphere a roll. With science, it's a cinch.
+
+CLAIM:
+
+Big Science Park is an outdoor laboratory.
+
+CATEGORY:
+
+VERIFIED
+
+*EXAMPLE 2%
+BACKGROUND KNOWLEDGE :
+
+1. The wizard can answer general knowledge questions.
+2. The wizard avoids speculation about team culture or opinions.
+
+REFERENCE TEXT:
+
+The Cleveland Guardians are a professional baseball team based in Cleveland, Ohio. The team changed
+its name from the Cleveland Indians in 2021. They have a long-standing rivalry with the Detroit Tigers.
+
+CLAIM:
+
+The Cleveland Guardians are the only baseball team in Ohio.
+
+14
+
+
+CATEGORY:
+
+UNVERIFIABLE
+
+*EXAMPLE 3%
+BACKGROUND KNOWLEDGE :
+
+1. The wizard can answer general science and technology questions.
+2. The wizard bases answers only on factual reference material.
+
+REFERENCE TEXT:
+
+A washing machine is a home appliance used to wash laundry. Modern machines typically come in
+front-loading or top-loading designs and include cycles for washing, rinsing, and spinning. Many
+newer models are equipped with energy-saving features and smart technology that can connect to home
+networks.
+
+CLAIM:
+
+Most people prefer front-loading washing machines because they look more modern.
+
+CATEGORY:
+
+UNVERIFIABLE
+
+*EXAMPLE 4x
+BACKGROUND KNOWLEDGE :
+
+1. The wizard answers questions about natural materials and how they’re produced.
+2. The wizard verifies facts based on provided source texts.
+
+REFERENCE TEXT:
+
+Cork is a natural material harvested from the bark of cork oak trees, primarily found in Mediterranean
+countries. The harvesting process does not harm the tree and can be repeated every 9 to 12 years.
+After harvesting, the cork bark is boiled to increase flexibility and then processed into products
+such as wine stoppers, flooring, and insulation.
+
+CLAIM:
+
+Cork is obtained in a way that allows the tree to keep growing.
+
+CATEGORY:
+
+VERIFIED
+
+*EXAMPLE 5%
+BACKGROUND KNOWLEDGE :
+
+1. The wizard answers general knowledge questions about animals.
+2. The wizard does not guess or speculate about unknown facts.
+
+REFERENCE TEXT:
+
+Dogs are a domesticated species of the family Canidae. Over centuries, humans have bred dogs for
+specific traits, resulting in a wide variety of breeds. Breed characteristics often include size,
+coat type, temperament, and purpose, such as herding, guarding, or companionship. Different kennel
+clubs around the world maintain breed standards and registries.
+
+CLAIM:
+
+The wizard does not know how many dog breeds there are.
+
+CATEGORY:
+
+15
+
+
+UNVERIFIABLE
+
+*EXAMPLE 6%
+BACKGROUND KNOWLEDGE :
+
+1. The wizard can answer questions about art and museum collections.
+2. The wizard uses provided source texts for factual verification.
+
+REFERENCE TEXT:
+
+The museum’s Impressionist collection features works by Claude Monet, Pierre-Auguste Renoir, and
+Edgar Degas. These paintings highlight themes of light, leisure, and everyday life in late
+19th-century France. The collection is housed in Gallery 4 on the second floor.
+
+CLAIM:
+
+The wizard's favorite painter is Claude Monet.
+
+CATEGORY:
+
+UNVERIFIABLE
+
+*EXAMPLE 7%
+BACKGROUND KNOWLEDGE :
+[background knowledge]
+REFERENCE TEXT:
+[reference text]
+CLAIM:
+
+[claim]
+
+CATEGORY:
+VERIFIED
+
+A.1.3 Stage3
+
+INSTRUCTIONS:
+
+The following CLAIM has been judged UNVERIFIABLE based on the REFERENCE TEXT.
+Your task: explain WHY it is unverifiable.
+
+Important:
+
+BACKGROUND KNOWLEDGE is only for checking contradictions with earlier conversation context.
+- Do NOT use BACKGROUND KNOWLEDGE to decide if a claim is LACKING EVIDENCE.
+Choose exactly ONE category below, then give a short explanation.
+
+1. OUT-OF-SCOPE - The claim is not a factual assertion that can be verified against the REFERENCE
+TEXT. It is an opinion, recommendation, personal experience, or conversational remark.
+
+2. CONTRADICTED - The claim makes a factual assertion that is explicitly contradicted by the REFERENCE
+TEXT.
+
+3. LACKING EVIDENCE - The claim makes a factual assertion, but the sources do not provide enough
+information to confirm or deny it.
+
+4. ABSTENTION — The claim is itself a refusal, expression of uncertainty, or lack of knowledge (e.g.,
+"I don't know").
+
+*EXAMPLE 1%
+
+16
+
+
+BACKGROUND KNOWLEDGE :
+
+1. The wizard is a virtual tour guide at a museum.
+2. The museum is called the Center of Science and Industry (COSI).
+3. The wizard can talk about the museum exhibits.
+
+REFERENCE TEXT:
+
+EXHIBIT: Big Science Park
+
+This laboratory in the sun is proof that science is anything but boring. Its outdoor, larger-than-life
+activities are designed to let your inner scientist stomp around and shout out loud. Lift a car with
+the help of a lever, roll a giant granite sphere, and play with air pressure.
+
+Ready for a workout? Try lifting a 2,437-1b car, or giving Big Science Park's two-and-a-half-ton
+granite sphere a roll. With science, it's a cinch.
+
+CLAIM:
+Big Science Park is an indoor laboratory.
+CATEGORY :
+
+CONTRADICTED. The wizard has said that Big Science Park is an indoor laboratory, but the reference
+text says it has outdoor activities.
+
+*EXAMPLE 2x
+
+BACKGROUND KNOWLEDGE :
+
+The wizard likes baseball.
+
+The wizard is a fan of the Cleveland Guardians.
+
+The apprentice doesn't know the rules of baseball.
+The apprentice is from Ohio.
+
+Aw N=
+
+REFERENCE TEXT:
+
+The Cleveland Guardians are a professional baseball team based in Cleveland, Ohio. The team changed
+its name from the Cleveland Indians in 2021. They have a long-standing rivalry with the Detroit Tigers.
+
+CLAIM:
+
+The Cleveland Guardians are the only baseball team in Ohio.
+
+CATEGORY:
+
+LACKING EVIDENCE. The reference text does not have information about the Cleveland Guardians being
+the only baseball team in Ohio.
+
+*EXAMPLE 3%
+
+BACKGROUND KNOWLEDGE :
+
+1. There are many different types of home appliances.
+
+2. Appliances seem to be getting more and more advanced.
+
+3. Appliances are getting more eco-friendly.
+
+REFERENCE TEXT:
+
+A washing machine is a home appliance used to wash laundry. Modern machines typically come in
+front-loading or top-loading designs and include cycles for washing, rinsing, and spinning. Many
+newer models are equipped with energy-saving features and smart technology that can connect to home
+networks.
+
+CLAIM:
+
+Most people prefer front-loading washing machines because they look more modern.
+
+CATEGORY:
+
+OUT-OF-SCOPE. The claim is about personal preferences, which is not factual content.
+
+17
+
+
+*EXAMPLE 4x
+BACKGROUND KNOWLEDGE :
+
+1. The wizard answers questions about natural materials and how they’re produced.
+2. The wizard verifies facts based on provided source texts.
+
+REFERENCE TEXT:
+
+Cork is a natural material harvested from the bark of cork oak trees, primarily found in Mediterranean
+countries. The harvesting process does not harm the tree and can be repeated every 9 to 12 years.
+After harvesting, the cork bark is boiled to increase flexibility and then processed into products
+such as wine stoppers, flooring, and insulation.
+
+CLAIM:
+The wizard does not know how long it takes to boil the cork bark.
+CATEGORY:
+
+ABSTENTION. The wizard does not answer the question, but rather expresses a lack of knowledge.
+
+*EXAMPLE 5%
+BACKGROUND KNOWLEDGE :
+
+The wizard answers general knowledge questions about animals.
+The wizard likes dogs.
+
+The apprentice doesn't know the number of dog breeds.
+
+The apprentice is from the United States.
+
+The apprentice is curious about dogs.
+
+There are many different types of dogs.
+
+oO Uh wWwN =
+
+REFERENCE TEXT:
+
+Dogs are a domesticated species of the family Canidae. Over centuries, humans have bred dogs for
+specific traits, resulting in a wide variety of breeds. Breed characteristics often include size,
+coat type, temperament, and purpose, such as herding, guarding, or companionship. Different kennel
+clubs around the world maintain breed standards and registries.
+
+CLAIM:
+
+The wizard is unsure how many dog breeds there are.
+
+CATEGORY:
+
+ABSTENTION. The wizard does not answer the question, but rather expresses a lack of knowledge.
+
+*EXAMPLE 6%
+BACKGROUND KNOWLEDGE :
+
+The wizard likes art.
+
+The wizard likes the painting "Mona Lisa".
+
+Leonardo da Vinci is an artist.
+
+Leonardo da Vinci is a scientist.
+
+The wizard has not seen some of Leonardo da Vinci's paintings.
+
+gah wn =
+
+REFERENCE TEXT:
+
+Leonardo da Vinci was a Renaissance polymath born in 1452. He was known for his contributions to art,
+science, engineering, and anatomy. Among his most famous works are the paintings *Mona Lisa* and *The
+Last Supper*. He left behind numerous notebooks filled with sketches, inventions, and observations.
+
+CLAIM:
+
+The wizard has seen the Mona Lisa.
+
+18
+
+
+CATEGORY:
+
+OUT-OF-SCOPE. The claim is about a personal experience, which is not factual content.
+
+*EXAMPLE 7%
+BACKGROUND KNOWLEDGE :
+
+Earthquakes are natural disasters.
+
+There are many different types of natural disasters.
+
+The apprentice has never lived through a natural disaster.
+The apprentice is from the United States.
+
+The apprentice has been to California.
+
+gah wn =
+
+REFERENCE TEXT:
+
+Earthquakes occur when stress along geological faults or by volcanic activity causes the ground to
+shake. The severity of an earthquake is measured using the Richter scale or the moment magnitude
+scale. Aftershocks are smaller tremors that often follow a main seismic event.
+
+CLAIM:
+
+The 1906 San Francisco earthquake was the deadliest earthquake in U.S. history.
+
+CATEGORY:
+
+LACKING EVIDENCE. The reference text does not have information about the 1906 San Francisco
+earthquake being the deadliest earthquake in U.S. history.
+
+*EXAMPLE 8%
+
+BACKGROUND KNOWLEDGE :
+
+The wizard likes baseball.
+
+The wizard is a fan of the Cleveland Guardians.
+
+The apprentice doesn't know the rules of baseball.
+The apprentice is from Ohio.
+
+AwN—
+
+REFERENCE TEXT:
+
+The Cleveland Guardians are a professional baseball team based in Cleveland, Ohio. The team changed
+its name from the Cleveland Indians in 2021. They have a long-standing rivalry with the Detroit Tigers.
+
+CLAIM:
+The wizard does not like the Cleveland Guardians.
+CATEGORY:
+
+OUT-OF-SCOPE. The claim is about the wizard's personal opinion, which is not factual content.
+
+*EXAMPLE 9%
+BACKGROUND KNOWLEDGE :
+[background knowledge]
+REFERENCE TEXT:
+[reference text]
+CLAIM:
+
+[claim]
+
+CATEGORY:
+
+19
+
+
+A.2 LLM-as-Judge Prompt
+
+INSTRUCTIONS:
+
+You are a careful and impartial evaluator. Your task is to determine whether the provided answer is
+fully supported by the retrieved context.
+
+Definition:
+
+- Faithful -+ Every factual statement in the answer is directly supported or can be logically inferred
+from the retrieved documents.
+- Hallucinated = The answer contains any factual claim that is not present in, or cannot be inferred
+from, the retrieved documents.
+
+Instructions:
+
+1. Read the retrieved documents carefully.
+
+2. Compare each factual element of the answer to the documents.
+3. Decide whether it is faithful or hallucinated.
+
+4. Provide a short, clear explanation for your decision.
+
+Output format (JSON only):
+
+"faithfulness": "faithful” | "hallucinated”, "explanation": "Your explanation here.”
+Do not include any extra commentary outside the JSON.
+
+INPUT:
+
+CONVERSATION CONTEXT
+
+[conversation context]
+
+RETRIEVED DOCUMENT (S)
+
+[retrieved documents]
+
+ANSWER
+
+[answer]
+
+TASK
+
+Does the answer contain any hallucinated content? Respond in the JSON format described.
+
+OUTPUT (JSON only):
+
+20
+
+
+B Human Evaluation Interface
+
+Data Annotation Task
+
+Conversation 9 of 140
+Conversation 9 — Turn 1
+
+CONVERSATION: iJ
+
+apprentice: Hi there! I'm an accountant - what do you do?
+wizard: I'm an engineer, but I know some about accounting myself, like how modern accounting was
+established in 1494.
+
+DOCUMENT: {iJ
+
+The modern field was established by the Italian mathematician Luca Pacioli in 1494.
+
+CLAIMS: [J
+
+1. The wizard is an engineer.
+2. The wizard knows some about accounting.
+3. Modern accounting was established in 1494.
+
+CLAIM ANNOTATION:
+
+Now, you will go through each claim one by one:
+
+The wizard is an engineer.
+
+How should this claim be handled? [J
+
+© This claim is correct. © Edit this claim © Delete this claim
+
+How does the claim relate to the document? [J
+
+© Verifiable © Contradicted © Lacking evidence © Out of scope © Abstention
+The wizard knows some about accounting.
+
+How should this claim be handled? LJ
+© This claim is correct. © Edit this claim © Delete this claim
+
+How does the claim relate to the document?
+© Verifiable © Contradicted © Lacking evidence © Out of scope © Abstention
+
+Modern accounting was established in 1494.
+
+How should this claim be handled? {J
+© This claim is correct. © Edit this claim © Delete this claim
+
+How does the claim relate to the document? [J
+
+© Verifiable © Contradicted © Lacking evidence © Out of scope © Abstention
+
+Add new claim(s): @J
+
++ Add a new claim
+
+Justification or notes (optional):
+
+21
+
+
+C Significance Testing of Model Performance
+
+Model Comparison A p-value Sig. Discordant (b,c)
+GPT-5 VISTA — LLM-as-Judge 2.8 0.201473 ns b=61, c=77
+VISTA — FActScore 1.0 0.051989 ns b=64, c=89
+LLM-as-Judge — FActScore —1.8 0.497564 ns b=65, c=74
+GPT-40 VISTA — LLM-as-Judge 6.2 0.013712 * b=90, c=59
+VISTA - FActScore 6.2 0.020741 * b=100, c=69
+LLM-as-Judge — FActScore 0.0 1.000000 ns b=88, c=88
+DeepSeek ~~ VISTA — LLM-as-Judge 6.4 0.022768 * b=109, c=77
+VISTA — FActScore 0.8 0.812616 ns b=82, c=78
+LLM-as-Judge — FActScore —5.6 0.033572 * b=67, c=95
+Llama-70B VISTA — LLM-as-Judge 6.6 0.005683 **  b=84,c=51
+VISTA - FActScore 6.4 0.022035 * b=108, c=76
+LLM-as-Judge — FActScore —0.2 1.000000 ns b=97, c=98
+Llama-8B ~~ VISTA — LLM-as-Judge 10.4 0.001445 **  b=155,c=103
+VISTA — FActScore 10.6 0.000499 ***  b=139, c=86
+LLM-as-Judge — FActScore 0.2 1.000000 ns b=106, c=105
+Qwen-32B VISTA — LLM-as-Judge 18.0 0.000000 *** b=176, c=86
+VISTA - FActScore 11.2 0.000013 *** b=109, c=53
+LLM-as-Judge — FActScore —6.8 0.013158 * b=72, c=106
+Qwen-8B VISTA — LLM-as-Judge 10.4 0.000311 ***  b=127,c=75
+VISTA - FActScore 7.4 0.006338 **  b=106, c=69
+LLM-as-Judge — FActScore —3.2 0.260732 ns b=70, c=85
+Mistral-7B ~~ VISTA — LLM-as-Judge 9.8 0.007287 **  b=185, c=136
+VISTA — FActScore 6.0 0.100477 ns b=171, c=141
+
+LLM-as-Judge — FActScore —3.8 0.153215 ns b=70, c=69
+
+Table 7: AIS: Pairwise performance differences between VISTA, LLM-as-Judge, and FActScore. A is the absolute
+accuracy difference (Systeml — System2). Statistical significance from McNemar’s test: * p<.05, ** p<.01,
+*** p<.001, ns > .05. The final column (“Discordant (b, c)”) reports the number of items where System1 was
+correct and System? incorrect (b), and vice versa (c).
+
+22
+
+
+Model Comparison A p-value Sig. Discordant (b,c)
+
+GPT-5 VISTA — LLM-as-Judge 7.2 0.000000 ***  b=109, c=34
+VISTA — FActScore 6.2 0.000000 *** b=116, c=46
+LLM-as-Judge — FActScore —1.0 0.726876 ns b=63, c=68
+
+GPT-40 VISTA — LLM-as-Judge 2.8 0.000000 *** b=100, c=36
+VISTA — FActScore 7.4 0.000000 ***  b=120, c=33
+LLM-as-Judge — FActScore 4.6 0.082626 ns b=92, c=69
+
+DeepSeek ~~ VISTA — LLM-as-Judge 3.8 0.000000 ***  b=93, c=24
+VISTA — FActScore 24.8 0.000000 ***  b=120, c=31
+LLM-as-Judge — FActScore 1.0 0.067001 ns b=64, c=44
+
+Llama-70B VISTA — LLM-as-Judge —1.6 0.519491 ns b=55, c=63
+VISTA — FActScore 24.4 0.000000 *#* b=137, c=49
+LLM-as-Judge — FActScore 26.0 0.000000 ***  b=138, c=42
+
+Llama-8B ~~ VISTA — LLM-as-Judge 2.8 0.000001 *** b=143,c=79
+VISTA — FActScore 20.0 0.000000 **#*  b=168, c=64
+LLM-as-Judge — FActScore 7.2 0.005029 ** b=118, c=78
+
+Qwen-32B VISTA — LLM-as-Judge 33.8 0.000000 ***  b=183, c=15
+VISTA — FActScore 6.2 0.000000 *** b=104, c=24
+LLM-as-Judge — FActScore —17.6 0.000000 *** b=18, c=106
+
+Qwen-8B VISTA — LLM-as-Judge 0.4 0.000045 **+*  b=107, c=55
+VISTA — FActScore 6.2 0.000000 *** b=132,c=51
+LLM-as-Judge — FActScore 5.8 0.009966 ** b=74, c=46
+
+Mistral-7B ~~ VISTA — LLM-as-Judge 4.6 0.000017 *** b=178, c=105
+VISTA — FActScore 8.2 0.000000 ***  b=199, c=108
+LLM-as-Judge — FActScore 3.6 0.156343 ns b=81, c=63
+
+Table 8: BEGIN: Pairwise performance differences between VISTA, LLM-as-Judge, and FActScore. A denotes the
+absolute accuracy difference (System; — Systems). Statistical significance via McNemar’s test: * p<.05, ** p<.01,
+*** p<.001, ns > .05. The final column (“Discordant (b, c)”) reports counts where System; was correct and
+Systemg was incorrect (b), and vice versa (c).
+
+Model Comparison A p-value Sig. Discordant (b,c)
+
+GPT-5 VISTA — LLM-as-Judge 391 0.041372 * b=95, c=68
+VISTA — FActScore 3.51 0.01185 * b=72, c=44
+LLM-as-Judge — FActScore —0.4 1.000000 ns b=85, c=84
+
+GPT-40 VISTA — LLM-as-Judge 2.34 0.202924 ns b=68, c=53
+VISTA — FActScore 8.29 0.000019 ***  b=102, c=49
+LLM-as-Judge — FActScore 595 0.006512 ** b=112, c=74
+
+DeepSeek VISTA — LLM-as-Judge 3.13 0.077262 ns b=68, c=48
+VISTA — FActScore 7.51 0.000014 ***  b=84, c=36
+LLM-as-Judge — FActScore 4.38 0.029246 * b=91, c=63
+
+Llama-70B VISTA — LLM-as-Judge 2.82 0.101433 ns b=63, c=45
+VISTA — FActScore 8.45 0.000076 ***  b=118, c=64
+LLM-as-Judge — FActScore 5.63 0.006423 ** b=101, c=65
+
+Llama-8B ~~ VISTA — LLM-as-Judge 17.21 0.000000 ***  b=217, c=107
+VISTA — FActScore 7.51 0.001261 ** b=131, c=83
+LLM-as-Judge — FActScore —9.7 0.000705 *** b=132, c=194
+
+Qwen-32B VISTA — LLM-as-Judge 17.06 0.000000 ***  b=220, c=111
+VISTA — FActScore 7.51 0.000019 *#*  b=86, c=38
+LLM-as-Judge — FActScore —9.55 0.000785 *** b=130, c=191
+
+Qwen-8B VISTA — LLM-as-Judge 7.36 0.001826  ** b=113, c=70
+VISTA — FActScore 8.61 0.000002 ***  b=92, c=41
+LLM-as-Judge — FActScore 1.25 0.613457 ns b=100, c=92
+
+Mistral-7B ~~ VISTA — LLM-as-Judge 24.41 0.000000 **#*  b=276, c=120
+VISTA — FActScore 20.19 0.000000 ***  b=231, c=102
+
+LLM-as-Judge — FActScore —4.22 0.123384 ns b=129, c=156
+
+Table 9: FADE: Pairwise performance differences between VISTA, LLM-as-Judge, and FActScore. A denotes the
+absolute accuracy difference (System; — Systems). Statistical significance via McNemar’s test: * p<.05, ** p<.01,
+*** p<.001, ns > .05. The final column (“Discordant (b, c)”) reports counts where System; was correct and
+Systemg was incorrect (b), and vice versa (c).
+
+23
+
+
+Model Comparison A p-value Sig. Discordant (b,c)
+
+GPT-5 VISTA — LLM-as-Judge 4.89 0.000003 *#*  b=549, c=404
+VISTA — FActScore 2.51 0.001802 **  b=462, c=371
+LLM-as-Judge — FActScore —2.38 0.052566 ns b=347, c=401
+
+GPT-40 VISTA — LLM-as-Judge 9.52 0.000000 ***  b=609, c=174
+VISTA — FActScore 7.14 0.000000 *** b=538, c=156
+LLM-as-Judge — FActScore —2.38 0.05305 ns b=335, c=388
+
+DeepSeek ~~ VISTA — LLM-as-Judge 26.25 0.000000 ***  b=757,c=172
+VISTA — FActScore 7.95 0.000000 ***  b=586, c=168
+LLM-as-Judge — FActScore —8.3 0.000000 *#*  b=264, c=449
+
+Llama-70B VISTA — LLM-as-Judge —0.54 0.664223 ns b=315, c¢=327
+VISTA — FActScore 7.76 0.000000 ***  b=598, c=202
+LLM-as-Judge — FActScore 18.3 0.000000 ***  b=621, c=213
+
+Llama-8B ~~ VISTA — LLM-as-Judge 6.96 0.000000 ***  b=630, c=252
+VISTA — FActScore 0.59 0.000000 ***  b=617, c=381
+LLM-as-Judge — FActScore —6.37 0.000000 ***  b=621, c=213
+
+Qwen-32B VISTA — LLM-as-Judge 39.84 0.000000 ***  b=1016, c=125
+VISTA — FActScore 7.32 0.000000 EF b=554, c=68
+LLM-as-Judge — FActScore —22.52 0.000000 *** b=110, c=615
+
+Qwen-8B VISTA — LLM-as-Judge 8.63 0.000000 ***  b=632, c=231
+VISTA — FActScore 6.91 0.000000 *** b=569, c=212
+LLM-as-Judge — FActScore —1.72 0.393936 ns b=351, ¢=375
+
+Mistral-7B ~~ VISTA — LLM-as-Judge 25.58 0.000000 ***  b=973, c=403
+VISTA — FActScore 23.6 0.000000 ***  b=967, c=441
+LLM-as-Judge — FActScore —1.98 0.112904 ns b=346, c=390
+
+Table 10: FaithDial: Pairwise performance differences between VISTA, LLM-as-Judge, and FActScore. A denotes
+the absolute accuracy difference (System; — System). Statistical significance via McNemar’s test: * p<.05,
+** p<.01, *** p<.001, ns > .05. The final column (“Discordant (b, ¢)”’) reports counts where System; was correct
+and Systems was incorrect (b), and vice versa (c).
+
+D Confusion Matrices for Category Assignment by Models
+
+This appendix provides the claim-level confusion matrices corresponding to the results summarized in
+Table 5. Each matrix compares the model’s predicted factuality category for each atomic claim against
+the consensus human annotation. Rows represent the true (human) categories, and columns represent the
+model predictions. Diagonal entries correspond to correctly classified claims, while off-diagonal counts
+indicate category confusions. Counts include all 888 consensus-annotated claims across evaluation turns.
+
+Table 11: Claim-level confusion matrix for GPT-5.
+
+Human \ Model ABSTENTION CONTRADICTED LACKING EVIDENCE NONE  OUT-OF-SCOPE VERIFIED Total
+
+ABSTENTION 18 0 1 0 2 1 22
+CONTRADICTED 0 6 2 0 0 0 8
+LACKING EVIDENCE 1 11 140 0 20 41 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 9 3 22 1 175 17 227
+VERIFIED 1 8 23 0 1 385 418
+
+Total 29 28 188 1 198 444 888
+
+Table 12: Claim-level confusion matrix for GPT-4o.
+
+Human \ Model ABSTENTION CONTRADICTED LACKING EVIDENCE NONE  OUT-OF-SCOPE VERIFIED Total
+
+ABSTENTION 20 0 1 0 1 0 22
+CONTRADICTED 0 6 1 0 0 1 8
+
+LACKING EVIDENCE 0 23 109 0 22 59 213
+NONE 0 0 0 0 0 0 0
+
+OUT-OF-SCOPE 15 6 29 0 162 15 227
+VERIFIED 0 21 21 0 1 375 418
+Total 35 56 161 0 186 450 888
+
+24
+
+
+Table 13: Claim-level confusion matrix for DeepSeek.
+
+Human \ Model ABSTENTION ~~ CONTRADICTED LACKING EVIDENCE NONE OUT-OF-SCOPE ~~ VERIFIED Total
+ABSTENTION 19 0 1 0 2 0 2
+CONTRADICTED 0 3 3 0 0 2 8
+LACKING EVIDENCE 0 2 145 0 14 52 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 17 0 41 0 149 20 227
+VERIFIED 0 3 2 0 1 392 418
+Total 36 8 212 0 166 466 888
+Table 14: Claim-level confusion matrix for Llama-70B.
+Human \ Model ABSTENTION ~~ CONTRADICTED LACKING EVIDENCE NONE OUT-OF-SCOPE ~~ VERIFIED Total
+ABSTENTION 2 0 0 0 2 18 2
+CONTRADICTED 0 5 0 0 0 3 8
+LACKING EVIDENCE 0 26 57 0 28 102 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 0 1 4 0 154 68 227
+VERIFIED 0 16 0 0 0 402 418
+Total 2 48 61 0 184 593 888
+Table 15: Claim-level confusion matrix for Llama-8B.
+Human \ Model ABSTENTION ~~ CONTRADICTED LACKING EVIDENCE NONE OUT-OF-SCOPE ~~ VERIFIED Total
+ABSTENTION 6 0 6 0 6 4 2
+CONTRADICTED 0 5 0 0 0 3 8
+LACKING EVIDENCE 0 13 62 0 29 109 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 3 1 12 0 161 50 227
+VERIFIED 0 16 9 0 2 391 418
+Total 9 35 89 0 198 557 888
+Table 16: Claim-level confusion matrix for Qwen3-32B.
+Human \ Model ABSTENTION ~~ CONTRADICTED LACKING EVIDENCE NONE OUT-OF-SCOPE ~~ VERIFIED Total
+ABSTENTION 20 0 0 0 1 1 2
+CONTRADICTED 0 3 0 0 0 5 8
+LACKING EVIDENCE 0 23 30 0 58 102 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 13 3 8 0 148 55 227
+VERIFIED 0 6 0 0 3 409 418
+Total 33 35 38 0 210 572 888
+Table 17: Claim-level confusion matrix for Qwen3-8B.
+Human \ Model ABSTENTION ~~ CONTRADICTED LACKING EVIDENCE NONE OUT-OF-SCOPE ~~ VERIFIED Total
+ABSTENTION 13 0 2 0 7 0 2
+CONTRADICTED 0 2 4 0 0 2 8
+LACKING EVIDENCE 5 5 77 0 47 79 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 9 0 24 0 160 34 227
+VERIFIED 0 4 19 0 5 390 418
+Total 27 11 126 0 219 505 888
+
+25
+
+
+Table 18: Claim-level confusion matrix for Mistral-7B.
+
+Human \ Model ABSTENTION CONTRADICTED LACKING EVIDENCE NONE  OUT-OF-SCOPE VERIFIED Total
+ABSTENTION 13 0 1 0 8 0 22
+CONTRADICTED 0 0 1 0 3 4 8
+LACKING EVIDENCE 0 0 13 3 105 92 213
+NONE 0 0 0 0 0 0 0
+OUT-OF-SCOPE 6 0 4 3 175 39 227
+VERIFIED 0 0 7 4 27 380 418
+Total 19 0 26 10 318 515 888
+
+E Example Annotation Discrepancies
+
+Below is an illustrative example (category 6) from the FaithDial dataset where conversational context
+affects factuality labeling. The original dataset marked the target turn as UNVERIFIABLE, but VISTA
+
+and our human annotators judged it as VERIFIED once the dialogue history was considered.
+
+CONVERSATION CONTEXT:
+
+wizard: I love the Chainsmokers! The Chainsmokers is an American DJ/production duo.
+
+apprentice: I have never heard of them? Tell me more—it sounds like something I would like.
+
+TARGET TURN:
+
+wizard: Well, the EDM-pop duo achieved a breakthrough with their 2014 song #Selfie.
+
+DOCUMENT:
+
+The Chainsmokers: The EDM-pop duo achieved a breakthrough with their 2014 song #Selfie, which
+was a top-twenty single in several countries.
+
+CLAIMS:
+
+1. The Chainsmokers achieved a breakthrough with their 2014 song #Selfie. — VERIFIED
+
+2. The Chainsmokers achieved a breakthrough. - VERIFIED
+
+3. The Chainsmokers is an EDM-pop duo. - VERIFIED
+
+The original annotation likely marked this turn as unverifiable because the referent of “the EDM-pop
+duo” is ambiguous without the prior context. Once the preceding turns are included, however, the claim is
+easily resolved and verifiable. This example illustrates how conversational grounding can shift factuality
+
+judgments and highlights the limitations of single-turn annotation protocols.
+
+26

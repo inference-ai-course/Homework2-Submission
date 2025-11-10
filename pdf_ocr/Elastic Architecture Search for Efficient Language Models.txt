@@ -1,0 +1,1026 @@
+2510.27037v1 [cs.CL] 30 Oct 2025
+
+arXiv
+
+Elastic Architecture Search for Efficient Language
+Models
+
+Shang Wang
+Indepentdent Researcher
+email.shangwang @ gmail.com
+
+Abstract—As large pre-trained language models become in-
+creasingly critical to natural language understanding (NLU)
+tasks, their substantial computational and memory requirements
+have raised significant economic and environmental concerns.
+Addressing these challenges, this paper introduces the Elastic
+Language Model (ELM), a novel neural architecture search
+(NAS) method optimized for compact language models. ELM
+extends existing NAS approaches by introducing a flexible search
+space with efficient transformer blocks and dynamic modules
+for dimension and head number adjustment. These innovations
+enhance the efficiency and flexibility of the search process, which
+facilitates more thorough and effective exploration of model
+architectures. We also introduce novel knowledge distillation
+losses that preserve the unique characteristics of each block, in
+order to improve the discrimination between architectural choices
+during the search process. Experiments on masked language
+modeling and causal language modeling tasks demonstrate that
+models discovered by ELM significantly outperform existing
+methods.
+
+Index Terms—Language Models, Natural Language Process-
+ing, Neural Architecture Search
+
+I. INTRODUCTION
+
+Natural language understanding (NLU) is a critical com-
+ponent of natural language processing (NLP). Recent ad-
+vancements in NLU have been driven by large pretrained
+language models [1]-[4], which have significantly improved
+performance across various tasks by expanding model size and
+data scale. However, these large models come with challenges,
+including high computational and memory requirements that
+make them costly to train and deploy. Such demands not
+only restrict their accessibility but also heighten environmental
+concerns due to considerable energy consumption.
+
+To mitigate these challenges, researchers have turned to neu-
+ral architecture search (NAS) to develop more efficient BERT
+models. However, most efforts have focused on optimizing
+moderate-sized models like BERT-tiny (with approximately
+15M parameters). When attempting to further reduce model
+size, a notable performance drop occurs. This decline is
+primarily attributed to the limited flexibility of existing NAS
+methods, which operate within a restricted search space with
+fixed block types, dimensions, and head numbers. This rigidity
+restricts the ability to finely tune architectures, which is
+essential for achieving optimal performance in smaller models.
+
+To address this issue, in this paper, we introduce ELM, a
+novel NAS method designed to search for flexible and efficient
+language models. ELM expands the search space to include
+both BERT [1] and MobileBERT [5] blocks, enhanced with
+
+additional weight-sharing options in attention mechanisms. To
+further enhance the flexibility of our approach, we propose
+a dynamic dimension search strategy, which is guided by
+the scores from principal component analysis (PCA) observed
+during training. This approach allows for the adaptive adjust-
+ment of block dimensions based on the evolving importance
+of features throughout training. Additionally, we employ cen-
+tered kernel alignment (CKA) to evaluate similarities between
+attention heads, which facilitates the fusion of redundant heads
+to improve model efficiency. With these techniques, ELM
+enables more effective training and better utilization of critical
+features.
+
+Furthermore, we introduce a novel approach to knowledge
+distillation (KD), inspired by DIST [6], to overcome the
+limitations of traditional KD methods. The proposed KD
+approach uses relational losses that preserve the diversity
+and discriminability of different blocks during the search
+process, leading to a more accurate evaluation of architecture
+performance.
+
+Our contributions are threefold:
+
+1) We introduce a flexible search space for language
+models that incorporates efficient candidate blocks. We
+further propose dynamic strategies for dimension and
+head number adjustments, which is informed by PCA
+and CKA.
+
+2) We address the shortcomings of traditional KD meth-
+ods by introducing relational losses in our knowledge
+distillation approach. This helps maintain the unique
+characteristics and diversity of architectural blocks, and
+thereby enhancing the effectiveness of the NAS process.
+
+3) Through comprehensive experiments on masked lan-
+guage modeling and causal language modeling tasks,
+we demonstrate the superiority of our approach, which
+achieves significant advancements over existing meth-
+ods.
+
+II. RELATED WORK
+
+Lightweight BERT Models. Numerous strategies have
+been developed to enhance the efficiency of BERT. Techniques
+like distillation and pre-training followed by fine-tuning are
+shown to be effective [7]. Notable methods include BERT-
+PKD [8], which extracts knowledge from intermediate layers;
+DistilBERT [9], which uses a triple loss function ; Tiny BERT
+[10], which applies distillation throughout pre-training and
+task-specific phases; and MobileBERT [5], which introduces
+
+
+132 166 / 264
+132 300/528
+132 276 / 396 Increase
+—_— Top 2 -
+132 334 / 640
+132 194 / 264
+Top 1
+initialize epoch t
+
+166 / 264 PCA dimension
+| i total dimension
+300/528 { |_| add dimension
+?/ 528 Search
+| — — heads
+number
+334 / 640
+?/ 396
+epoch t+1 training end
+
+Fig. 1: The diagram depicts the expansion of the hidden dimension wihtin the feed-forward network (FFN), using five blocks
+as an example. Initially, the dimension of each block is set to 132. After each epoch, the dimensions of the top two blocks
+with the highest PCA values are increased by 132. It is crucial to note that the dimensions corresponding to fixed PCA values
+also change after their increase, which is indicated by “?” in the diagram.
+
+a bottleneck structure to reduce parameters. MiniLM [11]
+further compresses models using deep self-attentive distilla-
+tion.Building on these advancements, our research integrates
+both BERT-base and MobileBERT, including their weight-
+sharing variants, into the supernet.
+
+NAS for efficient models. Recent developments in NAS
+have significantly enhanced model efficiency using a variety of
+strategies. For instance, AdaBERT [12] employs differentiable
+NAS to condense BERT into smaller, task-specific models.
+Besides, NAS-BERT [13] investigates a large supernet with
+varied architectures, facilitating the creation of models that
+can be adjusted for size and latency. EfficientBERT [14] uses
+a three-stage search process to fine-tune MLP configurations
+within the FEN, which drastically reduces parameters. Notably,
+AutoBERT-Zero [15] introduces a novel search space with
+primitive operators that allow for constructing attention struc-
+tures and backbones for general pre-trained language models
+(PLMs) from scratch. To the best of our knowledge, this is the
+latest NAS method that specifically incorporates lightweight
+BERT models, which makes it the most pertinent benchmark
+for our study.
+
+III. METHODOLOGY
+
+This section outlines the methodology of our proposed NAS
+method, called ELM. The ELM framework consists of three
+key components: (i) an expanded search space, (ii) dynamic
+search strategies for dimensions and head numbers, and (iii)
+a novel KD technique.
+
+A. Flexible Search Space with High Efficiency
+
+To enhance the efficiency of our proposed ELM and fa-
+cilitate the discovery of optimal architectures, we introduce
+multiple efficient block options into the search space. This
+enhanced search space encompasses 12 layers, each providing
+candidate blocks derived from BERT [1] and MobileBERT [5].
+These blocks incorporate three weight-sharing mechanisms:
+no sharing, sharing of the query and value, and sharing of
+
+— Layerl — Layers — Layer
+— Layer2 —— Layers —— Layer 10
+— Layer3 — Layer? Layer 11
+—— Layerd —— Layer8 — Layer 12
+
+— Lay
+— layer2 — Layer6 — Layer 10
+— layer3 — Layer? Layer 11
+—— layer4 —— layers — Layer12
+
+erl — Layers — Layer9
+
+(@ (b)
+Fig. 2: Curves of PCA scores of (a) BERT [1] and (b)
+MobileBERT [5] at different epochs during training.
+
+the key and value, respectively. This configuration allows
+the construction of a network comprising 12 blocks, where
+each layer can randomly select from one of six potential
+combinations.
+
+We adopt the single path one-shot SPOS method [16] for
+our NAS approach, constructing the search space as an over-
+parameterized weight-sharing supernet. The search process
+comprises two main stages: supernet training and evolutionary
+search. During training, we uniformly sample paths from 6'2
+candidate architectures, focusing optimization efforts solely on
+the selected blocks. After training, an evolutionary algorithm is
+employed to sample and evaluate architectures on a validation
+set. The algorithm iteratively refines the architectural popu-
+lation through selection, crossover, and mutation processes,
+ultimately identifying the architecture that achieves the highest
+precision. We maintain a strict parameter ceiling to ensure
+the exclusion of any architectures that exceed the established
+constraints.
+
+B. Efficient Training with Dimension and Head Number
+Search
+
+In addition to the 6-block search space, we propose a
+dynamic dimension adaptation scheme to further enhance the
+flexibility of the search space. We initially conducted experi-
+
+
+1.000 0.90
+
+1 1
+
+24 0.79 0.88 0.975 2
+0.88
+
+3 0.84 0.81 bs 3
+
+0.950
+
+44 0.83 0.85 0.85 0.88 0.86 a
+0.86
+
+54 0.87 0.5 081 0.7 05 | 0925 5
+
+6 0.83 0.85 0.87 0.88 0.87 6
+0.900 0.84
+
+7A 7
+
+8 0.875 8
+0.82
+
+9 {0.86 0.8 0.84 0.85 0.85 0.85 0.87 0.85 0850 ©
+
+Jo.84 0.85 0.87 x
+
+11 40.83 0.79 0.81 0.88 0.87 0.88 0.85 0.81 0.86 0.81 h 0.825 4
+
+12 {0.85 0.8 0.800 12 0.78
+
+7 8 9 10 11 12
+(@ (b)
+
+Fig. 3: (a) CKA comparison among different heads of layer
+6 in the searched architecture. (b) average cosine similarity
+between features of blocks trained with MSE or RKD in each
+layer.
+
+MSERKD
+
+ments to determine the dimensional preferences of each layer
+during training by measuring the PCA scores of FFN hidden
+states over multiple epochs (Fig. 2). The results indicate that
+(1) PCA scores vary across layers, indicating different optimal
+dimensions for each, and (2) PCA scores typically increase as
+training progresses, suggesting that the scores can be used
+to strategically guide the dynamic allocation of dimensions
+throughout the training process.
+
+Based on these findings, we initialize the supernet with
+smaller dimensions and incrementally adjust them based on
+the PCA scores of the blocks. Specifically, we increase the
+dimensions of blocks that exhibit the top-K PCA scores until
+the parameters of the supernet meet the desired constraint.
+This approach allows for an efficient and effective dimension
+search by optimizing resource allocation to areas of greatest
+impact.
+
+Searchable head number. In lightweight models, fixed
+head counts can lead to inadequately small dimensions per
+head. For instance, a configuration with a minimum dimension
+of 192 divided among 12 heads results in only 16 dimensions
+per head, which is suboptimal. To address this, we introduce
+a mechanism that allows for the number of heads to be
+dynamically adjustable.
+
+Rather than creating new independent blocks for each poten-
+tial head count, we efficiently determine the optimal number
+of heads by assessing the CKA scores [17] between outputs of
+self-attention heads (Fig. 3 (a)). When two heads display high
+CKA scores, suggesting redundant functionality, one can be
+removed to allocate more dimensions to the remaining heads.
+
+The procedure for searching the number of heads is outlined
+in Algorithm 1, where 7 is set to 0.9 during execution.
+This process ensures a balanced optimization of dimension
+allocation and model compactness, as summarized in our
+overall search procedure in Algorithm 2.
+
+C. Pitfalls of NAS with Knowledge Distillation
+
+KD has significantly enhanced lightweight BERT models
+by transferring knowledge from a large teacher model to
+
+Algorithm 1 Attention head number search algorithm
+
+Require: Original number of heads H, threshold of removing
+head 1, CKA matrix Q; € R*H of layer I, dimension
+of features C.
+Ensure: Number of heads preserved in a layer.
+1: Initialize the set of removed heads R «+ 0)
+2: foriin 1,..., H do
+3: if 7 in R then
+4 continue
+5: end if
+6: for jini+1,..,H do
+7 if Q;; > n then
+8 R + RU{j}
+9 end if
+10: end for
+11: end for
+12: Searched number of heads H* = H — |R|
+13: # Adjust H* to be evenly divisible.
+14: while C%H* # 0 do
+15: H+ H*-1
+16: end while
+17: return Searched head number H* of layer [
+
+Algorithm 2 Neural architecture search with ELM
+
+Require: Supernet S, pretrain and downstream datasets D,,
+and Dy, training epochs FE), and Ey, and validation dataset
+Dy.
+
+: # (1) Train the supernet S on pretraining dataset Dy,
+
+: for epoch in 1,..., EJ, do
+
+Train supernet S & measure PCA scores P
+Select Top-K blocks in P to increase their dimensions
+end for
+
+# (2) Finetune the supernet S on downstream dataset Dg
+
+: for epoch in 1, ..., E; do
+
+Train supernet S
+
+: end for
+
+: # (3) Search architecture with evolutionary algorithm
+
+: A* + EvolutionSearch(S, D,)
+
+: # (4) Head number search
+
+: for layer [in 1,..., L do
+
+Measure CKA @Q; for layer [
+
+H} + HeadNumberSearch(Q);)
+
+: end for
+
+: return Searched architecture A*
+
+REE A SE oi Ae
+
+re er al a
+
+a smaller student model during training [9], [10]. Recent
+NAS methods like EfficientBERT [14] and AutoBERT [15]
+incorporate KD during both the search and retraining phases
+to maintain consistent objectives and accelerate convergence.
+This consistency helps bridge the performance gap between
+the searched architecture and the fully-trained counterpart,
+which can speed up the architecture search process.
+However, we observe that the strict learning objectives
+of classical KD methods, such as KL divergence and mean
+
+
+TABLE I: Performance comparison of the test set on the GLUE benchmark. Latency measurements of the models are conducted
+
+using the NVIDIA A100 GPU.
+
+Model #Params Latency | QNLI MRPC SST-2 CoLA STS-B MNLI-m/mm RTE QQP AVG
+BERT-base [1] 1089M 274ms | 90.5 88.9 93.5 52.1 85.8 84.6/83.4 66.4 71.2 79.6
+BERT-base (ours) 1089M 274ms | 91.4 88.7 93.0 49.0 87.5 84.9/83.9 76.6 71.3 80.7
+BERT-tiny [7] 14.5M 44ms 84.8 83.2 87.6 19.5 77.1 75.4/74.9 62.6 665 70.2
+BERT-small [7] 28.8M 79ms 86.4 83.4 89.7 27.8 77.0 77.6/71.0 61.8 68.1 72.1
+DistilBERT-6 [9] 67.0M  151ms | 88.9 86.9 92.5 49.0 81.3 82.6/81.3 584 70.1 76.8
+TinyBERT-4 [10] 14.5M 45ms 87.7 88.5 912 272 83.0 81.8/80.7 649 69.6 75.0
+MobileBERT-tiny [5] 15.1M 62ms 89.5 87.9 91.7 46.7 80.1 81.5/81.6 65.1 689 77.0
+EfficientBERT+ [14] 15. 7M 62ms 89.3 89.9 924 38.1 85.1 83.0/82.3 694 71.2 779
+EfficientBERT++ [14] | 16.0M 65ms 90.6 88.9 92.3 425 83.6 83.0/82.5 67.8 71.2 78.0
+ELM-Micro 5.0M 15ms 85.6 86.0 89.2 215 81.7 77.0/76.3 66.4 682 724
+ELM-Tiny 9. 7M 26ms 88.6 87.5 91.5 30.1 84.8 81.1/80.2 71.7 70.7 76.2
+ELM-Small 15.6M 48ms 90.1 88.4 91.8 38.8 86.8 83.2/82.7 75.2 70.7 78.6
+
+squared error (MSE), limit the block diversity within the NAS
+framework. As indicated in Fig. 3, blocks trained under KD
+conditions tend to show higher feature similarity compared to
+those trained independently, which exhibit more pronounced
+diversity. This constraint restricts the ability of blocks to ex-
+press their distinct functional attributes, potentially obscuring
+standout architectures that could offer unique advantages in
+the NAS process.
+
+In BERT distillation, the student model is trained to mimic
+the output of the teacher model using various KD losses. For
+a training sample X, the predicted classification scores are
+Y(® ¢ REXC for the teacher and Y(®) €¢ RE*C for the
+student, respectively, where B is the batch size and C' is the
+number of classification categories.
+
+(1) Class distillation loss oe divergence):
+
+1=1 j=1 vo)
+
+Leg i= e))
+Additionally, KD performs the distillation of attention
+scores A; € RBHN.N and FFN outputs F; € RBN.C of
+each layer, where H is the number of attention heads and NV
+is the token length.
+(2) Attention distillation loss:
+
+L
+1 s
+= 22 1147 — API. 2)
+=1
+(3) FEN distillation loss:
+1 EL
+Lra=7 IE = F23. 3)
+1=1
+
+These losses enforce point-to-point feature reconstruction,
+compelling blocks to produce identical features, thus limiting
+their capacity to exhibit unique characteristics. Such a rigid
+alignment between supernet training and individual block
+training can degrade the ability of NAS algorithms to discern
+and select optimal architectures effectively.
+
+Flexible supernet training with relational losses. To
+address this limitation, we propose replacing strict KD losses
+
+with relaxed correlation-based losses, inspired by Pearson
+correlation [6], [18]. These losses focus on capturing the corre-
+lation between teacher and student features while being scale-
+and-shift invariant. The distillation losses are reformulated as
+follows:
+
+(1) Class distillation loss:
+
+B
+
+Leg i= 3 1 —p (vv )]
+
+i=1
+
+“)
+(2) Attention and FFN distillation losses:
+
+Cri= rman 2 [eR AD) ©
+
+By adopting these relaxed correlation-based losses, our
+approach allows blocks in the supernet to preserve their unique
+characteristics, which enhances the ability of NAS algorithms
+in discovering and selecting the suitable architectures.
+
+IV. EXPERIMENTS ON MASKED LANGUAGE MODELING
+A. Implementation Details
+
+To benchmark our model against other lightweight BERT
+models, we utilize the GLUE [19] and SQuAD [20] datasets.
+We provide the detailed implementation in Appendix A.
+
+B. Results on GLUE & SQuAD
+
+We summarize our results on GLUE test set, GLUE dev
+set, and SQuAD in Tables I, II, and III, respectively. The
+results demonstrate that ELM has achieved impressive per-
+formance compared with other NAS methods. Specifically,
+the ELM-Small model, which features a compact design with
+only 15.6M parameters, surpasses the state-of-the-art Effi-
+cientBERT++ model in both accuracy and processing speed.
+It achieves higher average GLUE scores and outperforms
+EfficientBERT++ in 4 out of 9 tasks on the GLUE test set.
+Moreover, on the SQuAD dev set, it surpasses EfficientBERT
+in terms of EM/F1 metrics for both SQuAD v1.0 and SQuAD
+v2.0 datasets.
+
+
+TABLE II: The results of our proposed method are compared with other NAS methods on the GLUE dev set. It is not feasible
+to make a subcomparison with AutoBERT-Zero-small as it does not provide individual scores for each task in the GLUE dev
+
+set.
+Model #Params | QNLI MRPC SST-2 CoLA STS-B MNLI-m RTE QQP AVG
+EfficientBERT-TINY 9.4M 89.3 90.1 90.1 39.1 79.9 81.7 63.2 86.7 71.5
+EfficientBERT 157M | 90.4 91.5 91.3 50.2 82.5 83.1 66.8 87.3 80.4
+AutoBERT-Zero-small | 13.0M - - - - - - - - 80.5
+ELM-Micro 5.0M 85.8 87.3 90.7 25.9 81.9 71.5 642 86.9 75.0
+ELM-Tiny 9.7M 88.9 89.3 914 424 83.7 81.2 66.4 87.3 78.8
+ELM-Small 15.6M | 91.0 92.3 929 50.9 85.1 83.8 71.9 88.4 82.0
+
+TABLE III: Results
+
+on SQuAD dev sets. *
+
+represents our
+
+implementation.
+SQUAD v1.1 SQuAD v2.0
+
+Model #Params EM/F1 EM/F1
+BERT-base 108.9M 80.8/88.5 -/-
+BERT-base™ 108.9M 80.7/88.2 75.7/78.7
+TinyBERT-4 14.5M 72.7/82.1 68.2/71.8
+MiniLM-6 22.9M -/- [72.7
+EfficientBERT++ | 16.0M 78.3/86.5 73.0/76.1
+ELM-Micro 5.0M 70.6/78.2 64.8/68.3
+ELM-Tiny 9. 7M 75.2/84.0 69.3/73.0
+ELM-Small 15.6M 78.5/86.9 73.6/77.1
+
+INPUT:
+Did Sir Winston Churchill win the Nobel Peace Prize?
+
+GPT:
+No. Churchill won the Nobel Peace Prize in June
+Bm:
+
+No, Sir Winston Churchill did not win the Nobel Peace Prize.
+
+INPUT:
+What is the capital city of Malaysia?
+
+GPT:
+‘The capital city of Malaysia is Kuala Lumpur.
+ELM:
+
+‘The capital city of Malaysia is Kuala Lumpur.
+
+INPUT:
+What's the world looks like in 1000 years?
+
+GPT:
+‘The world is 100 years old. My grandchild will be 100 years old next Saturday. My
+e in 1 lifetime. | don't know any other
+
+INPUT:
+
+What is the difference between a pomelo and a grapefruit?
+
+a type of grapefruit, which is a long, hook shaped fruit that is commonly
+elo is ananas, which are giant
+
+ears, the world will be entirely different. It will be a different planet
+nimals will roam the land. And some.
+ive.
+
+Fig. 4: Comparison of GPT2-Base and our Chat-ELM-Small
+trained with MiniLLM on chat task.
+
+In comparison with other lightweight BERT models, ELM-
+Small achieves competitive performance with markedly fewer
+parameters and reduced latency. It also outperforms the
+AutoBERT-Zero-small model, which has 13M parameters.
+ELM-Small achieves SOTA performance in each downstream
+task on the GLUE dev set and attains an average score
+exceeding that of EfficientBERT. These results demonstrate the
+effectiveness and efficiency of the proposed ELM approach in
+generating lightweight BERT models with high performance
+across various NLU tasks.
+
+We conducted ablation experiments in Appendix B.
+
+V. EXPERIMENTS ON CAUSAL LANGUAGE MODELING
+
+To validate our performance comprehensively, we further
+apply our architecture searched on GLUE to the causal lan-
+guage modeling (CLM) task.
+
+TABLE IV: Evaluation results referring to the average GPT-4
+feedback scores (GPT4) and Rouge-L scores (R-L) obtained
+from 5 runs.
+
+Model #Params DollyEval | SelfInst |VicunaEval|S-NI|UnNI
+
+"|GPT4 R-L |GPT4 R-L |GPT4 R-L|R-L| R-L
+GPT2 120M | 44.7 24.6] 29.2 13.2| 34.1 16.9]25.3] 30.1
+TinyBERT-4 347M | 37.6 19.8] 26.3 10.9] 29.8 13.8]20.7| 25.9
+MobileBERT-tiny | 36.2M | 39.8 20.7| 27.5 11.4] 32.1 14.2(21.8| 26.3
+EfficientBERT++ | 35.7M | 38.5 21.2] 29.3 12.4] 31.4 15.4(224| 26.5
+ELM-Small 35M | 41.7 23.0| 29.6 13.7| 32.2 15.1(23.8| 28.2
+
+A. Experimental Setup
+
+Pretrain. We pretrain our model of causal language mod-
+eling (CLM) on with 1% randomly selected texts in SlimPa-
+jama [21] dataset. We train our ELM-Small with § NVIDIA
+V100 GPUs and a total batch size of 64 for 3 epochs. A
+cosine annealing learning rate schedule is adopted with an
+initial learning rate 5 x 10=%. We use a AdamW optimizer
+with 0.1 weight decay. Our other setup such as tokenizer and
+training loss follows GPT2 [3].
+
+Instruction finetune. In order to obtain a model for
+chat application, we finetune our pretrained model with in-
+struction dataset databricks-dolly-15k [22] using KD method
+MiniLLM [23]. Specifically, we use GPT2-XL as the teacher
+model to supervise our Chat-ELM-Small, and all the training
+data and strategies are the same as MiniLLM.
+
+Quantitative evaluation.
+
+We conduct numerical evaluation on five instruction-
+following datasets, including DollyEval, SelfInst [24], Vicu-
+naEval [25], S-NI, and UnNI [26].
+
+B. Exemplar evaluation
+
+The resulting model Chat-ELM-Small, has 35M parameters,
+while obtains competitive performance with the 120M GPT2-
+Base. We visualize the chat results of our model and baseline
+GPT-Base model in Fig. 4.
+
+C. Quantitative Results on Language Benchmarks
+
+We evaluated the performance of our Chat-ELM-Small
+model alongside several smaller models trained using
+MiniLLM [23]. As shown in Table IV, Chat-ELM-Small
+outperforms the other similarly sized models in 7 out of 8
+metrics. Despite having less than one-third the parameters
+
+
+of GPT-2, Chat-ELM-Small still achieves superior results
+in two metrics on the SelfInst dataset. This highlights the
+remarkable efficiency of our model, consistently delivering
+better performance across a variety of language benchmarks
+while utilizing significantly fewer computational resources.
+
+VI. CONCLUSION
+
+This paper presents ELM, a novel NAS method aimed at in-
+creasing flexibility in developing compact language models for
+NLU tasks. ELM enhances the NAS framework by incorporat-
+ing an expanded search space equipped with dynamic modules
+and novel knowledge distillation techniques that maintain the
+unique characteristics of various blocks throughout training.
+Experimental results show that ELM significantly outperforms
+existing methods in both masked and causal language model-
+ing tasks, indicating its potential for advancing NLP and deep
+learning.
+
+[1
+
+—
+
+[7
+
+—
+
+[8
+
+=
+
+[9]
+
+[10]
+
+[11]
+
+REFERENCES
+
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova,
+“Bert: Pre-training of deep bidirectional transformers for language
+understanding,” in Proceedings of the 2019 Conference of the North
+American Chapter of the Association for Computational Linguistics:
+Human Language Technologies, Volume 1 (Long and Short Papers),
+2019, pp. 4171-4186.
+
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi
+Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov,
+“Roberta: A robustly optimized bert pretraining approach,” arXiv
+preprint arXiv:1907.11692, 2019.
+
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei,
+Ilya Sutskever, et al., “Language models are unsupervised multitask
+learners,” OpenAl blog, vol. 1, no. 8, pp. 9, 2019.
+
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-
+Anne Lachaux, Timothée Lacroix, Baptiste Roziere, Naman Goyal, Eric
+Hambro, Faisal Azhar, et al., “Llama: Open and efficient foundation
+language models,” arXiv preprint arXiv:2302.13971, 2023.
+
+Zhiqing Sun, Hongkun Yu, Xiaodan Song, Renjie Liu, Yiming Yang, and
+Denny Zhou, ‘“Mobilebert: a compact task-agnostic bert for resource-
+limited devices,” in Proceedings of the 58th Annual Meeting of the
+Association for Computational Linguistics, 2020, pp. 2158-2170.
+
+Tao Huang, Shan You, Fei Wang, Chen Qian, and Chang Xu, “Knowl-
+edge distillation from a stronger teacher,” in Advances in Neural
+Information Processing Systems, S. Koyejo, S. Mohamed, A. Agarwal,
+D. Belgrave, K. Cho, and A. Oh, Eds. 2022, vol. 35, pp. 33716-33727,
+Curran Associates, Inc.
+
+Iulia Turc, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova,
+“Well-read students learn better: On the importance of pre-training
+compact models,” arXiv preprint arXiv:1908.08962, 2019.
+
+Sigi Sun, Yu Cheng, Zhe Gan, and Jingjing Liu, “Patient knowledge
+distillation for bert model compression,” in Proceedings of the 2019
+Conference on Empirical Methods in Natural Language Processing and
+the 9th International Joint Conference on Natural Language Processing
+(EMNLP-1JCNLP), 2019, pp. 4323-4332.
+
+Victor Sanh, Lysandre Debut, Julien Chaumond, and Thomas Wolf,
+“Distilbert, a distilled version of bert: smaller, faster, cheaper and
+lighter,” arXiv preprint arXiv:1910.01108, 2020.
+
+Xiaoqi Jiao, Yichun Yin, Lifeng Shang, Xin Jiang, Xiao Chen, Linlin Li,
+Fang Wang, and Qun Liu, “Tinybert: Distilling bert for natural language
+understanding,” in Findings of the Association for Computational
+Linguistics: EMNLP 2020, 2020, pp. 4163-4174.
+
+Wenhui Wang, Furu Wei, Li Dong, Hangbo Bao, Nan Yang, and Ming
+Zhou, “Minilm: Deep self-attention distillation for task-agnostic com-
+pression of pre-trained transformers,” Advances in Neural Information
+Processing Systems, vol. 33, pp. 5776-5788, 2020.
+
+[12]
+
+[13]
+
+[14]
+
+[15]
+
+[16]
+
+19]
+
+[20]
+
+[21]
+
+23]
+
+24]
+
+[26]
+
+[27]
+
+Daoyuan Chen, Yaliang Li, Minghui Qiu, Zhen Wang, Bofang Li, Bolin
+Ding, Hongbo Deng, Jun Huang, Wei Lin, and Jingren Zhou, “Adabert:
+task-adaptive bert compression with differentiable neural architecture
+search,” in Proceedings of the Twenty-Ninth International Conference
+on International Joint Conferences on Artificial Intelligence, 2021, pp.
+2463-2469.
+
+Jin Xu, Xu Tan, Renqgian Luo, Kaitao Song, Jian Li, Tao Qin, and Tie-
+Yan Liu, “Nas-bert: task-agnostic and adaptive-size bert compression
+with neural architecture search,” in Proceedings of the 27th ACM
+SIGKDD Conference on Knowledge Discovery & Data Mining, 2021,
+pp. 1933-1943.
+
+Chenhe Dong, Guangrun Wang, Hang Xu, Jiefeng Peng, Xiaozhe Ren,
+and Xiaodan Liang, “Efficientbert: Progressively searching multilayer
+perceptron via warm-up knowledge distillation,” in Findings of the
+Association for Computational Linguistics: EMNLP 2021, 2021, pp.
+1424-1437.
+
+Jiahui Gao, Hang Xu, Han Shi, Xiaozhe Ren, LH Philip, Xiaodan Liang,
+Xin Jiang, and Zhenguo Li, “Autobert-zero: Evolving bert backbone
+from scratch,” in Proceedings of the AAAI Conference on Artificial
+Intelligence, 2022, vol. 36, pp. 10663-10671.
+
+Zichao Guo, Xiangyu Zhang, Haoyuan Mu, Wen Heng, Zechun Liu,
+Yichen Wei, and Jian Sun, “Single path one-shot neural architecture
+search with uniform sampling,” in Computer Vision-ECCV 2020: 16th
+European Conference, Glasgow, UK, August 23-28, 2020, Proceedings,
+Part XVI 16. Springer, 2020, pp. 544-560.
+
+Simon Kornblith, Mohammad Norouzi, Honglak Lee, and Geoffrey
+Hinton, “Similarity of neural network representations revisited,” in
+International conference on machine learning. PMLR, 2019, pp. 3519—
+3529.
+
+Weihan Cao, Yifan Zhang, Jianfei Gao, Anda Cheng, Ke Cheng, and
+Jian Cheng, “Pkd: General distillation framework for object detectors
+via pearson correlation coefficient,” Advances in Neural Information
+Processing Systems, vol. 35, pp. 15394-15406, 2022.
+
+Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy,
+and Samuel Bowman, “GLUE: A multi-task benchmark and analysis
+platform for natural language understanding,” in Proceedings of the
+2018 EMNLP Workshop BlackboxNLP: Analyzing and Interpreting
+Neural Networks for NLP, Brussels, Belgium, Nov. 2018, pp. 353-355,
+Association for Computational Linguistics.
+
+Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and Percy Liang,
+“Squad: 100,000+ questions for machine comprehension of text,” arXiv
+preprint arXiv:1606.05250, 2016.
+
+Daria Soboleva, Faisal Al-Khateeb, Robert Myers, Jacob R Steeves,
+Joel Hestness, and Nolan Dey, “SlimPajama: A 627B token cleaned
+and deduplicated version of RedPajama,” https://www.cerebras.net/blog/
+
+slimpajama-a-627b-token-cleaned-and-deduplicated- version-of-redpajama,
+
+2023.
+
+Mike Conover, Matt Hayes, Ankit Mathur, Jianwei Xie, Jun Wan, Sam
+Shah, Ali Ghodsi, Patrick Wendell, Matei Zaharia, and Reynold Xin,
+“Free dolly: Introducing the world’s first truly open instruction-tuned
+lim,” 2023.
+
+Yuxian Gu, Li Dong, Furu Wei, and Minlie Huang, “Minillm: Knowl-
+edge distillation of large language models,” in The Twelfth International
+Conference on Learning Representations, 2024.
+
+Yizhong Wang, Yeganeh Kordi, Swaroop Mishra, Alisa Liu, Noah A
+Smith, Daniel Khashabi, and Hannaneh Hajishirzi, “Self-instruct: Align-
+ing language model with self generated instructions,” arXiv preprint
+arXiv:2212.10560, 2022.
+
+Wei-Lin Chiang, Zhuohan Li, Zi Lin, Ying Sheng, Zhanghao Wu, Hao
+Zhang, Lianmin Zheng, Siyuan Zhuang, Yonghao Zhuang, Joseph E
+Gonzalez, et al., “Vicuna: An open-source chatbot impressing gpt-4
+with 90%* chatgpt quality,” See https://vicuna. Imsys. org (accessed 14
+April 2023), 2023.
+
+Or Honovich, Thomas Scialom, Omer Levy, and Timo Schick, “Un-
+natural instructions: Tuning language models with (almost) no human
+labor,” arXiv preprint arXiv:2212.09689, 2022.
+
+Yukun Zhu, Ryan Kiros, Rich Zemel, Ruslan Salakhutdinov, Raquel
+Urtasun, Antonio Torralba, and Sanja Fidler, “Aligning books and
+movies: Towards story-like visual explanations by watching movies and
+reading books,” in Proceedings of the IEEE international conference on
+computer vision, 2015, pp. 19-27.
+
+
+APPENDIX
+A. Implementation Details
+
+Supernet. In the supernet, each block has a hidden size
+of 528 and initially contains 12 heads. The FFN starts with
+an initial hidden dimension of 132, which is a quarter of the
+hidden size. The hidden dimension has the potential to increase
+to a maximum of 1056, which is twice the hidden size. After
+each epoch, dimensionality expansion is applied to the top
+21 blocks with the highest PCA values out of the total 72
+blocks. This ensures that the average hidden dimension of the
+FFN closely matches the hidden size after training. The inner
+hidden size of the MobileBERT series blocks consistently
+remains at 132.
+
+Training. Our training strategy and datasets mostly follow
+EfficientBERT [14]. In the NAS training, we pretrain the
+supernet on English Wikipedia [1] and BooksCorpus [27],
+then utilize 90% of the training set from each GLUE task
+for fine-tuning. We reserve the remaining 10% of the MNLI
+task to evaluate the accuracy of architectures in search. After
+obtaining the searched architecture, we pretrain the model on
+the complete English Wikipedia and BooksCorpus.
+
+The number of training epochs is set to 10 for all tasks,
+except for the CoLA task, which undergoes fine-tuning for 50
+epochs. During the fine-tuning stage of the downstream task
+model, the batch size is set to 32, while for the other stages, it
+is set to 256. For the two pre-training stages, the learning rate
+is set to le-4, while for the first fine-tuning stage, the learning
+rate is adjusted to 4e-4. Fine-tuning the GLUE dataset is done
+with a fixed learning rate of 5e-5, On the other hand, the
+learning rate for fine-tuning the SQuAD dataset is set to le-
+4. The training process utilizes Adam as the optimizer, with
+£1 = 10.9 and Bs = 0.999 being used. The weight decay is set
+to 0.01. A linearly-annealing learning rate is adopted with a
+warm-up ratio of 0.1.
+
+Searching. The SPOS algorithm sets the population size
+to 50 and the number of generations to 40 in the genetic
+algorithm. The crossover probability is set to 1, and the muta-
+tion probability is set to 0.1. We use parameters constraints of
+15.7M, 10M, and 5M for ELM-Small, ELM-Tiny, and ELM-
+Micro, respectively. Specifically, for ELM-Micro, the hidden
+dimension and number of layer are reduced to 192 and 6,
+respectively.
+
+B. Ablation Study
+
+We conduct experiments on GLUE dev set to validate the
+efficacy of the proposed modules.
+
+Dynamic dimensions. The results shown in Table V are
+obtained by setting the hidden dimensions of each FFN model
+to align with the input dimensions. Dynamic dimensions
+effectively improve model performance, especially in smaller
+models.
+
+Head number searching. The research findings presented
+in Table VI demonstrate that the omission of attention head
+search from both the smaller and larger models results in a
+reduction in GLUE scores, specifically in the case of the Micro
+
+TABLE V: Effect of our di-
+mension search. represents
+predefined and fixed dimen-
+sion.
+
+TABLE VI: Effect of atten-
+tion head search (AHS). '
+represents the models with-
+out AHS.
+
+Size | #Params | GLUE Size | #Params | GLUE
+Micro 5.0M 75.0 Micro 5.0M 75.0
+Micro’ | 5.0M 74.2 Micro! | 5.0M 74.2
+Small 15.6M 82.0 Small 15.6M 82.0
+Small’ | 15.6M 81.5 Small’ | 15.6M 81.7
+TABLE VII: Effect of our TABLE VIII: Effect of
+relational KD losses. T rep- weight sharing blocks in
+
+resents original losses. search space. I represents no
+
+Size | #Params | GLUE Weight sharing.
+
+Micro | 50M | 75.0 Size | #Params | GLUE
+
+Micro! | 49M | 73.8 Micro | 5.0M 75.0
+
+Small | 156M | 82.0 Nic | 5.0M | 74.3
+
+Small’ | 15.6M | 81.2 Small | 156M | 82.0
+Small’ | 157M | 81.6
+
+model. This suggests that, with fewer dimensions per head,
+optimizing the number of attention heads becomes crucial for
+maintaining model accuracy.
+
+New KD losses. Table VII demonstrates a notable im-
+provement in performance with our new KD losses compared
+to MSE losses, especially for smaller models. Experimental
+results indicate that the relaxation of the loss function is highly
+advantageous for our NAS algorithm in discovering improved
+network structures.
+
+Weight sharing blocks. By removing the weight sharing
+blocks from the supernet (leaving only 2 blocks per layer) and
+reducing the number of blocks added per epoch to one-third
+of the original, the results shown in Table VIII are obtained.
+he results indicate that incorporating weight-sharing blocks
+enhances the discovery of more compact and efficient network
+architectures.
+
+Visualization of searched architectures. Fig. 5 illustrates
+the searched architectures of ELM-Small/Tiny/Micro. We can
+infer that, the searched models prefer more dimensions in the
+middle stage of layers; while in the first layer, the dimension is
+small since it has fewer semantic information than the poste-
+rior layers. More MobileBERT blocks are involved compared
+to BERT blocks, as it achieves better efficiency-performance
+balance.
+
+Similarities between blocks. Fig. 6 presents a comparison
+of the similarity distributions among blocks when employing
+MSE and RKD loss functions, with layer 6 of ELM-Small
+supernet as an illustrative example. Clearly, the utilization of
+the RKD loss function leads to diminished similarity values
+between blocks, thereby yielding a heightened training effect
+for the layer.
+
+Efficiency analysis. It has been empirically demonstrated
+that employing dynamic dimensions enhances algorithmic
+efficiency. The ELM-Small model required 7.1 GPU days to
+
+
+h=12 h=4 h=6 h=6 h=6 h=4 h=12 h=12 h=6 h=8 h=11 h=12
+
+d=132 d=528 d=132 d=264 d=660 d=660 d=264 d=264 d=660 d=528 d=264 d=264
+KV share no share QV share KV share KV share no share QV share no share no share KV share QV share KV share
+MobileBERT —s BERT-base —>{MobileBERT —=MobileBERT —> BERT-base —> BERT-base —sMobileBERT —=MobileBERT —= BERT-base —= BERT-base —=MobileBERT —=MobileBERT
+(a) ELM-Small
+h=11 h=11 h=6 h=6 h=12 h=12 h=12 h=8 h=8 h=12 h=12 h=12
+d=132 d=264 d =660 d=660 d=264 d=264 d=96 d=2384 d=2384 d=144 d=96 d=96
+no share no share no share KV share QV share no share no share KV share no share no share no share QV share
+MobileBERT —=MobileBERT —>{ BERT-base — BERT-base —=MobileBERT —>MobileBERT MobileBERT —s BERT-base —> BERT-base —>MobileBERT —=>MobileBERT —={MobileBERT
+(b) ELM-Tiny (c) ELM-Micro
+
+Fig. 5: The individual architectures of ELM-Small/Tiny/Micro are displayed from top to bottom. H represents the number of
+heads and d represents the hidden dimensions, while QV/KV/no share indicate the different ways of weight sharing.
+
+1.00
+
+074 078 081 081
+10
+
+0.75
+1 2 3 4 5 6 1 2 3 4 5 6
+
+(a) (b)
+
+Fig. 6: Taking layer 6 as an example, the similarity between
+blocks is compared using (a) MSE and (b) RKD loss functions.
+Blocks with numbers 0 to 2 belong to the BERT-base series,
+while blocks with numbers 3 to 5 belong to the MobileBERT
+series. The numbers obtained by taking the modulo of 3 rep-
+resent no sharing, QV sharing, and KV sharing, respectively.
+
+complete execution, whereas utilizing fixed dimension search
+required 8.5 GPU days. In general, our algorithmic efficiency
+surpasses that of EfficientBERT. Reproducing the search pro-
+cedure of the equivalently-sized EfficientBERT model in the
+identical experimental setting necessitated 9.2 GPU days.
+
+C. Code Availability
+We released it on https://github.com/ra225/ELM

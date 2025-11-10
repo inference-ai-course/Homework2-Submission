@@ -1,0 +1,2939 @@
+2510.27532v1 [ecs.CL] 31 Oct 2025
+
+arXiv
+
+SQLSpace: A Representation Space for Text-to-SQL to
+Discover and Mitigate Robustness Gaps
+
+Neha Srikanth®*
+
+Victor Bursztyn®* Puneet Mathur® Ani Nenkova*
+
+# University of Maryland *Adobe Research
+nehasrik@umd. edu
+
+Abstract
+We introduce SQLSpace, a  human-
+interpretable, generalizable, compact
+
+representation for text-to-SQL examples
+derived with minimal human intervention. We
+demonstrate the utility of these representations
+in evaluation with three use cases: (i) closely
+comparing and contrasting the composition of
+popular text-to-SQL benchmarks to identify
+unique dimensions of examples they evaluate,
+(ii) understanding model performance at
+a granular level beyond overall accuracy
+scores, and (iii) improving model performance
+through targeted query rewriting based on
+learned correctness estimation. We show
+that SQLSpace enables analysis that would
+be difficult with raw examples alone: it
+reveals compositional differences between
+benchmarks, exposes performance patterns
+obscured by accuracy alone, and supports
+modeling of query success.
+
+1 Introduction
+
+Systems tasked with translating a natural language
+utterance to an executable SQL query (text-to-SQL,
+or NL2SQL for short) are typically evaluated for
+their accuracy on one or more benchmarks such as
+BIRD (Li et al., 2024) or SPIDER (Lei et al., 2024).
+While these accuracies can be used to rank mod-
+els on a leaderboard in a coarse-grained way, this
+evaluation paradigm obscures parts of evaluation
+that are useful for researchers and practitioners to
+know. It cannot answer naturally arising questions
+around dataset composition (Why are the accura-
+cies for the same model so different on the two
+benchmarks ?), open challenges for the field that
+future work must address (What subsets of data are
+easy or difficult for all models?), and explorations
+
+* Work on the SQLSpace representation was completed
+during an internship at Adobe Research. Analysis of model
+performance for open-source models was done at the Univer-
+sity of Maryland after the completion of the internship.
+
+Question
+
+SELECT r.restaurantName
+FROM restaurants r
+JOIN menuitems mi
+abudgetin ON r.restaurantId = mi.restaurantId
+
+Brooklyn” WHERE r.cuisine = 'Italian'
+
+AND r.borough = ‘Brooklyn’
+GROUP BY r.restaurantName
+ORDER BY Avg(mi.price) ASC;
+
+Aspect-Based Feature Discovery
+
+“I'm craving some
+authentic pasta on
+
+Employs indirect speech act
+Has an aggregate function
+Has nested prepositional phrases
+
+—{0000...000)
+
+Blind Spot Analysis
+
+Uses indirect speech act Uses indirect speech act
+
+Has an aggregate function Contains a CASE statement
+Employs passive voice Employs passive voice
+Involves nested logic
+
+Omits expected conjunctions
+
+Figure 1: Our framework generates compact represen-
+tations of NL2SQL examples by ingesting a dataset,
+discovering shared properties of dataset items in natural
+language, and evaluating these properties on examples
+to produce binary feature vectors. Clustering these fea-
+ture vectors and examining a model’s cluster-level accu-
+racy reveals classes of examples that it systematically
+struggles with, called blind spots.
+
+into performance and cost trade-offs (Are there sub-
+sets of data on which cheaper models perform as
+well as more expensive models ?).
+
+A deeper, finer-grained understanding of text-
+to-SQL examples could help us better understand
+model performance and benchmark composition,
+making it easy for practitioners to compare their
+own data to existing benchmarks in order to se-
+lect the top-performing model on a benchmark that
+best reflects their own data. Similarly, such under-
+standing would help researchers looking to build
+new robustness benchmarks better analyze existing
+gaps in datasets and systems in order to inform the
+design of new challenge evaluation sets.
+
+To facilitate informed decision-making in scenar-
+ios like these, we introduce SQLSpace, a framework
+to increase visibility into benchmark composition
+and model behavior with minimal human interven-
+
+
+tion.! SQLSpace ingests one or more NL2SQL
+
+benchmarks and extracts human-interpretable fea-
+tures of examples (e.g. “has an aggregate func-
+tion”) in order to construct generalized vector rep-
+resentations of any NL2SQL example (§3) in a
+largely automated manner.
+
+We demonstrate the utility of these vector repre-
+sentations with three use cases that leverage the rep-
+resentations in different ways. First, we compare
+the distribution of examples in popular NL2SQL
+benchmarks (§4), allowing us to understand which
+particular dimensions each dataset uniquely eval-
+uates. Then, we compare the strengths and weak-
+nesses of 13 models with greater detail than in
+leaderboards by clustering examples across bench-
+marks that share similar features, and identifying
+“blind spots”, or systematic classes of examples that
+a model struggles with (§5). We identify two clus-
+ters of universal blind spots and multiple clusters
+for which cheaper models can outperform expen-
+sive ones. Finally, show that learning a correctness
+estimator for a given model to inform rewrites of
+NL queries that are predicted to fail can improve
+accuracy (§6).
+
+2 Background
+
+Task and Evaluation. Text-to-SQL involves
+translating natural language question X to a valid
+SQL query Y that is executable over a database
+with schema S. Along with knowledge of S and
+SQL, this task may require other domain knowl-
+edge or forms of linguistic and inferential reason-
+ing (Gan et al, 2021b). Generated queries Y are
+typically evaluated by executing them and com-
+paring the resulting output with that produced by
+executing the gold query (Li et al., 2024), and com-
+puting execution accuracy (EX), or the proportion
+of examples for which the results of the predicted
+and gold SQL queries match. While other met-
+rics, such as PCM-F1 (Hazoom et al., 2021), have
+been proposed to award partial credit, we report EX
+as our primary evaluation metric due to its wider
+adoption in well-established benchmarks (Li et al.,
+2024; Lei et al., 2024).
+
+Datasets. Datasets such as SPIDER (Yu et al,
+2018; Lei et al., 2024) and BIRD-BENCH (Li et al.,
+2024) are general-purpose benchmarks designed to
+reflect realistic queries and use-cases, spanning sev-
+eral database schemas and domains. These bench-
+marks maintain leaderboards to facilitate efficient
+
+https ://github.com/nehasrikn/robust-sql.
+
+and standardized evaluation and are helpful in gaug-
+ing model performance. While some benchmarks
+release accompanying analyses on the composi-
+tion of examples (e.g. Yu et al. (2018) include
+SQL pattern coverage, or “difficulty” metadata),
+these statistics are not standardized across datasets
+(Appendix C). In turn, it is challenging to identify
+qualitative differences between benchmarks and,
+more importantly, understand the specific strengths
+and weaknesses of the models evaluated on them.
+
+Robustness-oriented benchmarks help address
+this by targeting specific model weaknesses. Gan
+et al. (2021a) create SPIDER-SYN to measure para-
+phrastic robustness (Srikanth et al., 2024) after
+finding models vulnerable to synonym substitu-
+tion (Utama et al., 2018; Ma and Wang, 2021).
+Other SPIDER variants incorporate domain knowl-
+edge (Gan et al., 2021b). Pi et al. (2022) study
+model robustness to table perturbations, and Chang
+et al. (2023) explore 17 perturbation types to both
+questions and SQL queries. These types of robust-
+ness benchmarks typically rely on hand-designed
+perturbations informed by human priors, requiring
+significant manual effort. Experts must identify
+systematic model failures and craft challenge sets
+targeting those errors, as in Chang et al. (2023). As
+models improve, this process resembles an itera-
+tive cycle where researchers (1) identify remaining
+model weaknesses, (2) design challenge sets to tar-
+get those weaknesses, after which (3) models are
+optimized to saturate those challenge benchmarks.
+Not only is this process costly, but it risks overlook-
+ing robustness gaps for particular combinations of
+properties of NL2SQL examples, or more broadly,
+along other dimensions not explicitly included in
+these benchmarks. SQLSpace addresses these gaps
+in NL2SQL model robustness evaluation with min-
+imal human intervention (Appendix A).
+
+3 Representation Discovery
+
+Understanding the composition of NL2SQL
+datasets offers both theoretical and practical bene-
+fits. It facilitates a deeper scientific understanding
+of the NL2SQL task by identifying requisite reason-
+ing abilities as well as informed decision-making
+about model and benchmark selection for differ-
+ent use cases. We introduce a method, SQLSpace,
+to discover interpretable feature-based representa-
+tions of NL2SQL examples which we use for down-
+stream analysis on benchmarks (§4) and model per-
+formance ($5).
+
+
+3.1 Motivation
+
+We motivate SQLSpace with a simplified thought
+experiment designed to illustrate the opacity of
+accuracy-based leaderboard evaluation (Figure 2).
+Consider a model M that scores 80% accuracy
+on benchmark B. Conventional NL2SQL leader-
+boards simply rank models by this accuracy, ob-
+scuring deeper performance characteristics of M.
+However, grouping examples according to shared
+properties (e.g., queries containing nested SELECT
+clauses or ambiguous entity references) and ana-
+lyzing model predictions within and across these
+groups could reveal more about the strengths and
+weaknesses of M. For this thought experiment,
+we assume exclusive class membership, though we
+revisit this in §5.
+
+Fig. 2 illustrates three scenarios that all main-
+tain the 80% accuracy of M while exhibiting fun-
+damentally different error distributions: (1) per-
+fect accuracy on certain classes and complete fail-
+ure on others, (2) uniform performance across all
+classes, and (3) mixed performance within individ-
+ual classes. This breakdown helps us better under-
+stand M. Furthermore, the lower panel of Fig. 2
+illustrates that example class distributions may vary
+significantly across benchmarks (§4). If benchmark
+B contains disproportionately many examples with
+nested clauses relative to other evaluation sets, this
+compositional bias could account for Ms degraded
+performance on B, since the upper panel shows a
+scenario in which M systematically fails on those
+types of examples. The SQLSpace representations
+we build in this section help us automatically iden-
+tify such shared properties, facilitating scalable
+benchmark and model analysis.
+
+3.2 Representation Construction
+
+SQLSpace ingests a set of examples and involves
+four steps to semi-automatically produce general-
+purpose vector representations of examples: (1)
+aspect-based example description generation, (2)
+feature discovery from descriptions, (3) feature
+deduplication, and lastly, (4) representation con-
+struction (inference) on examples.
+
+Development Example Set. We use a portion of
+the development set from the UNITE corpus (Lan
+et al., 2023) (UNITE-DEV) for automatic feature
+discovery since it collates several public NL2SQL
+datasets. The portion we use includes a total of
+10,697 examples from SPIDER (Yu et al., 2018),
+SQUALL (Shi et al., 2020), SPIDER-SYN (Gan
+
+Figure 2: Aggregate accuracy may obscure important
+performance characteristics of models. Three models
+with identical 80% accuracy on benchmark B exhibit
+different error patterns across example classes, while
+varying class distributions across benchmarks can ex-
+plain performance differences.
+
+et al., 2021a), CRITERIA2SQL (Yu et al., 2020),
+SPARC (Yu et al., 2019b), CoSQL (Yu et al.,
+2019a), SPIDER-DK (Gan et al., 2021b), PARA-
+PHRASEBENCH (Utama et al., 2018), KAGGLED-
+BQA (Leeetal., 2021), ACL-SQL (Kaoshik et al.,
+2021), SEOSS-QUERIES (Tomova et al., 2022),
+and FIBEN (Sen et al., 2020). Examples in these
+benchmarks span various natural language con-
+structions, SQL patterns, and database schemas,
+making the compilation well-suited for discovering
+generalizable features. Though we select UNITE-
+DEV, our method is dataset-agnostic, and in prac-
+tice can be applied to any example collection.
+
+Step 1: Description Generation. Building a
+human-interpretable example representation re-
+quires identifying diverse and meaningful proper-
+ties of NL2SQL examples that may not necessarily
+be captured by traditional embedding methods.”
+
+For an example e with natural language question
+X and gold SQL query Y', a Describer model gen-
+erates five descriptions of e that focus on different
+“aspects” related to the NL2SQL task:
+
+1. Syntax (dsyn): Commentary on the linguistic
+syntax of X, including word order, grammati-
+cal relations, sentence structure, etc.
+
+2. SQL Syntax (dgq.syn): Covers elements of
+Y, including the structure and complexity of
+
+“We experimented with instruction-tuned embedding mod-
+
+els for generating representations, but found they focused on
+shallow features, even after masking schema-specific entities.
+
+
+aT.) G SQL
+
+First, the sentence makes use of a
+comparative structure with the phrase
+”. The question u
+a relative clause “that have.”
+
+“greater.
+
+Text-to-SQL Example Corpus
+
+Phase 1: Automatically Discover Example Representations
+
+Has a nested
+SELECT clause
+Employs
+technical jargon
+
+ses exact
+column names
+
+Phase 2: Analyzing Benchmarks and Models
+
+GG R.A
+(Con (Coa)
+
+gpt-4o-mini
+
+Analysis Datasets and Models
+
+6 fe, 1, 0, 1, 0, ..1
+
+Detect feature presence
+to build representations
+
+: [oil
+ER Jace: 62% ©
+< a
+
+Compare model
+
+Cluster
+performance on clusters
+
+Phase 3: Leverage Blind Spots for Better Performance
+
+C
+1) Countries that
+[i] B have a greater land
+@ oe area than the USA
+
+Blind Spot Analysis
+
+Countries that have
+greater surface area
+than the USA
+
+x A
+
+SELECT T1.surface_area
+from country_areas
+AS T1 9
+
+Rewrite example without
+blind spot features
+
+Figure 3: We discover representations of NL2SQL examples, and then use these representations in two applications:
+fine-grained analysis of models and benchmarks, and improving performance of models by rewriting NL questions
+
+to eliminate features associated with incorrect predictions.
+
+Schema (5): employee: id, name, salary, dept_id | department: dept_id, name
+Question (X): How many employees earn more than their department's average salary?
+
+SQL (Y): SELECT COUNT(*) FROM employee e WHERE salary > (SELECT AVG(salary)
+FROM employee WHERE dept_id = e.dept_id)
+
+Aspect # Example Predicates (p) Evaluated
+Syntax 74 omits expected conjunctions 0
+(40%) contains subordinate clauses 1
+contains nested conditionals 0
+SQL 41 includes a subquery 1
+Syntax (22%) has an aggregate function 1
+contains a CASE statement 0
+Example 27 involves nested logic 1
+Semantics (14%) has direct relationship 0
+requires domain knowledge 0
+Pragmatics 33 employs direct speech acts 1
+
+(18%) relies on conversational impl. 0
+exhibits minimal ambiguity 1
+
+Database 17 uses exact column names 1
+Reasoning 9%) requires commonsense reasoning 0
+
+mirrors schema structure 1
+Total (P) 187 (100%)
+
+Table 1: Our final set of natural language predicates, P,
+spans multiple aspects of NL2SQL examples. Building
+a representation of an example e involves evaluating
+each predicate p on e to produce binary feature vector.
+
+the query as well as SQL keywords or other
+syntactic elements.
+
+3. Example Semantics (dg): Specific com-
+mentary on the relationship between X and
+Y, such as parallel characteristics, types of
+reasoning required to map between X and Y,
+and other similarities and differences.
+
+4. Pragmatics (dpe): Discussion of pragmatic
+elements of X such as speech acts (Searle,
+1975), adherence to Gricean maxims (Grice,
+1975), uses of presupposition (Beaver, 1997)
+and implicature (Grice, 1975), and relevance.
+May also include commentary on any ambigu-
+ity (Wang et al., 2023a) or vagueness (Sapa-
+rina and Lapata, 2024).
+
+5. Database Reasoning (dg): Commentary on
+the relationship between X and the database
+schema §, including necessary reasoning re-
+quired to map between entities in X and
+columns in §, etc.
+
+Inspired by aspect-based summarization (Ange-
+lidis and Lapata, 2018), these descriptions are de-
+signed to capture fine-grained details about ex-
+amples in the input dataset. The choice of as-
+pects above is informed by previous studies on
+the types of reasoning required to solve NL2SQL
+problems. We select gpt-40-2024-05-13 as our
+Describer? and generate these five aspect-based
+descriptions for all 10,697 examples in UNITE-
+DEV using Prompts D.1-D.5 (see Table 11 for ex-
+ample descriptions).
+
+Step 2: Feature Discovery. Long-form descrip-
+tions generated by the Describer in Step 1 serve
+as a repository of aspect-related facts about an ex-
+ample. Examples similar in certain aspects may
+share phrases or sentences in their descriptions. To
+discover shared properties across descriptions, we
+use a module from the goal-driven explainable clus-
+tering pipeline in Wang et al. (2023b) designed to
+propose binary natural language predicates from
+descriptions. These predicates then serve as can-
+didate features of an NL2SQL example (hence-
+forth, we use predicate and feature interchange-
+ably). Given a natural language predicate p and a
+NL2SQL example e, p(e) = 1 when e expresses p,
+
+3sQLSpace can be run using any Describer, open-source
+or proprietary. Future work may explore the effects of different
+Describers on generated features.
+
+
+and p(e) = 0 when e does not express p.
+
+We run a predicate proposal module from Wang
+et al. (2023b) which ingests a collection of texts
+and a natural language goal, and has a Proposer
+LLM generate a list of candidate predicates, es-
+sentially performing “in-context clustering.” Con-
+cretely, this process iteratively (1) samples a ran-
+dom subset of documents from the input collection
+and (2) prompts the Proposer to generate a struc-
+tured list of n predicates, repeating the process for
+J iterations.
+
+For each collection of aspect-based descrip-
+tions Caspect (€.8. Csyn = {dsyn,» dsyns, ---}), the
+Proposer generates n = 40 predicates per itera-
+tion for j = 5 iterations (Appendix E). We use
+gpt-3.5-turbo-0125 as our Proposer (see Ta-
+ble 1 for example predicates). Note that describ-
+ing examples in Step 1 before predicate pro-
+posal disentangles reasoning and understanding
+examples from the task of finding commonal-
+ities across examples in this step. We also use
+gpt-40-2024-08-06 as an additional Proposer to
+diversify candidate predicates, as different mod-
+els prioritize different parts of descriptions when
+proposing predicates (see Table 5 for counts of
+proposed candidate predicates).
+
+Step 3: Feature Deduplication. The pool of
+candidate predicates for each aspect generated by
+the Proposers in the previous step contains dupli-
+cates (“contains a nested JOIN” and “uses nested
+JOINS”). We remove them by filtering out those
+with high token similarity as measured by Leven-
+shtein distance, and then manually removing any
+remaining paraphrases to ensure a clean set.” This
+process yields 187 general-purpose features across
+five aspects (Table 1), henceforth denoted as P,
+which we exhaustively list in Table 10 as an artifact
+of our work that other researchers may leverage.
+
+Step 4: Example Representation Construction.
+We now have a set of predicates that can serve as
+descriptive features of NL2SQL examples and that
+span all components of the example: the natural
+language question X, its relationship to the schema
+S, and the corresponding SQL query Y. We create
+
+“We use thefuzz with a token set similarity threshold of
+e€ = 70. This method, based on the Levenshtein edit distance,
+compares sets of tokens, ignoring order and redundancies.
+It effectively removes predicates with similar wording (e.g.,
+contains a JOIN” and uses a JOIN”).
+
+SWe also experimented with automatic methods such as
+instruction-tuned embedding models, but ultimately relied on
+manual deduplication to ensure a clean final predicate set.
+
+a vector representation of an example e by eliciting
+binary judgments from a predicate Evaluator with
+Prompts F2-F.5 on {p(e) | p € P} (Wang et al.,
+2023b), yielding a | P|-dimensional binary vector.
+We use gpt-40-2024-08-05 as our Evaluator.
+For each aspect, we only include the relevant com-
+ponents of the example in the predicate evalua-
+tion prompt (e.g., syntax-based predicates are only
+evaluated over the natural language question, or
+database reasoning-predicates are only evaluated
+over the natural language question and the schema).
+
+We estimate the accuracy of our chosen
+Evaluator by randomly sampling 50 example-
+predicate pairs for each aspect (250 examples total)
+and have two authors independently evaluate the
+predicate on the example. The average accuracy of
+the Evaluator based on the two authors was 73%.
+We compute the agreement between the two annota-
+tors, obtaining Cohen’s kappa values of x = 60.2,
+indicating substantial agreement (Artstein and Poe-
+sio, 2008) (see Table 6 for statistics per aspect).
+While we use a larger closed-source model to eval-
+uate predicates for proof-of-concept, future work
+could explore using fine-tuning lighter-weight mod-
+els on the task of predicate evaluation.
+
+What do these example representations help
+achieve? Our four-step pipeline (see Appendix B
+for ablation discussion and further intuitions) pro-
+duces |P|-dimensional binary vectors that serve as
+a general-purpose unified representation for any
+NL2SQL example. These representations enable
+various analyses, including comparing dimensions
+along which benchmarks significantly differ (§4)
+as well as understanding fine-grained classes of
+examples across benchmarks on which NL2SQL
+models struggle (§5). They also allow us to build
+a correctness classifier to estimate the likelihood
+that a model will produce correct SQL for a natural
+language example, and in cases where an exam-
+ple exhibits features associated with blind spots,
+intervene to remove them (§6).
+
+4 Comparing Text-to-SQL Benchmarks
+
+Analyzing the composition of datasets can reveal
+distributions of example properties within datasets,
+and highlight similarities and differences of exam-
+ples across benchmarks. These analyses enhance
+our understanding of the reasoning skills or knowl-
+edge needed to perform well on NL2SQL, and in
+turn, can help inform decisions about model de-
+sign or new benchmark construction. For instance,
+
+
+UMAP Projection of Feature Vectors for Text-to-SQL Benchmarks
+
+dataset
+bird_dev
+spider_dev
+spider_realistic
+
+UMAP dimension 2
+i
+
+Y
+
+UMAP dimension 1
+
+P Contains elided predicates 4.0%
+z. 5
+bh employs a WHERE clause with 2.8% 5.2% 8.0%
+multiple conditions
+
+Predicate
+
+Utilizes range specifications in
+the natural language query 11.6% 5.6% 7.3%
+
+Has a more detailed filtering
+component in the SQL query 85.2%
+
+52.0% 64.6%
+
+: 2 grounded in the schema, with
+
+oy no additional reasoning 16.0% 41.1% 0.9%
+
+required
+
+15.2% 10.0%
+
+26.0% 29.0%
+
+p hows brevity at the cost of SETS
+yA the quantity maxim Ir
+ee & ed
+
+Figure 4: Visualizing a UMAP projection (left) of our example representations for three NL2SQL datasets reveals
+classes of examples across datasets that share certain properties. Computing the proportions of examples exhibiting
+certain features (right) reveals dimensions along which the composition of datasets statistically significantly differs.
+
+discovering the prevalent syntactic complexity of
+questions may inspire new linguistically-informed
+approaches to modeling or data creation.
+
+Dataset comparison also offers practical bene-
+fits. When a practitioner has a proprietary NL2SQL
+dataset, Dyarger, understanding prevalent properties
+of examples in Dyer as well as the dimensions
+along which it resembles or differs from existing
+benchmarks D 4 or Dp helps them select the cheap-
+est model that performs well on their data, and
+opens up other avenues such as data augmentation
+with benchmarks that closely resemble Digger.
+
+Setup. We compute |P|-dimensional vector rep-
+resentations for examples (Step 4 in §3) in three dif-
+ferent datasets: (1) the development set (1,034 ex-
+amples) of SPIDER (Yu et al., 2018), one of the pre-
+vailing cross-domain benchmarks in the NL2SQL
+community (SPIDER-DEV), (2) the development
+set (1,534 examples) of BIRD-BENCH (Li et al,
+2024), another popular large-scale cross-domain
+benchmark released as an updated, more chal-
+lenging alternative to SPIDER-DEV(BIRD-DEV),
+and (3) SPIDER-REALISTIC (Deng et al., 2021),
+a dataset of 508 examples based off of SPIDER-
+DEV designed to reflect more realistic natural lan-
+guage questions. We pose a scenario in which
+SPIDER-REALISTIC is a target dataset whose com-
+position we want to better understand as compared
+to established benchmarks SPIDER-DEV (D4) and
+BIRD-DEV (Dp) to illustrate the utility of our vec-
+tor representations.
+
+Comparing SPIDER-DEV and BIRD-DEV. Fig-
+ure 4 visualizes a UMAP projection (McInnes
+et al., 2018) of feature vectors of all examples in
+
+D a, Dp, and Diypge; into two dimensions.® While
+dataset-specific clusters do emerge for SPIDER-
+DEV and BIRD-DEV, Figure 4 reveals classes
+of examples that may share similar properties in
+‘P. Referencing hand-annotated difficulty meta-
+data released for each example in BIRD-DEV re-
+veals that these high regions of overlap between
+BIRD-DEV and SPIDER-DEV mainly occur with
+BIRD-DEV examples annotated as “simple” (Fig-
+ure 5). This aligns with our priors on the construc-
+tion of both datasets, as BIRD-DEV was introduced
+as a more difficult benchmark due to its complex
+schema (Li et al., 2024), and features that are of-
+ten associated with simpler examples (use of exact
+column names in the natural language question, or
+clear mappings between the question and the SQL
+query) are more prevalent in SPIDER-DEV exam-
+ples (Deng et al., 2021).
+
+Dtarget- We observe regions with substantial over-
+lap between Diarger and our two benchmarks, along
+with a couple of outlier clusters of Dyyeer-specific
+examples. To interpret these patterns, we com-
+pute the proportion of examples in each dataset
+exhibiting each feature and run a chi-square test to
+identify features with statistically significant differ-
+ing proportions. This allows us to understand the
+dimensions along which each dataset is distinct.
+The table on the right in Figure 4 shows six
+illustrative features and the proportion of exam-
+ples in each dataset that express them. The
+third row shows a question-schema alignment fea-
+ture rarely present in examples from SPIDER-
+
+To project feature vectors using UMAP, we use a neigh-
+bor count (n_neighbors) of 50 and a minimum distance
+(min_dist) of 0.01.
+
+
+REALISTIC (Diarger). This validates our approach,
+since it aligns with the creation of SPIDER-
+REALISTIC, which was constructed by Deng et al.
+(2021) by manually modifying natural language
+questions in SPIDER-DEV to remove or paraphrase
+mentions of column names. A likely consequence
+of this process appears in Row 5, where SPIDER-
+REALISTIC contains the highest proportion of ex-
+amples that trade satisfying the Gricean maxim of
+quantity (Grice, 1975) for brevity.
+
+These analyses allow us to better understand the
+skills required to perform well on each dataset (e.g.,
+BIRD-DEV contains more syntactically complex
+examples than SPIDER-REALISTIC: 20% of ex-
+amples include mixed use of symbols and words
+as compared to 5% in SPIDER-DEV and 6% in
+SPIDER-REALISTIC). They illustrate how our
+framework can equip a user with detailed knowl-
+edge about their dataset when they are trying to
+make sense of new Direct data, and can be repeated
+with any other dataset.
+
+5 Identifying Model Blind Spots
+
+We now use the feature space constructed in §3 to
+analyze the performance of LLMs when solving
+NL2SQL problems. Models must not only be ac-
+curate (i.e, predict SQL queries correctly), but also
+robust (consistently correct in the face of diverse,
+potentially flawed, or difficult inputs).
+
+While many robustness studies create datasets
+targeting specific weaknesses (Deng et al., 2021;
+Gan et al., 2021a), they may overlook model ro-
+bustness gaps on examples with unique combina-
+tions of properties. Building on the ideas in §4,
+we cluster examples across datasets and analyze
+LLM correctness by cluster to identify challenging
+example classes for each model. Importantly, this
+analysis supplements the metric of execution ac-
+curacy on an entire dataset, which may obfuscate
+nuanced model behaviors (§3.1).
+
+Clustering Example Representations. We run
+K-means clustering over the set union of examples
+in SPIDER-DEV and BIRD-DEV, setting k = 14
+using the elbow method (Thorndike, 1953). Ta-
+ble 2 visualizes the distribution of examples in each
+cluster along with the raw example counts.
+
+Model Inference. We experiment with 13
+instruction-tuned LLMs whose behavior we would
+
+"We use the implementation from https: //github.com/
+DistrictDatalLabs/yellowbrick.
+
+like to better understand, making sure to in-
+clude a mixture of closed and open-source mod-
+els, code-based and general purpose language
+models, as well as models of different sizes:
+7B code and chat-based gemma models (Team
+et al., 2024), 7B and 13B code and chat-based
+1lama-2 models (Touvron et al., 2023), 3B and
+8B code granite models (Mishra et al., 2024),
+1.3B and 7B code deepseek models (Guo et al.,
+2024), as well as gpt-4o0, gpt-40-mini, and
+gpt-3.5-turbo (Hurst et al., 2024). We generate
+predictions for all examples in SPIDER-DEV and
+BIRD-DEV with all models using Prompt G.1 in
+a zero-shot manner (Gao et al., 2023; Yang et al.,
+2024), which includes the database schema and
+three example rows of values. We report execu-
+tion accuracy (EX) over the full datasets (Table 2,
+Column 1) as well as per cluster (Columns 2-15).
+
+Blind Spots. All models have varying perfor-
+mance across clusters that, in some cases, signif-
+icantly deviate from their overall EX (Table 2).
+For example, all models perform well on exam-
+ples in Clusters 1 (C4) and 12 (Cy2), averaging
+well above their overall accuracy on SPIDER-DEV.
+Conversely, all models struggled with Cg and C1,
+including the strongest model overall, gpt-4o0.
+
+We train a random forest classifier with 100 esti-
+mators on all (feature vector, cluster label C) pairs
+to identify important features for each cluster us-
+ing mean decrease in impurity. For example, Cg
+contains examples with complex conditional ex-
+pressions and technical jargon (Table 9). We call
+this a blind spot of models, or a class of examples
+on which a model systematically achieves low per-
+formance as compared to its overall accuracy. In
+contrast, Cj contains examples that filter data from
+a single column of the table and uses aliases for ta-
+ble or column names, requiring minimal additional
+reasoning to map effectively (Table 9).
+
+Cluster-based analysis also allows us to iden-
+tify classes of examples for which cheaper, smaller
+models perform competitively with larger ones or
+where open-source models may perform at par with
+proprietary ones. For example, granite-code-3b
+performs on par with deepseek-coder-7b on ex-
+amples in C4, and even exceeds its performance
+on examples in Cy. deepseek-coder-1.3b, our
+smallest model, outperforms granite-code-3b on
+C13, while performing on par with it on Cyg4.
+
+8The analyses are model and dataset-agnostic. Others may
+select any model they want to analyze.
+
+
+Cluster Number Cy Cy Cs Cy Cs Cg Cr Cs Cy Cio C11 Cia Cis Cia
+# total examples 148 303 194 203 87 146 234 230 275 160 147 130 161 150
+biscibaion © 6 6 © © 6 6 6 6 6 © ©
+IE BIRD-DEV (1534) 52 254 167 92 13 101 14 223 258 133 41 4 116 66
+I SPIDER-DEV (1034) 96 49 27 111 74 45 220 7 17 27 106 126 45 84
+%SPIDER-REALISTIC (508) 6.7 8.9 11 9.1 1.9 5 11.6 3.7 3.1 2.8 124 2.6 3.7 9.8
+gpt-4o-mini (37.1/76.1) B45 56.12) 39.72) 42429 63233) 47.9) 68.4@D 16511 46.52) 28.10 [9.4 FRYIOT 65.2 (23) 54.7 (25)
+gpt-4o (13.7/76.1) 87.8 1D) 63.023) 40.729) 47812) 5981) 56225) 69.2) 27420) 5202) 33102 680022) 88500 658022 56725)
+gpt-3.5-turbo (11.0/62.1) 74319 4952 314022) 3452) 66.7322) 4382) 50.42) 139012) 418) 9262019 55825 708) 596 480 25)
+gemma-7b (19.0/60.9) 70.3) 38629 144012) 39929 6443) 24008 5000@) 5706) 24408 1310) 5100 76208) 4662) 31.322
+code-gemma-7b (1.2/6.1) 87.810 | 4822 3042) 305@) 51.72) 473) 55629 100 4073) 21.900 58520) 85402 5771 44025)
+deepseek-coder-1.3b (115/511) | 70.9 2D 27.120) 14402 19706) 492) 301 CD 48325) 91® 18905) 125010 42209 66.922 37.90 26,0 (19)
+deepseek-coder-7b (235/652) | 73.619 38.3210 22207 97620) 59824) 1@) 573C) 14302 333@) 21207 61.9) 84603) 50.32) 40.7)
+granite-code-3b (11.3/50.9) 784070 175049 129011) 27120 5175) 3152) 5430@) 5706) 15303 1000 44205 76918) 311) 26,019)
+granite-code-8b (16.0/6s 5) 84.513) | 27.70) 170049 281 (20 44.825) 82) 68432) 520) 196016) 13802) 5445) gr7OD 38529) 40.0)
+code-11ama=7b (15.0/50.0) 76.418) | 3372 920116) 257019 52925) 6) 47.0) 78M 21.107 156013) 49.7@) 70.02) 45325) 34022
+code-11ama-13b (21 2/6 1) 77.7070 3962) 23208) 26620 5632) 41.132) 5562) 700 25109 169019 52425 785070 46.6 (25) 46.0 (25)
+1lama-2-7b (31/215) 46.6 25) 6.3©) 4.6 @W 590 11.500 5 9.0 ®) 1.7@ 3.6 310 1631 362) 106©® 7.30
+1lama-2-13b (6.5/15.6) 58.8 20) 15503) 1030 94® 25309) 24709 346@) 356 73M 5006 320022 [75409 26.7 (20) 22708)
+
+Table 2: We cluster feature vectors for all examples in SPIDER-DEV and BIRD-DEV and compute the mean and
+variance of each model’s correctness per cluster. This yields clusters on which models perform well above their
+dataset-level execution accuracy (bird/spider) such as in C1 and C;2, while revealing blind spots, or clusters
+with systematically low performance (Cg and C10). Mapping examples in our Digger (SPIDER-REALISTIC) to
+clusters with K-means inference reveals that the dataset most resembles clusters with weaker performance (Row 3).
+
+Open-source models like code-gemma-7b perform
+on par with proprietary models like gpt-4o on ex-
+amples in Cj.
+
+Interestingly, we also observe some general-
+purpose language models exceeding the perfor-
+mance of their code counterparts on certain clus-
+ters (e.g. gemma-7b exceeds the performance of
+code-gemma-7b on C4 and Cj, while performing
+lower on all other clusters). This could indicate
+that examples in these clusters require linguistic or
+reasoning skills that general-purpose LLMs may be
+better at. While clusters are dataset-dependent and
+can be produced with any inference dataset(s), we
+explicitly propose and will release these example
+clusters of BIRD-DEV and SPIDER-DEYV since they
+are popular community benchmarks.
+
+Discussion. This analysis can inform a variety
+of downstream applications. Research into the ro-
+bustness of NL2SQL models may leverage low-
+performing clusters to build challenge splits of the
+data, similar in spirit to existing hard splits of nat-
+ural language inference data (Gururangan et al.,
+2018). Moreover, blind spots could assist in the
+generation of adversarial test sets of new challenge
+examples expressing combinations of properties
+that models systematically struggle with.
+Practically, this analysis could help users make
+informed model selections, since the majority of
+their own data (Dyaree) may closely resemble only a
+handful of clusters. We illustrate this by running K-
+means inference on SPIDER-REALISTIC (Digger)
+to understand which clusters it most closely resem-
+bles. Table 2 includes the proportion of SPIDER-
+
+REALISTIC that mapped to each cluster. The high-
+est performing cluster, C11, includes the small-
+est amount of SPIDER-REALISTIC data, with only
+2.6% of SPIDER-REALISTIC examples mapped to
+it, while the majority of data maps to Cg, where
+many models seem to struggle. Smaller models per-
+forming on par with larger, more expensive models
+in particular clusters that resemble Diyrger allows
+practitioners to perform cost-efficient inference.
+
+6 Question Rewriting
+
+While SQLSpace is primarily intended to enable
+offline analyses or applications (§4 and §5), we il-
+lustrate a query rewriting application that removes
+features associated with a model’s blind spots as
+a proof-of-concept for an online application. We
+pose a scenario where a lightweight correctness
+estimator alerts a user when their NL2SQL system
+is likely to produce incorrect SQL for a natural
+language question. In this case, a user may be in-
+formed that their question can be rewritten without
+a particular feature to increase the chances that the
+system produces correct SQL.
+
+Correctness Estimation. For a model M whose
+performance we seek to improve, we first build
+a lightweight correctness classifier C' to predict
+whether M will produce correct SQL for an ex-
+ample given its feature vector. We obtain binary
+correctness labels by evaluating predictions from
+M on all 10,697 examples in UNITE-DEV and
+train a random forest classifier on a subset of data
+consisting of feature vectors and correctness la-
+
+
+oe Rewritin,
+No Rewriting EY I
+
+31.2 31.9 37.7
+23.5 24.3 30.8
+
+code-gemma-7b
+deepseek-coder-7b
+
+Table 3: Rewriting NL questions in BIRD-DEV that
+express features most likely to contribute to an incorrect
+prediction by a model improves execution accuracy. We
+report accuracy with the top 1 and 3 negative features
+(acc@1 and acc@3).
+
+code-gemma-7b-it deepseek-coder-7b-it
+Rewrite v~ Rewrite X | Rewrite Rewrite X
+
+Estimator v/ 22.8 43.7 18.5 51.4
+Estimator X 16.0 17.5 15.4 14.7
+
+Table 4: Percentage breakdown of BIRD-DEV examples
+by correctness estimator prediction accuracy (“estimator
+right or wrong”) and rewrite success Acc@3 (whether
+rewriting yielded correct SQL) for code-gemma-7b-it
+and deepseek-coder-7b-it.
+
+bels.” Using the remaining set of examples, we
+compute feature importance with permutation im-
+portance (Breiman, 2001) on negative examples,
+giving us an ordering of features in 7? most con-
+tributing to C’s prediction that M will produce
+incorrect SQL for an example (see Table 7 for top
+predicates for different models).
+
+Rewriting with Correctness Estimation. We se-
+lect BIRD-DEV as the dataset on which we aim
+to improve model M’s performance. We simulate
+an online inference scenario with BIRD-DEV ex-
+amples: first, the correctness estimator C' predicts
+whether M will generate correct SQL for exam-
+ple e (calibration plots in Figures 6 and 7). For
+predicted failures, we identify top negative fea-
+tures in e using the feature importances we pre-
+viously computed and prompt a Rewriter (here,
+gpt-40-2024-08-06) to rewrite the natural lan-
+guage question to address the negative feature it ex-
+hibits using Prompt H.1. Here, the Rewriter sim-
+ulates a human user who may themselves rewrite
+their question when informed that it contains a fea-
+ture that may yield incorrect SQL from M.'? Both
+the correctness estimator C' and the rewriting fea-
+tures are restricted to the 121 features derived from
+the natural language question and schema, exclud-
+
+"We use 200 estimators, training them on 90% of UNITE-
+DEV examples and computing feature importance using the
+remaining 10%. Table 8 contains performance metrics.
+
+19See Appendix H for a discussion on feature modulation
+as well as the cost of rewriting.
+
+ing gold SQL-derived features to maintain a realis-
+tic inference setting (see Table 8 for performance
+metrics of C).
+
+We then evaluate the generated SQL conditioned
+on the rewrite and report EX in two settings: Acc@3,
+which rewrites the question with the top three nega-
+tive features and awards M credit if any of the three
+rewrites produce correct SQL, as well as Accel,
+where we consider only the rewrite conditioned on
+the top negative feature.
+
+Results. We evaluate rewriting on two mod-
+els: code-gemma-7b and deepseek-coder-7b.
+Rewriting questions to remove features that hurt
+model performance can help improve accuracy (Ta-
+ble 3), especially when rewrites address multiple
+negative features (Acc@3). This indicates that mul-
+tiple negative features compound to hinder model
+performance, and rewriting to eliminate just a sin-
+gle negative feature (Acc@1) is often insufficient.
+Rather, comprehensive rewrites addressing mul-
+tiple negative features that collectively degrade
+model accuracy yield more substantial improve-
+ments (Acc@3). A realistic setting that leverages
+this finding may ask a user to eliminate multiple
+negative features in a single rewrite of their query.
+
+Table 4 reveals that in most cases, the correct-
+ness estimator produced a correct decision (“Esti-
+mator v’), but the generated rewrite did not pro-
+duce correct SQL (“Rewrite X”), illustrating that
+the representation space produced by SQLSpace is
+meaningful for modeling correctness, but that a
+more nuanced procedure to produce better rewrites
+would likely further improve accuracy, which we
+leave to future work.
+
+7 Conclusion
+
+We present SQLSpace, a framework to construct
+unified representations of text-to-SQL examples
+semi-automatically. SQLSpace enables detailed
+and interpretable examination of NL2SQL bench-
+marks to better understand example properties as
+well as fine-grained analysis of LLM behavior
+across benchmarks, and we argue that having such
+analyses is essential for future benchmark construc-
+tion and model development in NL2SQL. We lay
+the groundwork for several future research direc-
+tions, such as data augmentation or adversarial ex-
+ample generation informed by model blind spots,
+the development of an online “router” to route dif-
+ficult examples to larger models, or the design of a
+more robust, generalizable correctness estimator.
+
+
+Limitations
+
+Human Intervention. Our goal is to construct a
+meaningful but compact representation space for
+text-to-SQL examples with as little manual inter-
+vention as possible. While the human effort nec-
+essary to construct these representations is signif-
+icantly less than other robustness studies that col-
+lect manual annotations from database engineers
+or SQL experts, our semi-automated pipeline still
+contains two points of manual intervention: de-
+termining the five aspects on which to condition
+description generation, and further predicate filter-
+ing.
+
+Correctness Estimator Efficacy. The perfor-
+mance of the correctness estimators we train during
+our rewriting experiments varies depending on the
+dataset, potentially limiting its utility in certain set-
+tings. While the estimators do learn meaningful
+patterns for the two NL2SQL models we experi-
+ment with, it is possible that their ability to estimate
+the correctness of other NL2SQL models may vary
+based on the dataset. Future work could explore
+more complex models beyond random forests to im-
+prove the generalization ability of the correctness
+estimators, in turn enabling several downstream
+applications.
+
+Cost. Several parts of our pipeline utilize closed-
+source LLMs. While we do this to establish a
+proof-of-concept, as well as an upper bound of per-
+formance, we acknowledge the cost associated with
+them. Future work could experiment with replacing
+the predicator evaluator in §3 with a lighter-weight,
+open-source model to enable inference time predic-
+tion of features in a new text-to-SQL example.
+
+References
+
+Stefanos Angelidis and Mirella Lapata. 2018. Sum-
+marizing opinions: Aspect extraction meets senti-
+ment prediction and they are both weakly supervised.
+In Proceedings of the 2018 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+3675-3686, Brussels, Belgium. Association for Com-
+putational Linguistics.
+
+Ron Artstein and Massimo Poesio. 2008. Inter-coder
+agreement for computational linguistics. Computa-
+tional linguistics, 34(4):555-596.
+
+David Ian Beaver. 1997. Presupposition. In Handbook
+of logic and language, pages 939-1008. Elsevier.
+
+Leo Breiman. 2001. Random forests. Machine learning,
+45:5-32.
+
+Shuaichen Chang, Jun Wang, Mingwen Dong, Lin Pan,
+Henghui Zhu, Alexander Hanbo Li, Wuwei Lan,
+Sheng Zhang, Jiarong Jiang, Joseph Lilien, et al.
+2023. Dr. spider: A diagnostic evaluation bench-
+mark towards text-to-sql robustness. arXiv preprint
+arXiv:2301.08881.
+
+Xiang Deng, Ahmed Hassan Awadallah, Christopher
+Meek, Oleksandr Polozov, Huan Sun, and Matthew
+Richardson. 2021. Structure-grounded pretraining
+for text-to-SQL. In Proceedings of the 2021 Con-
+ference of the North American Chapter of the Asso-
+ciation for Computational Linguistics: Human Lan-
+guage Technologies, pages 1337-1350, Online. As-
+sociation for Computational Linguistics.
+
+Yujian Gan, Xinyun Chen, Qiuping Huang, Matthew
+Purver, John R. Woodward, Jinxia Xie, and Peng-
+sheng Huang. 2021a. Towards robustness of text-
+to-SQL models against synonym substitution. In
+Proceedings of the 59th Annual Meeting of the Asso-
+ciation for Computational Linguistics and the 11th
+International Joint Conference on Natural Language
+Processing (Volume 1: Long Papers), pages 2505—
+2515, Online. Association for Computational Lin-
+guistics.
+
+Yujian Gan, Xinyun Chen, and Matthew Purver. 2021b.
+Exploring underexplored limitations of cross-domain
+text-to-SQL generalization. In Proceedings of the
+2021 Conference on Empirical Methods in Natural
+Language Processing, pages 8926-8931, Online and
+Punta Cana, Dominican Republic. Association for
+Computational Linguistics.
+
+Dawei Gao, Haibin Wang, Yaliang Li, Xiuyu Sun,
+Yichen Qian, Bolin Ding, and Jingren Zhou. 2023.
+Text-to-sql empowered by large language mod-
+els: A benchmark evaluation. arXiv preprint
+arXiv:2308.15363.
+
+Herbert P Grice. 1975. Logic and conversation. In
+Speech acts, pages 41-58. Brill.
+
+Daya Guo, Qihao Zhu, Dejian Yang, Zhenda Xie,
+Kai Dong, Wentao Zhang, Guanting Chen, Xiao
+Bi, Yu Wu, YK Li, et al. 2024. Deepseek-coder:
+When the large language model meets programming—
+the rise of code intelligence. arXiv preprint
+arXiv:2401.14196.
+
+Suchin Gururangan, Swabha Swayamdipta, Omer Levy,
+Roy Schwartz, Samuel Bowman, and Noah A. Smith.
+2018. Annotation artifacts in natural language infer-
+ence data. In Proceedings of the 2018 Conference of
+the North American Chapter of the Association for
+Computational Linguistics: Human Language Tech-
+nologies, Volume 2 (Short Papers), pages 107-112,
+New Orleans, Louisiana. Association for Computa-
+tional Linguistics.
+
+Moshe Hazoom, Vibhor Malik, and Ben Bogin. 2021.
+Text-to-SQL in the wild: A naturally-occurring
+dataset based on stack exchange data. In Proceedings
+of the Ist Workshop on Natural Language Processing
+
+
+for Programming (NLP4Prog 2021), pages 77-87,
+Online. Association for Computational Linguistics.
+
+Aaron Hurst, Adam Lerer, Adam P Goucher, Adam
+Perelman, Aditya Ramesh, Aidan Clark, AJ Os-
+trow, Akila Welihinda, Alan Hayes, Alec Radford,
+et al. 2024. Gpt-4o system card. arXiv preprint
+arXiv:2410.21276.
+
+Ronak Kaoshik, Rohit Patil, Shaurya Agarawal, Naman
+Jain, and Mayank Singh. 2021. Acl-sql: Generating
+sql queries from natural language. In Proceedings
+of the 3rd ACM India Joint International Conference
+on Data Science & Management of Data (8th ACM
+IKDD CODS & 26th COMAD), pages 423-423.
+
+Wuwei Lan, Zhiguo Wang, Anuj Chauhan, Henghui
+Zhu, Alexander Li, Jiang Guo, Sheng Zhang, Chung-
+Wei Hang, Joseph Lilien, Yiqun Hu, et al. 2023.
+Unite: A unified benchmark for text-to-sql evaluation.
+arXiv preprint arXiv:2305.16265.
+
+Chia-Hsuan Lee, Oleksandr Polozov, and Matthew
+Richardson. 2021. KaggleDBQA: Realistic evalu-
+ation of text-to-SQL parsers. In Proceedings of the
+59th Annual Meeting of the Association for Compu-
+tational Linguistics and the 11th International Joint
+Conference on Natural Language Processing (Vol-
+ume 1: Long Papers), pages 2261-2273, Online. As-
+sociation for Computational Linguistics.
+
+Fangyu Lei, Jixuan Chen, Yuxiao Ye, Ruisheng
+Cao, Dongchan Shin, Hongjin Su, Zhaoqing Suo,
+Hongcheng Gao, Wenjing Hu, Pengcheng Yin, et al.
+2024. Spider 2.0: Evaluating language models on
+real-world enterprise text-to-sql workflows. arXiv
+preprint arXiv:2411.07763.
+
+Jinyang Li, Binyuan Hui, Ge Qu, Jiaxi Yang, Binhua
+Li, Bowen Li, Bailin Wang, Bowen Qin, Ruiying
+Geng, Nan Huo, et al. 2024. Can llm already serve
+as a database interface? a big bench for large-scale
+database grounded text-to-sqls. Advances in Neural
+Information Processing Systems, 36.
+
+Pingchuan Ma and Shuai Wang. 2021. Mt-teql: eval-
+uating and augmenting neural nlidb on real-world
+linguistic and schema variations. Proceedings of the
+VLDB Endowment, 15(3):569-582.
+
+Leland McInnes, John Healy, and James Melville. 2018.
+Umap: Uniform manifold approximation and pro-
+jection for dimension reduction. arXiv preprint
+arXiv:1802.03426.
+
+Mayank Mishra, Matt Stallone, Gaoyuan Zhang, Yikang
+Shen, Aditya Prasad, Adriana Meza Soria, Michele
+Merler, Parameswaran Selvam, Saptha Surendran,
+Shivdeep Singh, et al. 2024. Granite code models:
+A family of open foundation models for code intelli-
+gence. arXiv preprint arXiv:2405.04324.
+
+Xinyu Pi, Bing Wang, Yan Gao, Jiaqi Guo, Zhoujun
+Li, and Jian-Guang Lou. 2022. Towards robustness
+of text-to-SQL models against natural and realistic
+adversarial table perturbation. In Proceedings of the
+
+60th Annual Meeting of the Association for Compu-
+tational Linguistics (Volume 1: Long Papers), pages
+2007-2022, Dublin, Ireland. Association for Compu-
+tational Linguistics.
+
+Irina Saparina and Mirella Lapata. 2024. Ambrosia:
+A benchmark for parsing ambiguous questions into
+database queries. arXiv preprint arXiv:2406.19073.
+
+John R Searle. 1975. A taxonomy of illocutionary acts.
+
+Jaydeep Sen, Chuan Lei, Abdul Quamar, Fatma
+Ozcan, Vasilis Efthymiou, Ayushi Dalmia, Greg
+Stager, Ashish Mittal, Diptikalyan Saha, and Karthik
+Sankaranarayanan. 2020. Athena++ natural language
+querying for complex nested sql queries. Proceed-
+ings of the VLDB Endowment, 13(12):2747-2759.
+
+Tianze Shi, Chen Zhao, Jordan Boyd-Graber, Hal
+Daumé III, and Lillian Lee. 2020. On the poten-
+tial of lexico-logical alignments for semantic pars-
+ing to SQL queries. In Findings of the Association
+for Computational Linguistics: EMNLP 2020, pages
+1849-1864, Online. Association for Computational
+Linguistics.
+
+Neha Srikanth, Marine Carpuat, and Rachel Rudinger.
+2024. How often are errors in natural language rea-
+soning due to paraphrastic variability? Transac-
+tions of the Association for Computational Linguis-
+tics, 12:1143-1162.
+
+Gemma Team, Thomas Mesnard, Cassidy Hardin,
+Robert Dadashi, Surya Bhupatiraju, Shreya Pathak,
+Laurent Sifre, Morgane Riviere, Mihir Sanjay Kale,
+Juliette Love, et al. 2024. Gemma: Open models
+based on gemini research and technology. arXiv
+preprint arXiv:2403.08295.
+
+Robert L Thorndike. 1953. Who belongs in the family?
+Psychometrika, 18(4):267-276.
+
+Laura Tolosi and Thomas Lengauer. 2011. Classifica-
+tion with correlated features: unreliability of feature
+ranking and solutions. Bioinformatics, 27(14):1986—
+1994.
+
+Mihaela Todorova Tomova, Martin Hofmann, and
+Patrick Mider. 2022. Seoss-queries-a software engi-
+neering dataset for text-to-sql and question answering
+tasks. Data in Brief, 42:108211.
+
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+Bhosale, et al. 2023. Llama 2: Open founda-
+tion and fine-tuned chat models. arXiv preprint
+arXiv:2307.09288.
+
+Prasetya Utama, Nathaniel Weir, Fuat Basik, Carsten
+Binnig, Ugur Cetintemel, Benjamin Hittasch, Amir
+Ilkhechi, Shekar Ramaswamy, and Arif Usta. 2018.
+An end-to-end neural natural language interface for
+databases. arXiv preprint arXiv:1804.00401.
+
+
+Bing Wang, Yan Gao, Zhoujun Li, and Jian-Guang Lou.
+2023a. Know what I don‘t know: Handling ambigu-
+ous and unknown questions for text-to-SQL. In Find-
+ings of the Association for Computational Linguis-
+tics: ACL 2023, pages 5701-5714, Toronto, Canada.
+Association for Computational Linguistics.
+
+Zihan Wang, Jingbo Shang, and Ruiqi Zhong. 2023b.
+Goal-driven explainable clustering via language de-
+scriptions. In Proceedings of the 2023 Conference
+on Empirical Methods in Natural Language Process-
+ing, pages 10626-10649, Singapore. Association for
+Computational Linguistics.
+
+Jiaxi Yang, Binyuan Hui, Min Yang, Jian Yang, Junyang
+Lin, and Chang Zhou. 2024. Synthesizing text-to-
+SQL data from weak and strong LLMs. In Proceed-
+ings of the 62nd Annual Meeting of the Association
+for Computational Linguistics (Volume 1: Long Pa-
+pers), pages 7864-7875, Bangkok, Thailand. Associ-
+ation for Computational Linguistics.
+
+Tao Yu, Rui Zhang, Heyang Er, Suyi Li, Eric Xue,
+Bo Pang, Xi Victoria Lin, Yi Chern Tan, Tianze
+Shi, Zihan Li, Youxuan Jiang, Michihiro Yasunaga,
+Sungrok Shim, Tao Chen, Alexander Fabbri, Zifan
+Li, Luyao Chen, Yuwen Zhang, Shreya Dixit, Vin-
+cent Zhang, Caiming Xiong, Richard Socher, Walter
+Lasecki, and Dragomir Radev. 2019a. CoSQL: A
+conversational text-to-SQL challenge towards cross-
+domain natural language interfaces to databases. In
+Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing and the
+9th International Joint Conference on Natural Lan-
+guage Processing (EMNLP-IJCNLP), pages 1962—
+1979, Hong Kong, China. Association for Computa-
+tional Linguistics.
+
+Tao Yu, Rui Zhang, Kai Yang, Michihiro Yasunaga,
+Dongxu Wang, Zifan Li, James Ma, Irene Li, Qingn-
+ing Yao, Shanelle Roman, Zilin Zhang, and Dragomir
+Radev. 2018. Spider: A large-scale human-labeled
+dataset for complex and cross-domain semantic pars-
+ing and text-to-SQL task. In Proceedings of the 2018
+Conference on Empirical Methods in Natural Lan-
+guage Processing, pages 3911-3921, Brussels, Bel-
+gium. Association for Computational Linguistics.
+
+Tao Yu, Rui Zhang, Michihiro Yasunaga, Yi Chern
+Tan, Xi Victoria Lin, Suyi Li, Heyang Er, Irene
+Li, Bo Pang, Tao Chen, Emily Ji, Shreya Dixit,
+David Proctor, Sungrok Shim, Jonathan Kraft, Vin-
+cent Zhang, Caiming Xiong, Richard Socher, and
+Dragomir Radev. 2019b. SParC: Cross-domain se-
+mantic parsing in context. In Proceedings of the
+57th Annual Meeting of the Association for Computa-
+tional Linguistics, pages 4511-4523, Florence, Italy.
+Association for Computational Linguistics.
+
+Xiaojing Yu, Tianlong Chen, Zhengjie Yu, Huiyu
+Li, Yang Yang, Xiaoqgian Jiang, and Anxiao Jiang.
+2020. Dataset and enhanced model for eligibility
+criteria-to-sql semantic parsing. In 12th International
+Conference on Language Resources and Evaluation
+(LREC).
+
+
+A Human Intervention in SQLSpace
+
+SQL Space discovers features for representation con-
+struction in a semi-automatic manner, avoiding
+a scenario in which database engineers manually
+come up with perturbations, as in other robustness
+NL2SQL benchmarks.
+
+Human Intervention in NL2SQL Robustness
+Studies. Many robustness studies rely on signifi-
+cant manual effort. Pi et al. (2022) study whether
+or not text-to-SQL systems are robust to adversarial
+perturbations to the tables and schemas involved
+in text-to-SQL examples. Their benchmark took
+253 human hours to annotate. Chang et al. (2023)
+introduce DR. SPIDER, a dataset that introduces 17
+human-created perturbations from database experts
+and crowdworkers. Here, human intervention in-
+volved (1) crowdsourcing annotators from Mechan-
+ical Turk to paraphrase questions from SPIDER, (2)
+task experts (3 SQL experts) that review the para-
+phrases and categorize them from the text-to-SQL
+task perspectives, and (3) more task expert hours (3
+SQL experts) review the paraphrased questions that
+are generated from models. Task experts create on-
+tologies of paraphrases. Lastly, Gan et al. (2021a)
+study the robustness of text-to-SQL models to syn-
+onym substitution. They introduce SPIDER-SYN, a
+human-curated dataset. Four graduates students in
+Computer Science annotate their dataset manually.
+The graduate students are trained with a detailed
+annotation guide, and must to annotate samples in
+a trial phrase before annotating the whole dataset.
+The annotators manually choose synonyms for sub-
+stitution in the natural language questions. They
+have two rounds of annotation, and in total, annota-
+tors look at 5,672 questions.
+
+Human Intervention in SQLSpace. In contrast
+to the related work above, we have no SQL ex-
+perts or crowdworkers creating any data or on-
+tologies for our framework. The only manual
+intervention in SQLSpace involves 1-2 hours of an
+author removing semantic duplicates from the gen-
+erated predicate list in Step 3 of Section 3. This
+required no task expertise, only proficiency in En-
+glish.
+
+B Ablation Studies
+
+The primary goal of our pipeline is to better char-
+acterize and understand features of text-to-SQL
+datasets in a human-interpretable fashion and how
+
+these features help users better understand model
+
+performance. Consider the four steps in the system:
+[Step 1: Describe Examples based on Aspects] Here,
+given an aspect such as “natural language syntax” or
+“linguistic pragmatics”, an LLM generates an aspect-
+conditioned description of a text-to-SQL example.
+
+[Step 2: Propose Features (Predicates) from Descrip-
+tions] Here, given a collection of generated descriptions,
+an LLM can extract short binary natural language predi-
+cates that serve as features in SQLSpace.
+
+[Step 3: Remove Duplicate Features] Using a combina-
+tion of automatic and manual methods, we clean the list
+of generated predicates to produce a deduplicated list of
+features.
+
+[Step 4: Compute Feature Vectors for any Inference
+Example] For a given text-to-SQL example e, we run
+through our list of deduplicated features, and use an LLM
+to predict whether or not the feature is present in e to pro-
+duce a binary feature vector v that serves as the example’s
+representation for downstream use.
+
+What are the intutions behind each step in the
+pipeline? The overall goal of SQLSpace is to dis-
+cover human-interpretable, generalizable features
+of text-to-SQL examples to use in downstream anal-
+ysis. The overarching intuition is to create a space
+in which to represent queries, without committing
+to a prior researcher intuitions. In Step 1, we ask
+an LLM to produce a prose description of an ex-
+ample containing commentary related to a particu-
+lar aspect. These descriptions are an intermediate
+checkpoint before predicate generation. One could
+imagine suggesting features without descriptions
+just by looking at examples, but this is significantly
+more challenging for language models since meta-
+reasoning about all aspects at once is challenging.
+Describing an example before coming up with fea-
+tures is similar to how chain-of-thought serves to
+improve problem solving in LLMs.
+
+Step 2 simply suggests features extracted from
+descriptions. Natural language predicates as fea-
+tures lend themselves well to the main goal of
+SQLSpace: human interpretability. Features are
+short, human-readable, and binary in order to max-
+imize the flexibility and interpretability of our
+framework. This predicate generation step is taken
+from an explainable clustering pipeline (Wang
+et al., 2023b) and is positioned as a module that per-
+forms “in-context clustering” based on a random
+subset of the corpus with explainable cluster proper-
+ties. We use the predicate generation module from
+their pipeline to produce a list of “explanations” of
+shared properties in our corpus of examples. This
+automatic process mirrors a manual process of a
+database engineer sampling random slices of the ex-
+ample corpus and coming up with properties shared
+by the majority of examples in the slice.
+
+
+We employ pruning in Step 3 mainly to reduce
+the dimensionality of the feature vectors and dupli-
+cate features, removing paraphrases of features to
+reduce bloating of the feature set. A refined version
+of this step may include the practitioner determin-
+ing what types of features they are looking to study
+(assuming a prior).
+
+Step 4 is feature vector construction. Step 3 pro-
+duces a feature set, and Step 4 builds the feature
+vector representation for any example by check-
+ing whether a feature is “on” or “off” for an ex-
+ample, as in any feature vector construction in
+classical machine learning with the exception that
+SQLSpace employs an LLM to evaluate whether a
+feature is “hot”.
+
+What steps in our pipeline can be ablated? We
+discuss three ablative settings that help illustrate
+the utility of the decisions made during our pipeline
+design: (1) predicate proposal from text-to-SQL ex-
+amples directly instead of descriptions which elim-
+inates Step 1 altogether (B.1), (2) aspect-agnostic
+description generation (B.2) which eliminates con-
+ditioning on aspects, (3) non-deduplicated pred-
+icates (B.3) which eliminates Step 3 altogether.
+We compare the predicates produced in these set-
+tings to those produced by our final pipeline in
+SQLSpace. These ablations revolve around Step
+1 (description generation) and Step 3 (predicate
+deduplication). We note that Step 2 (actual gener-
+ation of predicates) and Step 4 (inference) cannot
+be materially ablated (turned on or off).
+
+B.1 Ablation Analysis 1: Predicate Proposal
+Directly from Text-to-SQL Examples
+
+SQLSpace leverages a predicate proposal module
+from Wang et al. (2023b), designed to generate a
+list of explanations, or predicates by prompting an
+LLM to perform “in-context clustering”. This pro-
+posal module ingests a subset of examples from the
+overall corpus, some natural language goal g, and
+an instruction to produce a set of explanations for
+the candidate clusters. Formally, it ingests a sample
+set S = {z1...z7}, a goal g, and an instruction
+(for example, “Generate a list of n explanations for
+candidate clusters based on the sample set”). See
+Section 3 of Wang et al. (2023b) for more details.
+SQL Space uses aspect-based descriptions of ex-
+amples instead of NL2SQL examples themselves
+as input into the predicate proposal module in order
+to disentangle individual example understanding
+and reasoning from reasoning required for example
+
+clustering. When generating aspect-based descrip-
+tions, an LL.M is forced to reason about an example
+from a particular perspective, and the LLM in the
+predicate proposal step (Step 2 in SQLSpace) can
+simply find commonalities among these descrip-
+tions.
+
+Goal of Ablation. To illustrate the utility of this
+design decision, we consider an ablative setting
+in which we turn off example description gen-
+eration altogether (turn off Step 1 of SQLSpace),
+and input raw NL2SQL examples directly into the
+predicate proposal module, forcing the LLM to not
+only reason about individual examples, but also
+commonalities across examples. We analyze the
+predicates proposed from this setup and compare
+them to P, the predicate set resulting from first
+running aspect-based example description genera-
+tion for each example (Step 1) and inputting these
+descriptions into the proposal module.
+
+Setup. We use all NL2SQL examples from
+UNITE-DEV as in SQLSpace with the same setup
+as described in Step 2 of Section 3. Each sample
+passed to the proposal LLM look like so:
+
+Natural Language Question: subject states that
+he / she has current hepatic disease.
+
+SQL: select id
+hepatic_disease = 1
+
+from records where
+
+We set the goal as following (in contrast to aspect-
+specific goals in SQLSpace):
+
+Prompt B.1: Control Goal
+
+Prompt: Here are some examples of natural
+
+language questions and their corresponding SQL
+queries. I want to cluster these examples based
+on similarities.
+
+Results. This process produced 167 predi-
+cates, and after automatically deduplicating with
+thefuzz, we obtain 102 predicates, listed in the
+first row of Table 12. Manually inspecting these
+predicates reveals a few different types of unhelpful
+properties:
+
+* Database Content-Based Predicates: Many
+predicates revolve around database entities
+(e.g “asks about flights and airlines”,
+“Queries about car details and
+specifications”, “asks about music
+albums and songs”). These are not gen-
+eralizable and are database-specific. This is
+likely due to the proposal LLM is simply
+
+
+finding shallow commonalities in entities in
+SQL queries. Our aspect-based predicates
+(Table 10) are designed to focus on meta-
+properties of examples instead of database
+content.
+
+Generic Properties of SQL Queries: Propos-
+ing predicates from examples themselves
+without any prior reasoning or example under-
+standing step also yielded predicates that were
+vague phrases that generally apply to most
+SQL queries, and are hence not discriminative
+(e.g. “requests specific information
+based on database criteria”, “seeks
+details from a database”, or “seeks
+to retrieve data based on specific
+criteria”). These types of predicates do
+not convey meaningful information about
+NL2SQL examples, and would be treated as
+noise if we chose this setting in SQLSpace.
+
+Operation Focused: When predicates were
+not database-specific or generic/vague, they
+were mostly focused on the operation that
+the SQL query was trying to perform (e.g.
+“requests for maximum or minimum
+values”, “requests information about
+counts or totals”, “asks about
+comparisons”). While some of our predi-
+cates in SQLSpace are indeed concerned with
+these types of SQL operations, SQLSpace’s fi-
+nal set of predicates contain much richer infor-
+mation about sow the natural language ques-
+tion and SQL query achieve the operation.
+
+All in all, this ablation experiment highlights
+
+the need for a step which explicitly performs
+the necessary example understanding for high-
+quality predicates. While SQLSpace is designed
+for general-purpose use across NL2SQL applica-
+
+tions, it is possible that practitioners may indeed
+want predicates related to topics as a part of their
+example representation vector. In these cases,
+SQLSpace offers flexibility to describe examples
+conditioned on whichever aspects practitioners find
+useful.
+
+B.2 Ablation Analysis 2: Aspect-Agnostic
+Description Generation
+
+In Appendix B.1, we demonstrated that the predi-
+cates produced by eliminating an example under-
+standing step before predicate proposal yields low-
+quality, generic, and non-generalizable features.
+
+This helped to illustrate the utility of description
+generation (Step 1) of the SQLSpace pipeline de-
+scribed in Section 3.
+
+Here, we explore another ablative experiment
+setting of Step 1 that removes aspect-based condi-
+tioning of description generation for each example
+(i.e the generation of dyn, dsgl-syns sem» Aprag, and
+dgp from Step 1 in Section 3), and instead produces
+general descriptions of each example.
+
+Goal of Ablation. This ablation helps to demon-
+strate the utility of conditioning descriptions on a
+particular aspect. We analyze the predicates pro-
+posed from this setup and again compare them to
+‘P to understand the impact and role of focusing on
+particular aspects of NL2SQL examples.
+
+Setup. For each example in UNITE-DEV, we gen-
+erate a general description agnostic of any aspect
+using the prompt below (compare this prompt to
+Prompts D.1-D.5):
+
+Prompt B.2: Generating Descriptions: Control
+
+Prompt: You are an expert SQL programmer and
+linguist. I will give you a natural language
+question and the corresponding SQL query. I will
+also provide the underlying database schema in
+the form [database_name] | [table] : [column],
+[column] ...| [table] : ... | I am a
+database engineer trying to learn about examples
+in my dataset. Output a paragraph describing the
+example.
+
+We do not instruct the description generator LLM
+to focus on any aspect of the example, instead let-
+ting it choose what details and information to in-
+clude in a summary description of each example.
+This process yields high-level descriptions of ex-
+amples. Compare two descriptions of the same
+example below: the first description is the aspect-
+agnostic description, while the second description
+is dgyn.
+
+In this example, we are working with a database named ’204_335’ that
+contains several tables related to tennis tournaments and match outcomes.
+The tables include ’tournament_address’, ’opponents_in_the_final_list’,
+’score_in_the_final_list’, ’score_in_the_final_list_number’,
+’score_in_the_final_list_number1’, ’score_in_the_final_list_number2’,
+and ’w’. Each table has columns that store various details about
+the matches, such as match IDs, addresses, opponents, scores, and
+other relevant information. The natural language question asks us to
+compare the years 1971 and 1972 to determine which year had the most
+matches won by a player named Osborne. The corresponding SQL query
+is designed to find this information by selecting the ’date_number’
+(which represents the year) from the ’w’ table where the ’date_number’
+is either 1971 or 1972 and the ’outcome’ is ’winner’. The query groups
+the results by ’date_number’ and orders them by the count of matches
+won in descending order, limiting the result to the top entry. The SQL
+query effectively counts the number of matches won by Osborne in each
+of the specified years and returns the year with the highest count.
+This approach ensures that we can identify the year in which Osborne
+had the most victories, providing a clear comparison between the two
+years in question.
+
+
+
+The natural language question "comparing 1971 and 1972, which year has
+e most won matches by osborne?” presents several interesting syntactic
+eatures. Firstly, the question starts with a non-canonical structure,
+nown as "fronting," where the comparative element "comparing 1971 and
+972" is placed at the beginning of the sentence. This fronting not
+nly functions to set the stage for the query but also highlights
+e focus of the comparison—namely, the two given years. Moreover, the
+uestion employs a Wh-type clause with "which year," invoking a selection
+rocess among a defined set of options (1971 and 1972). This clause
+cts as the main clause’s subject, making the syntactic structure of the
+entence an embedded question within a comparison framework. The verb
+rase "has the most won matches” maintains subject-verb agreement with
+e singular subject "year,” and showcases a superlative construction
+"most”) typical in comparative questions. Additionally, the indirect
+bject "by osborne” follows a prepositional phrase, where "by" denotes
+e agent performing an action. This prepositional phrase functions
+syntactically as an adjunct that specifies the performer of the winning
+matches. The inclusion of the agent within a comparison emphasizes the
+relationship between the syntactic elements and endows the question
+with specificity regarding whose matches are being evaluated. The
+linguistically intricate layering of a subject-complement (which year),
+combined with a comparative framework (more), and the specification of
+the agent (by osborne), all contribute to the syntactic complexity of
+the natural language question. This structure efficiently narrows down
+the information scope while maintaining syntactic coherence in a query
+format.
+
+tl
+fi
+ki
+1
+o
+tl
+q
+pi
+a
+s
+pi
+tl
+(
+o
+tl
+
+It is worth noting that while the aspect-agnostic
+description does produce details that are scattered
+across different aspect-based descriptions, it fo-
+cuses more on the database content and less on the
+meta-properties of the examples.
+
+We take these aspect-agnostic descriptions and
+feed them into the same predicate proposal mod-
+ule from Step 2 in Section 3, but again change the
+natural language goal to be aspect-agnostic, encour-
+aging the model to cluster examples and propose
+predicates solely based on similarities of generated
+descriptions:
+
+Prompt B.3: Control Goal
+
+Prompt: Here are some descriptions of natural
+
+language questions and their corresponding SQL
+queries. I want to cluster these examples based
+on similarities.
+
+Results. This process produced 171 predi-
+cates, and after automatically deduplicating with
+thefuzz with a threshold of 85, we obtain 124
+predicates, listed in the second row of Table 12.
+Inspecting these predicates yields similar results
+to Ablation B.1. Many predicates are yet again
+focused on database content but to an even higher
+degree, ignoring meta-properties of the example
+(e.g. “concerns retrieving birth dates
+of tennis players”, “seeks the number
+of singles released in a specific year
+from a music database” or “seeks data
+on poker players’ achievements”). These
+predicates are not generalizable to other databases
+and therefore do not make for strong features in a
+unified NL2SQL example representation. Some
+predicates are again vague and high-level, ap-
+plying to all or a majority of SQL examples
+(“utilizes SQL functions and operators”,
+
+“asks for specific information retrieval”,
+“focuses on specific data extraction”).
+We do however observe that introducing descrip-
+tions, and hence a step that focuses on reason-
+ing about examples, does start to introduce mean-
+ingful predicates (e.g. “demonstrates the use
+of INTERSECT operator in SQL queries” or
+“requires joining multiple tables in SQL
+queries”), something that was not present at all
+in Ablation B.1.
+
+It is exactly this behavior that we sought to
+encourage with the introduction of aspects in
+SQLSpace. However, we still see a focus on pred-
+icates related to the SQL query, and very little
+representation of the linguistic properties of the
+natural langugage question, an important part of
+the NL2SQL task. This ablation, taken with the
+results from the previous ablation setting, help
+to underscore the importance of explicitly pro-
+ducing aspect-specific conditions, since they al-
+low the model to focus on fine-grained meta-
+properties of NL2SQL examples that yield high-
+quality, generalizable, and useful predicates.
+
+B.3 Ablation Analysis 3: No Deduplication
+
+Lastly, we discuss a setting in which we ab-
+late Step 3 of SQLSpace, predicate deduplication.
+This step was included primarily for cleanliness
+and avoid noisy or useless features. We run
+the predicate proposal step in SQLSpace(Step 2)
+with two models: gpt-40-2024-08-06 as well
+as gpt-3.5-turbo-0125. Since both LLMs were
+provided the same descriptions, many predicates
+were duplicated. Without deduplication, Step 2
+produced a total of 1,210 predicates (see break-
+down in Table 5). This would have yielded 1,210-
+dimensional vectors, a prohibitively high dimen-
+sion that would decrease interpretability and ease of
+usage for users of SQLSpace. Furthermore, dupli-
+cate and highly correlated features can affect down-
+stream usage (Tolosi and Lengauer, 2011). This
+helps illustrate the importance of Step 3, which
+reduces 1,212 predicates down to a set of just 187,
+improving interpretability, utility, and removing
+noise. Furthermore, Step 3 is essential in reducing
+the overall latency of SQLSpace, since computing
+each individual feature for an NL2SQL example
+requires a call to an LLM.
+
+
+C Comparing SQLSpace Features to
+Metadata in SPIDER and BIRD
+
+Spider. The authors of Yu et al. (2018) conduct
+an analysis of the SQL hardness of examples in
+their dataset to understand dataset composition
+from a SQL component perspective. They divide
+SQL queries into easy, medium, hard, and extra
+hard solely based on the the number of SQL com-
+ponents, selections and conditions. This results in
+queries with more keywords considered as harder.
+These labels are static.
+
+In contrast, SQLSpace does not prescriptively
+pre-define what makes an example difficult, but
+rather finds examples across datasets that share
+properties, and evaluates models on these group-
+ings. These groupings can have features that not
+only span the gold SQL, but also involve properties
+of the natural language question and its relation-
+ship to the underlying schema, allowing us to un-
+derstand what makes examples difficult for a par-
+ticular model (clusters where a model performs
+lower than others).
+
+Bird. The authors of Li et al. (2024) annotate ex-
+amples as simple, moderate, and challenging, aug-
+menting criteria beyond SQL complexity to include
+schema linking, reasoning required, and question
+intent understanding. Here, they ask annotators to
+provide a judgment on a scale from 1-3 across four
+dimensions and subsequently rank all examples.
+While this setup captures example properties better
+than in Yu et al. (2018), it is neither sufficiently
+fine-grained nor easily interpretable. A static label
+of “simple” does not offer much insight into exam-
+ple dynamics enough to carefully understand the
+specific properties that make the example simple.
+
+Again, our framework does not pre-define ex-
+ample difficulty, simply identifying features that
+describe text-to-SQL examples in general, and eval-
+uating models on groups of similar examples. Our
+187-dimensional vector representations of exam-
+ples allow practitioners to thoroughly understand
+properties of examples that are simple or challeng-
+ing for models.
+
+D Generating Example Descriptions
+
+Prompt D.1: Generating Descriptions: Syntax
+
+Prompt: You are an expert SQL programmer
+and linguist. I will give you a natural
+language question and the corresponding SQL
+query. I will also provide the underlying
+in the form [database_name]
+[column], [column] ...| [table]
+; ... | I am a linguist
+trying to learn about examples in my dataset
+from a linguistic syntax perspective. This
+includes anything about word order, grammatical
+relations, hierarchical sentence structure
+(constituency), agreement, the nature of cross
+linguistic variation, and the relationship
+between form and meaning. Output a highly
+detailed paragraph describing ONLY fine-grained
+linguistic syntactic observations about the
+natural language question.
+
+database schema
+| [table]
+
+Prompt D.2: Generating Descriptions: SQL Syntax
+
+Prompt: You are an expert SQL programmer and
+linguist. I will give you a natural language
+question and the corresponding SQL query. I will
+also provide the underlying database schema in
+the form [database_name] | [table] [column],
+[column] ...| [table] : ... | I am a
+database engineer trying to learn about examples
+in my dataset from a SQL syntax perspective.
+Specifically, I would like to learn about the
+structure of the SQL query, the complexity of
+the query, the relationship between the query
+and the provided underlying database schema, and
+the nature of cross-database variation. Output
+a highly detailed paragraph describing ONLY
+fine-grained observations about the SQL query.
+
+Prompt D.3: Generating Descriptions: Example Semantics
+
+Prompt: You are an expert SQL programmer and
+linguist. I will give you a natural language
+question and the corresponding SQL query. I will
+also provide the underlying database schema in
+the form [database_name] | [table] [column],
+[column] ...| [table] : ... | I am a
+database engineer trying to learn about examples
+in my dataset of SQL queries. Specifically,
+I would like to learn about the relationship
+between the provided natural language question
+and the SQL query. For example, how does the
+natural language question relate to the SQL
+query? Do they exhibit parallel characteristics,
+or is there some reasoning required to map
+between the two? What kind of reasoning
+is required? What are the similarities and
+differences between the two? Output a highly
+detailed paragraph describing ONLY fine-grained
+comparison-based observations about the natural
+language question versus the SQL query.
+
+
+
+Bird-Bench and Spider Text-to-SQL Benchmarks
+
+Metadata, Dataset
+simple, bird_dev
+
+9 moderate, bird_dev
+challenging, bird_dev
+-1 spider_dev
+oN
+§
+Eo -2
+g dat “rn
+£ Pt T
+£ i
+g om fy Er
+= oe a
+B SE
+
+18 20
+
+24 26 28
+
+UMAP dimension 1
+
+Figure 5: UMAP projection of feature vectors from BIRD-DEV and SPIDER-DEV. We color each point in BIRD-
+DEV using the hand-annotated metadata released with the dataset. We observe that areas of overlap between
+BIRD-DEV and SPIDER-DEYV typically occur on examples annotated as “simple” in BIRD-DEV.
+
+Prompt D.4: Generating Descriptions: Pragmatics
+
+Prompt: You are an expert SQL programmer and
+linguist. I will give you a natural language
+question and the corresponding SQL query. I will
+also provide the underlying database schema in
+the form [database_name] | [table] [column],
+[column] ...| [table] . | I
+am a linguist trying to learn about examples
+in my dataset from a linguistic pragmatics
+perspective. Specifically, I would like to learn
+about the pragmatics of the natural language
+question. For example, what speech acts are
+used in the question? Include commentary on
+Gricean theory, implicature, relevance, and any
+other information about how word choice and
+
+context contribute to the meaning. Does the
+question exhibit vagueness, underspecification,
+or ambiguity that make it difficult to
+understand the author’s intent? Output a highly
+detailed paragraph describing ONLY fine-grained
+linguistic pragmatic observations about the
+natural language question.
+
+Prompt D.5: Generating Descriptions: Database Reasoning
+
+Prompt: You are an expert SQL programmer and
+linguist. I will give you a natural language
+question and the corresponding SQL query. I will
+also provide the underlying database schema in
+the form [database_name] | [table] [column],
+[column] ...| [table] : ... | The
+provided natural language question is attempting
+to access information from the provided database
+schema. I am a database engineer and I want to
+learn about the relationship between the natural
+language question and the provided database
+schema. To what degree is the question grounded
+in the schema? Does the question use exact
+column names from the schema? Do the concepts
+and need expressed in the question have clear
+counterparts in the database schema? If not,
+what types of reasoning are required to map
+between the two? Explain what kind of reasoning
+is required. For example, is linguistic
+reasoning required (e.g. analogical reasoning,
+syntactic reasoning or paraphrastic reasoning)?
+Is commonsense reasoning required? Is logical
+reasoning required (e.g. deductive reasoning or
+causal reasoning). How does the structure of
+the question (syntactic or semantic) relate to
+the structure of the database schema? Output
+a highly detailed paragraph describing ONLY
+these sorts of fine-grained observations about
+the relationship between the natural language
+question and the provided database schema.
+
+
+
+# of Proposed Predicates F Predicate Evaluation
+
+Aspect gpt-40 gpt-3.5-turbo | Total
+
+Syntax 100 130 230 : :
+
+SQL Syntax 102 127 229 Prompt F.1: Predicate Evaluation: Syntax
+
+Praeticn oy om > Prompt: You will be given some text. Determine
+Database Reasoning 171 134 305 whether the TEXT satisfies a PROPERTY. Respond
+
+with Yes or No. When uncertain, output No.
+
+Table 5: We propose candidate predicates for each as-
+pect using both gpt-40 and gpt-3.5-turbo in the pred-
+icate proposal step. Each model proposes n predicates
+in an iterative fashion. The number of predicates pro-
+posed by both models are shown above, stratified by
+aspect.
+
+Now complete the following example:
+
+PROPERTY: property
+TEXT: question
+
+Does the text exhibit the PROPERTY?:
+
+Prompt F.2: Predicate Evaluation: SQL Syntax
+E Predicate Discovery Prompt: You will be given a SQL query and
+a PROPERTY. Determine whether the SQL query
+satisfies the PROPERTY. Respond with Yes or No.
+
+Prompt E.1: Predicate Discovery: Syntax When uncertain, output No.
+
+Prompt: Here are some detailed descriptions
+of natural language questions and their
+corresponding SQL queries. I want to cluster
+these descriptions based on observations about
+linguistic syntax.
+
+Now complete the following example:
+
+PROPERTY: property
+SQL Query: query
+
+Does the query exhibit the PROPERTY?:
+
+Prompt E.2: Predicate Discovery: SQL Syntax
+Prompt Here are some detailed descriptions Prompt F.3: Predicate Evaluation: Semantics
+of natural language questions and their
+corresponding SQL queries. I want to cluster
+these descriptions based on observations about
+the syntax of the SQL query.
+
+Prompt: You will be given a natural language
+question and its SQL translation. You will
+also be given a PROPERTY. Determine whether
+the natural language question and its SQL
+translation satisfy the PROPERTY. Respond with
+i i i Yes or No. When uncertain, output No.
+
+Prompt E.3: Predicate Discovery: Example Semantics
+. Lo. Now complete the following example:
+Prompt: Here are some detailed descriptions
+
+of natural language questions and their
+
+corresponding SQL queries. I want to cluster
+these descriptions based on comparisons between
+the provided natural language question and the
+SQL query.
+
+Prompt E.4: Predicate Discovery: Pragmatics
+
+Prompt: Here are some detailed descriptions
+of natural language questions and their
+corresponding SQL queries. I want to cluster
+these descriptions based on observations about
+linguistic pragmatics.
+
+Prompt E.5: Predicate Discovery: Database Reasoning
+
+Prompt: Here are some detailed descriptions of
+natural language questions written to query an
+underyling database schema. I want to cluster
+these descriptions based on the relationship and
+reasoning between the provided natural language
+question and the underyling database schema.
+
+PROPERTY: property
+NATURAL LANGUAGE QUESTION: question
+SQL Query: query
+
+Does the question and its SQL translation
+exhibit the PROPERTY?:
+
+Prompt F.4: Predicate Evaluation: Pragmatics
+
+Prompt: You will be given a natural language
+question and its SQL translation. You will
+also be given a PROPERTY. Determine whether
+the natural language question and its SQL
+translation satisfy the PROPERTY. Respond with
+Yes or No. When uncertain, output No.
+
+Now complete the following example:
+PROPERTY: property
+
+NATURAL LANGUAGE QUESTION: question
+SQL Query: query
+
+Does the question and its SQL translation
+exhibit the PROPERTY?:
+
+
+
+Aspect Mean Annotator
+Accuracy Agreement (x)
+
+Syntax 67.0 41.6
+
+SQL Syntax 86.0 81.6
+
+Example Semantics 77.0 61.4
+
+Pragmatics 63.0 49.0
+
+Database Reasoning 72.0 54.5
+
+Table 6: The average accuracy of gpt-4o on predica-
+tion evaluation for a sample of 250 example-predicate
+pairs, stratified by aspect. We also compute the Cohen’s
+Kappa between the two annotator judgments.
+
+Prompt E.5: Predicate Evaluation: Database Reasoning
+
+Prompt: You will be given a natural language
+question that is trying to query a database as
+well as the database schema. You will also be
+given a PROPERTY. Determine whether the natural
+language question satisfies the PROPERTY.
+Respond with Yes or No. When uncertain, output
+No.
+
+Now complete the following example:
+PROPERTY: property
+
+DATABASE SCHEMA: question
+
+QUESTION: question
+
+Does the natural language question exhibit the
+PROPERTY with respect to the database schema?
+
+G NL2SQL Inference
+
+Prompt G.1: NL2SQL Inference
+
+Prompt: Write an SQLite query to answer the
+following question given the database schema
+and example rows. Please wrap your code answer
+
+using 5
+
+Schema: {schema}
+
+Question: {question}
+
+Write a SQLite query wrapped in
+question and output nothing else:
+
+to answer the
+
+H Question Rewriting
+
+Feature Modulation. Features can be helpful
+(“question is grounded in the database schema”)
+or harmful (“has vagueness in meaning”) to the
+NL2SQL task. Negative examples may express
+bad features, in which case we want to remove
+them during the rewrite, or be absent of positive
+features, in which case we want to add them during
+the rewrite. We modulate this mode during prompt-
+ing based on manual assignments to features. In
+our proposed setting, a human rewriting would nat-
+urally modulate this mode themselves.
+
+Cost of Rewriting. Section 6 poses an “online”
+scenario in which for an inference example con-
+sisting of only a natural language question and the
+underlying database schema, (1) a feature vector
+is computed for the example using only the set of
+features extractable from the question and schema
+alone (121 features), (2) a lightweight correctness
+estimator ingests this feature vector and outputs
+a binary prediction on whether or not the text-to-
+SQL model is likely to produce correct SQL for the
+question, and (3) if not, alerts the user to rewrite
+their query based on the blind-spot features present
+in the question. In our simulation of this scenario,
+we use an LLM to rewrite the question.
+
+Constructing the feature vector from the natu-
+ral language question and database schema is the
+step requiring the most compute resources, since
+an LLM evaluates whether or not each of the 121
+features is present in the example or not. Our ex-
+periments leverage gpt-4o as the feature evaluator.
+While we do not know the number of parameters
+in gpt-4o, we send concurrent API requests for
+each of the 121 features to the model, reducing
+the overhead of feature vector computation down
+to an average of 10-15 seconds per example. Fu-
+ture work may explore the possibility of using a
+smaller LLM (e.g 1B—4B parameters) and send-
+ing batched inference calls for feature evaluation,
+which would likely dramatically decrease the over-
+head in an online setting.
+
+We consider two settings in which we feel use
+of rewriting can be justified. First, consider a sce-
+nario in which we are trying to boost the perfor-
+mance of a particularly weak model on text-to-
+SQL (e.g. a model not trained on code). As demon-
+strated by our experiments in Section H, rewrit-
+ing natural language questions to remove negative
+features can help boost performance. Rewriting
+questions to optimize the performance of a weak
+text-to-SQL model can improve accuracy without
+the need to retrain or finetune. Second, consider a
+scenario in which we are trying to boost the perfor-
+mance of a particular large model on text-to-SQL
+(e.g. a model with > 100B parameters). Here,
+the cost of each call can greatly outweigh the cost
+of feature vector construction. Targeted natural
+language question rewrites can help optimize the
+performance of the model on text-to-SQL without
+excessive calls to the large model.
+
+
+Calibration for Correctness Estimator
+of code-gemma-7b-it on bird-dev
+
+Calibration for Correctness Estimator
+of code-gemma-7b-it on unite-dev (test)
+
+0.8 —=e— Calibration curve z
+= = Perfectly calibrated ,
+
+0.8 —e— Calibration curve
+= = Perfectly calibrated
+
+g 0.6 g
+5 5
+c
+H 2
+gS 04 GS
+IS ©
+& I
+0.2
+% 0.2 0.4 0.6 0.8 1 0 0.2 04 0.6 0.8 1
+Mean predicted probability Mean predicted probability
+(a) Confidence Calibration Plot for code-gemma-7b (b) Confidence Calibration Plot for code-gemma-7b
+on the held-out 10% test split of UNITE-DEV. on BIRD-DEV.
+
+Figure 6: Visualizing calibration of the random forest classifiers we train to predict whether or not code-gemma-7b
+will produce correct SQL given a compact representation of the example.
+
+Calibration for Correctness Estimator
+of deepseek-coder-7b-it on unite-dev (test) Calibration for Correctness Estimator
+of code-gemma-7b-it on bird-dev
+
+1 .
+’
+’
+0.8 —e— Calibration curve z
+, ’
+= = Perfectly calibrated 7’ 0.8 —e— Calibration curve z
+sz z
+
+8 — = Perfectly calibrated ,
+>
+=] »
+3 0.6 <
+2 =
+fr 13
+5] o
+e a
+2] ks)
+5 04
+7]
+g £
+w 5
+
+j
+
+[re
+
+0.2
+0”
+[ 0.2 0.4 0.6 0.8 1
+Mean predicted probability 0 0.2 0.4 0.6 0.8 1
+
+Mean predicted probability
+
+(a) Confidence Calibration Plot for
+deepseek-coder-7b on the held-out 10% (b) Confidence Calibration Plot for
+test split of UNITE-DEV. deepseek-coder-7b on BIRD-DEV.
+
+Figure 7: Visualizing calibration of the random forest classifiers we train to predict whether or not
+deepseek-coder-7b will produce correct SQL given a compact representation of the example.
+
+
+code-gemma-7b deepseek-coder-7b
+
+requires domain-specific knowledge involves temporal constraints in the natural language question
+involves semantic mapping from NL to DB employs punctuation for clarity
+
+adheres to Gricean conversational maxims contains vague or ambiguous language
+
+requires commonsense reasoning to understand the question | question is clearly grounded in the provided database schema
+has a slight vagueness in meaning, uses quantifiers for specificity
+
+Table 7: Top five most discriminative features associated with a model M producing incorrect SQL. We use
+permutation importance to derive an ordered list of all predicates in P. During rewriting, we remove (or add in) the
+most important feature that the example expresses.
+
+BIRD-DEV
+P R F1 Acc
+
+UNITE-DEV
+P R F1 Acc
+
+gemma 79.0 82.1 80.5 81.1 | 524 73.7 61.2 70.9
+deepseek 79.7 74.4 77.0 80.4 40.1 63.2 49.0 70.0
+
+gemma 71.0 76.3 73.5 73.6 | 46.5 50.3 48.3 66.4
+deepseek 70.4 66.5 68.4 73.1 37.1 40.2 38.6 69.9
+
+online | offline
+
+Table 8: Precision, recall, F1, and accuracy of the random
+forest correctness estimator for both code-gemma-7b-it and
+deepseek-coder-7b-it. We include results from both the
+offline version of the correctness estimator that has access to
+the full set of P features, as well as the online version that has
+access to only the 121 features related to the natural language
+question and schema. UNITE-DEV Test is the 10% holdout
+set used for feature importances.
+
+Prompt H.1: Rewriting with Natural Language-based Fea-
+tures
+
+Prompt: Given the definition of {feature}, I
+
+want to rewrite the following natural language
+question to mode {feature}. I want the meaning
+and intent of the question to be preserved. The
+question I want to rewrite is {question}
+
+It is trying to query a database with
+this schema: {schema}. Only output your
+rewritten question and wrap it in “‘. Your
+question must be as detailed as possible. DO
+NOT drop information from the original question.
+If the question cannot be rewritten with the
+property, output “INVALID”.
+
+Rewritten semantically equivalent natural
+language question that expresses {feature}:
+
+I Computational Resources and
+Hyperparameters
+
+We run inference for all open-source models on
+two NVIDIA A6000 GPUs. We set a temperature
+of 0.7 for description generation, and a temperature
+of 0.1 during NL2SQL generation.
+
+
+Table 9: Top 10 most important features computed with permutation importance for all clusters, consisting of
+examples from both SPIDER-DEV and BIRD-DEV.
+
+Permutation Importance-Based
+Top Features
+
+Cy involves logical inference beyond direct keyword matching (0.06)
+filters data from a single column of the table (0.06)
+contains a single condition in the WHERE clause (0.05)
+directly aligns with a specific column in the schema, requiring minimal additional reasoning to map effectively (0.04)
+requires additional contextual understanding (0.03)
+involves reasoning about data representation (0.03)
+contains a WHERE clause (0.03)
+uses aliases for table or column names (0.03)
+requires commonsense reasoning to understand the question (0.03)
+
+C2 contains a single condition in the WHERE clause (0.07)
+filters data based on a single criterion (0.06)
+retrieves data from multiple tables (0.06)
+uses a JOIN operation (0.05)
+uses aliases for table or column names (0.03)
+utilizes prepositional phrases for modification (0.03)
+uses prepositional phrases to modify noun phrases (0.03)
+utilizes nominal phrases with modifying prepositional phrases (0.03)
+uses modifiers to specify conditions (0.03)
+employs a WHERE clause with multiple conditions (0.02)
+
+Cs uses subordinate clauses for postmodification (0.06)
+contains subordinate clauses modifying main clauses (0.05)
+contains subordinate clauses (0.05)
+contains nested clauses (0.04)
+contains relative clauses (0.04)
+contains subordinate clauses modifying noun phrases (0.04)
+employs relative clauses to modify noun phrases (0.03)
+uses complex noun phrases (0.02)
+involves the use of logical operators to define selection criteria (0.02)
+contains a WHERE clause (0.01)
+
+Ca uses a LIMIT clause (0.11)
+includes an ORDER BY clause (0.07)
+limits the selection based on a specific column condition (0.07)
+contains a WHERE clause (0.06)
+involves comparison operations (0.03)
+employs a GROUP BY clause (0.03)
+retrieves data from multiple tables (0.02)
+uses a JOIN operation (0.02)
+uses aliases for table or column names (0.02)
+filters data based on a single criterion (0.02)
+
+T
+
+Cs includes a HAVING clause (0.2)
+employs a GROUP BY clause (0.07)
+contains a WHERE clause (0.05)
+utilizes comparative numerals and inequality symbols (0.04)
+exhibits conditional logic (0.03)
+utilizes range specification in nominal phrases (0.02)
+directly maps threshold values to their respective columns in the SQL query (0.02)
+includes an ORDER BY clause (0.02)
+has a complex conditional expression (0.02)
+employs comparison operations for numerical values (0.02)
+
+Cg filters data based on a single criterion (0.05)
+retrieves data from multiple tables (0.05)
+filters data from a single column of the table (0.05)
+uses a JOIN operation (0.04)
+contains a single condition in the WHERE clause (0.04)
+uses aliases for table or column names (0.03)
+involves missing or incomplete information in either natural language question or SQL query (0.02)
+requires commonsense reasoning to understand the question (0.02)
+clearly grounded in the provided database schema, with no additional reasoning required (0.02)
+contains vague or ambiguous language (0.01)
+
+Cr limits the selection based on a specific column condition (0.08)
+contains a WHERE clause (0.07)
+has a more detailed filtering component in the SQL query (0.05)
+requires domain-specific knowledge (0.04)
+follows a basic SELECT-FROM-WHERE structure (0.04)
+involves reasoning about data representation (0.03)
+involves logical inference beyond direct keyword matching (0.02)
+involves interpretation and understanding of context (0.02)
+requires understanding of logical operations and condition grouping (0.02)
+contains a single condition in the WHERE clause (0.02)
+
+Cs contains a CASE statement (0.06)
+has a complex conditional expression (0.04)
+exhibits minimal vagueness or ambiguity (0.03)
+adheres to Gricean conversational maxims (0.03)
+involves stricter conditions than the natural language question (0.02)
+uses aggregate functions in the SELECT clause (0.02)
+contains technical jargon (0.02)
+requires understanding of logical operations and condition grouping (0.02)
+primarily based on direct mappings with some synonymy and domain-specific knowledge required (0.02)
+closely grounded in the database schema, although it does not use exact column names (0.02)
+
+Continued on next page...
+
+
+Table 9 (continued)
+
+Permutation Importance-Based
+Top Features
+
+Co employs a WHERE clause with multiple conditions (0.1)
+involves the use of logical AND operators (0.09)
+contains a single condition in the WHERE clause (0.05)
+uses comparison operators to connect conditions in the WHERE clause (0.03)
+filters data based on a single criterion (0.03)
+has missing constraints in the sql query (0.02)
+contains vague or ambiguous language (0.02)
+contains relative clauses (0.02)
+underspecifies information (0.02)
+exhibits conditional logic (0.02)
+
+C10 includes nested sub-conditions (0.05)
+involves the use of logical operators to define selection criteria (0.04)
+utilizes range specification in nominal phrases (0.04)
+employs logical quantifiers to set multiple criteria (0.04)
+involves the use of logical AND operators (0.04)
+includes numerical comparison with inequality symbols (0.04)
+utilizes range specifications (0.04)
+integrates quantified expressions within a conditional framework (0.03)
+employs a WHERE clause with multiple conditions (0.03)
+employs comparison operations for numerical values (0.03)
+
+Ci1 employs logical connectors and operators (0.08)
+uses logical operators to connect clauses (0.07)
+uses coordinating conjunctions (0.05)
+employs coordinated noun phrases to express relationships (0.04)
+uses conjunctions to coordinate noun phrases (0.03)
+involves the use of logical operators to define selection criteria (0.03)
+uses coordinating conjunctions for enumeration (0.03)
+employs coordinated noun phrases (0.03)
+employs logical quantifiers to set multiple criteria (0.02)
+employs alternative conditions (0.02)
+
+Ci2 requires recognition of implicit relationships between natural language concepts (0.08)
+limits the selection based on a specific column condition (0.06)
+involves logical inference beyond direct keyword matching (0.06)
+involves interpretation and understanding of context (0.05)
+breaks down the problem into specific conditions that need to be met (0.05)
+contains a WHERE clause (0.05)
+demonstrates specificity in language use (0.05)
+involves reasoning about data representation (0.04)
+directly aligns with a specific column in the schema, requiring minimal additional reasoning to map effectively (0.03)
+involves understanding of specific technical terms and concepts (0.03)
+
+Cis contains a single condition in the WHERE clause (0.06)
+uses prepositional phrases to modify noun phrases (0.04)
+utilizes nominal phrases with modifying prepositional phrases (0.04)
+filters data based on a single criterion (0.04)
+utilizes prepositional phrases for modification (0.04)
+uses a JOIN operation (0.02)
+utilizes prepositional phrases to modify nouns (0.02)
+retrieves data from multiple tables (0.02)
+employs a WHERE clause with multiple conditions (0.02)
+uses aliases for table or column names (0.02)
+
+Cia contains subqueries (0.15)
+has a nested subquery (0.15)
+has a nested SELECT statement (0.13)
+involves nested logic (0.06)
+uses a nested WHERE clause (0.06)
+uses a single select statement (0.04)
+uses aliases for table or column names (0.02)
+retrieves data from multiple tables (0.01)
+uses a JOIN operation (0.01)
+uses multiple nested parentheses (0.01)
+
+
+
+Table 10: Final set of 187 predicates used as features in SQLSpace stratified by aspect.
+
+Predicates
+
+Syntax
+
+uses complex sentence structures, involves conditional statements, uses prepositional phrases to modify noun phrases, contains
+subordinate clauses modifying main clauses, has a compound sentence structure, utilizes prepositional phrases for modification, has a
+conditional clause, employs passive voice constructions, contains elided predicates, contains subordinate clauses, contains subordinate
+clauses modifying noun phrases, employs hierarchically structured sentence elements, contains multiple coordinate phrases joined
+by conjunctions, contains relative clauses, uses prepositional phrases to indicate hierarchy, contains a passive voice construction
+with a predicate adjective, contains subordinate clauses with multiple conditions, uses subordinate clauses for postmodification, uses
+coordinating conjunctions for enumeration, includes nested sub-conditions, contains nested clauses, employs ellipsis, uses mathematical
+symbols and units within the syntactic structure, integrates quantified expressions within a conditional framework, uses complex
+prepositional phrases, employs non-restrictive modifiers, incorporates post-modifier adjective phrases, contains nested prepositional
+phrases, employs technical lexicon, employs parenthetical expressions, employs punctuation for clarity, demonstrates parallel syntactic
+constructions, uses shorthand notation, exhibits truncated, telegraphic style, utilizes comparative numerals and inequality symbols,
+employs mathematical symbols and units, uses punctuation to parse complex syntactic units, uses non-standard shorthand notation
+for numerical range, includes mixed use of symbols and words, uses shorthand notation to indicate range, employs non-standard
+linguistic constructions, employs nominal phrases for specification, employs coordinated noun phrases, uses complex noun phrases,
+employs relative clauses to modify noun phrases, uses conjunctions to coordinate noun phrases, utilizes prepositional phrases to modify
+nouns, employs coordinated noun phrases to express relationships, includes modifiers for noun phrases, employs nominal phrases for
+subject and object, utilizes nominal phrases with modifying prepositional phrases, employs nominal phrases as subjects, utilizes range
+specification in nominal phrases, employs nominal phrases with elided predicates, uses typographic symbols to modify nouns, involves
+the use of disjunctions, employs logical connectors and operators, uses logical operators to connect clauses, uses comparison operations
+for selection criteria, uses coordinating conjunctions, uses conjunctions to connect clauses, has a clear logical flow, involves comparison
+operations, involves the use of logical operators to define selection criteria, employs logical quantifiers to set multiple criteria, utilizes
+range specifications, employs logical quantifiers like *and’ and ’or’, employs comparison operations for numerical values, employs
+Boolean expressions conjoined with logical operators, uses conjunctions to express disjunction, employs inclusive disjunction with or’
+coordinating conjunction, uses modifiers to specify conditions, includes numerical comparison with inequality symbols
+
+SQL Syntax
+
+Example Seman-
+tics
+
+has a nested subquery, has a nested SELECT statement, uses a nested WHERE clause, contains subqueries, employs a LEFT JOIN,
+employs a LEFT OUTER JOIN, uses a JOIN operation, contains multiple joins, uses a self join, contains a cross join operation, utilizes
+a common table expression (CTE), uses logical OR operators, uses multiple nested parentheses, employs a GROUP BY clause, uses a
+union operator, includes aggregate functions, contains a WHERE clause, employs a WHERE clause with multiple conditions, includes
+a HAVING clause, follows a basic SELECT-FROM-WHERE structure, includes a window function, uses aggregate functions in the
+SELECT clause, limits the selection based on a specific column condition, contains a CASE statement, filters data based on a single
+criterion, contains a single condition in the WHERE clause, uses a LIMIT clause, involves the use of logical AND operators, employs a
+recursive common table expression, contains a pivot or unpivot operation, uses a correlated subquery, uses comparison operators to
+connect conditions in the WHERE clause, uses a single select statement, includes an ORDER BY clause, contains a UNION ALL
+operator, uses aliases for table or column names, retrieves data from multiple tables, filters data from a single column of the table, uses
+a distinct keyword, has a complex conditional expression
+
+requires understanding of logical operations and condition grouping, involves understanding of specific technical terms and concepts,
+involves semantic mapping, requires domain-specific knowledge, involves parallel characteristics between natural language and
+sql query, involves logical inference beyond direct keyword matching, requires mapping of natural language concepts to database
+schema, involves stricter conditions than the natural language question, has a direct relationship with no reasoning required, has a
+more detailed filtering component in the SQL query, directly maps threshold values to their respective columns in the SQL query,
+involves interpretation and understanding of context, requires recognition of implicit relationships between natural language concepts,
+involves reasoning about unique identifiers, involves reasoning about data representation, requires identifying table and column
+names, has missing constraints in the sql query, requires technical familiarity with the database schema, requires additional contextual
+understanding, involves complex logical reasoning, involves missing or incomplete information in either natural language question or
+SQL query, requires mapping of high-level concepts to database schema, breaks down the problem into specific conditions that need to
+be met, involves nested logic, requires recognizing present state vs. past action, involves temporal constraints in the natural language
+question
+
+Pragmatics
+
+uses quantifiers for specificity, relies on context for relevance, has a clear and specific request, employs direct speech acts, has a slight
+vagueness in meaning, adheres to Gricean conversational maxims, relies on conversational implicature, demonstrates assertive speech
+act, invokes epistemic modality, contains technical jargon, has a cooperative intention, uses declarative structure for assertive statement,
+demonstrates specificity in language use, employs declarative statements as questions, underspecifies information, exhibits conditional
+logic, employs reported speech, seeks specific and measurable information, contains vague or ambiguous language, performs an
+indirect speech act, uses disjunction to allow for multiple criteria, employs alternative conditions, shows brevity at the cost of quantity
+maxim, assumes prior knowledge, relies on presuppositions, presumes mutual understanding of context, exhibits minimal vagueness or
+ambiguity, uses rhetorical questions, demonstrates careful word choice, demonstrates a delicate balance of precision and interpretive
+flexibility, underspecified in terms of database schema, implies a causal relationship
+
+Database Reason-
+ing
+
+requires commonsense reasoning to understand the question, requires semantic mapping between natural language and schema, requires
+both syntactic and semantic reasoning to bridge the question’s semantics to the schema’s structure, involves both synonymy and
+analogical mapping to align natural language terms with schema column names, requires commonsense reasoning to understand
+the implicit subject of the table entries, primarily based on direct mappings with some synonymy and domain-specific knowledge
+required, requires basic deductive logic to map between the natural language question and the schema, clearly grounded in the provided
+database schema, with no additional reasoning required, mirrors the structure of the database schema, with little room for ambiguity or
+interpretation, directly aligns with a specific column in the schema, requiring minimal additional reasoning to map effectively, uses
+exact column names from the schema to query for specific values, involves paraphrastic reasoning to map natural language expressions
+to schema-specific terminology, is already expressed in a highly structured and database-oriented way, requiring no additional reasoning
+to map to the schema, uses syntactic variation to describe a condition, closely grounded in the database schema, although it does not
+use exact column names, semantically aligns with the database schema, but requires some degree of linguistic and commonsense
+reasoning to accurately map the concepts
+
+
+
+Table 11: Example descriptions used to mine predicates for SQLSpace.
+
+Predicates
+
+Syntax
+
+The natural language question Find the number of orchestras whose record format is CD’ or ’DVD” displays a
+variety of syntactic features relevant to linguistic analysis. Firstly, the sentence employs a relative clause
+("whose record format is CD’ or ’DVD”) that modifies the noun ’orchestras.’ This relative clause specifies a
+condition related to ’orchestras,’ showcasing typical English syntactic behavior where the relative pronoun
+’whose’ introduces additional information and establishes a relationship between ’orchestras’ and ’record
+format.’ The main clause ’Find the number of orchestras’ contains an imperative verb Find,’ which signals a
+direct command. This imperative construction lacks an explicit subject, a common feature in English commands
+where the subject ’you’ is understood implicitly. The noun phrase ’the number of orchestras’ consists
+of a definite article ’the,’ a noun ’number,’ and a prepositional phrase ’of orchestras,’ which together
+form a well-defined noun phrase indicating a specific quantity. The prepositional phrase functions as a
+postmodifier to specify what kind of ’number’ is being requested. Additionally, the relative clause ’whose
+record format is ’CD’ or ’DVD” features a coordination structure ’CD or DVD,’ highlighting a binary choice
+within the linguistic structure. The use of ’is’ within the relative clause indicates singular agreement
+with record format,’ demonstrating subject-predicate agreement. The relative clause further relies on the
+copular verb ’is’ followed by the disjunctive conjunction ’or,’ linking two alternatives in a linear syntactic
+arrangement, which presents a straightforward binary condition. Overall, the sentence structure exemplifies
+several critical syntactic phenomena: the use of imperative mood, relative clause formation, noun phrase
+construction, subject-predicate agreement, and coordination within a relative clause, all contributing to
+an intricate yet coherent inquiry.
+
+SQL Syntax
+
+Example Seman-
+tics
+
+The given SQL query is relatively straightforward and has a simple structure, which includes a SELECT
+statement aimed at retrieving a single column value from a specific table. The query’s complexity is minimal
+because it involves only one table and a straightforward WHERE clause without any JOIN operations, nested
+queries, or aggregate functions. In terms of the relationship between the query and the provided underlying
+database schema from ’204_206’, the SQL operation specifically targets the ’w’ table. The ‘SELECT‘ clause
+chooses the ‘time_greatest_utc‘ column, indicating that the objective is to retrieve the time in UTC format
+for a specific date. The ‘WHERE‘ clause filters the rows of the table where the ‘date‘ column matches
+‘october 3, 2415’. This implies a one-to-one mapping between the question’s focus on a specific date and the
+database’s date column, showing a direct translation of the natural language input to SQL command. Moreover,
+no type casting or formatting functions are employed, hinting that the provided date format in the query is
+directly comparable to the stored data. In terms of cross-database variation, this example uses a fairly
+common SQL syntax that should be universally understood across different SQL-compliant databases like MySQL,
+PostgreSQL, SQLite, and others without requiring modifications. This universality is due to its use of basic
+SQL keywords (SELECT, FROM, WHERE) and standard date format handling. Overall, the SQL statement is simple
+and efficient for this specific query because it directly addresses the requirement using the basic querying
+capabilities of SQL and is highly readable to those familiar with standard SQL operations.
+
+In the provided example, the natural language question directly translates to the corresponding SQL query
+with a high degree of parallelism. The question specifies ’how many automobiles,’ which maps to the SQL
+function ¢ount(*); indicating a need to count rows. The term ’were produced’ implies a filter condition,
+which in SQL is represented by the ‘WHERE‘ clause. The specific year ’1980’ in the question is directly
+used in the SQL query’s condition ‘YEAR = 1980‘. Thus, there is a clear one-to-one correspondence between
+the elements in the natural language and SQL query. The natural language inherently asks for a count based
+on production year, and the SQL query represents this request accurately without requiring any complex
+reasoning or transformation. Both the question and the query focus on the same entity (automobiles) and
+reference the same attribute (year), showing a straightforward and direct mapping with parallel structure
+and semantics. The differences lie mainly in syntax and format rather than in conceptual understanding or
+logical structure.
+
+Pragmatics
+
+The natural language question ’uncontrolled hypertension’ displays several interesting facets from a
+pragmatics perspective. Firstly, it is not presented in the form of a typical question, exhibiting an
+elliptical style which omits the interrogative structure commonly expected in querying databases. This
+ellipsis can signal a form of implicit performative speech act, where the speaker’s intent is to request
+information or specify a condition without using a direct question. According to Grice’s Maxims, the
+utterance violates the Maxim of Manner which prefers clarity and the avoidance of ambiguity since the phrase
+is underspecified and lacks a clear syntactic structure. The Maxim of Quantity is also in question here,
+as the statement assumes a shared understanding of what is meant by ’uncontrolled’ despite not explicitly
+mentioning it in the context, thereby creating some potential for ambiguity. This could implicature that
+the speaker had previously established a context where the control level of hypertension was discussed,
+although it is unexpressed here. Furthermore, the Maxim of Relevance suggests that within the context of
+the database schema provided, uncontrolled hypertension’ is pertinent to ’hypertension’ being coded as ’1’,
+implicating a shorthand reference within a well-understood domain-specific language. The choice of the term
+‘uncontrolled’ implies a subjective, clinical threshold which is not necessarily informationally equivalent
+to the binary schema indicated in the database but relies on an implied understanding. Therefore, the phrase
+exhibits a form of semantic underspecification, leaving it open to interpretation whether ’uncontrolled’
+is directly equatable to ’hypertension = 1’. This concise expression’s interpretive relies heavily on the
+presumed shared knowledge and context between the issuer of the query and the interpreter.
+
+Database Reason-
+ing
+
+The natural language question, ’What are the country codes of countries where people use languages other
+than English?’ is well-aligned with the provided database schema for the most part. The question and schema
+share direct counterparts: ’country codes’ corresponds to the ’CountryCode’ column in the ’countrylanguage’
+table, and ’languages other than English’ is explicitly related to the ’Language’ column in the same table.
+The phrasing ’languages other than English’ requires a form of paraphrastic reasoning to translate into the
+SQL syntax ‘LANGUAGE != ’English’‘, which involves a negation operation in the WHERE clause. Additionally,
+the word ’distinct’ in SQL query (‘SELECT DISTINCT CountryCode‘) is derived from understanding that multiple
+countries might have the same code listed under various languages, necessitating uniqueness. Therefore, both
+syntactic/semantic matching and an element of logical reasoning are required here to achieve the correct
+SQL query. The structure of the question semantically corresponds to the schema as it clearly asks about
+the diverse attribute values within specific columns, effectively tapping into the database’s relational
+structure.
+
+
+
+Table 12: Predicates from ablation studies.
+
+Predicates
+
+NL2SQL Ex-
+amples (Abla-
+tion B.1)
+
+requests information about entities and their attributes, inquires about top results or rankings, requests data related to issues and
+resolutions, asks for information related to specific entities or categories, asks for comparisons between different data points, inquires
+about specific data based on criteria, inquires about specific details or attributes in a dataset, requests for maximum or minimum values,
+inquires about the maximum or minimum values within a dataset, asks for counts or frequencies, seeks information about the highest
+or lowest values, inquires about database queries related to entities, requests counts or sums based on specific conditions, requests
+information about counts or totals, seeks specific details based on conditions, asks about the popularity or rankings of certain items, asks
+about flights and airlines, seeks to compare different data points, asks for comparisons between different data entries, inquires about
+database statistics, queries about car details and specifications, inquires about the number of occurrences or counts, requests specific
+information based on numerical values, requests information about rankings or top results, requests specific data filtering criteria,
+seeks specific information with numerical results, asks about music albums and songs, asks about comparisons, seeks details on issues
+and resolutions, requests specific information based on database criteria, requests specific details about data based on certain criteria,
+comparisons between different entities, seeks aggregate data based on certain criteria, seeks details from a database, requests
+statistical analysis, requests comparison between different data points, inquires about the highest or lowest values, seeks to identify the
+top or bottom entries based on a specific attribute, seeks to identify extremes or limits, requires filtering based on multiple conditions,
+inquires about numerical values, inquires about numerical comparisons, asks for statistical calculations, requests information based on
+conditional criteria, "requests specific details about a single entity, involves comparison between different entities, seeks to find the
+maximum/minimum value, asks about singer details, involves querying for specific information, inquires about rankings or superlatives,
+inquires about comparative data, requests information about rankings or top values, inquires about relationships between entities,
+inquires about TV series and ratings, requests for the count of occurrences based on certain conditions, requests information about
+rankings or extremes, asks for counts or statistics from a database, inquires about specific data filtering criteria, asks for details on
+winners and rankings, asks for comparisons between different entities, seeks specific information about car details, inquires about flight
+details, seeks specific information based on comparisons, seeks details on issue tracking and resolution, requests counts or totals of data,
+specific information about data based on conditions, seeks details about particular entities, involves querying for statistical
+information, inquires about specific data based on conditions, requests counts or sums based on certain criteria, asks for comparisons
+or rankings, inquires about winners and rankings, seeks details about maximum or minimum values, requests information based on
+aggregate functions, asks about the count or sum of certain database entries, seeks details on data related to winners and rankings,
+inquires about specific data points, "seeks aggregated statistical information, seeks information about relationships between different
+entities, requests information on document templates and ids, seeks data related to multiple categories, asks for counts or totals, inquires
+about rankings or ordering, seeks aggregated results from multiple entities, inquires about data related to specific categories, requests
+information on issues and resolutions, requests statistical summaries, requests information on car-related data, requests information on
+flights and airlines, seeks to filter and display distinct data entries, seeks aggregate information, asks for details on specific attributes or
+characteristics, asks for statistical analysis, seeks details about document templates, seeks comparisons between different data entries,
+asks about flight details and statistics, asks for information related to TV series, requests information about the maximum or minimum
+value in a dataset, seeks to retrieve data based on specific criteria, asks about the number of occurrences based on certain conditions,
+seeks information on contestants and votes, inquires about rankings or extremes
+
+Aspect-Agnostic
+Descriptions
+(Ablation B.2)
+
+involves correcting errors in SQL queries, retrieves specific information about poker players from a database, concerns retrieving
+birth dates of tennis players, addresse: ecific issue ID in a database, involves querying for specific information from databases,
+involves querying for data based on specific conditions, requests data related to poker player performance, inquires about states with
+both guardians and veterinarians, seeks the number of singles released in a specific year from a music database, asks for the birth date
+of a player with a specific name, pertains to identifying authors affiliated with a specific organization and working in a particular field,
+seeks a list of affiliates with the number of authors working in a specific field, pertains to querying player details from a tennis database,
+involves listing affiliates and the number of authors working in a specific field, seeks information on authors in a particular field and
+their affiliates, involves counting entries based on a condition in a database, asks for specific information about a player, asks for a count
+based on a specific condition, involves querying for specific player details in a tennis database, pertains to counting singles released in a
+specific year, involves querying multiple tables with joins, inquires about the number of authors in a specific field per affiliate, targets
+a specific issue and retrieves related information, focuses on counting authors in a specific field per affiliate, concentrates on listing
+affiliates and authors in a field, seeks information about authors affiliated with a particular organization and field, targets specific data
+retrieval based on provided criteria, seeks data on poker players’ achievements, queries for fix version of a particular software issue,
+asks for details about final tables made and best finishes of poker players, involves retrieving author names based on affiliations and
+fields of study, demonstrates the importance of accurate SQL query formulation, utilizes SQL functions for data retrieval, asks for
+the fix version of an issue in a software engineering database, queries for specific details related to software development, requests
+information about a specific issue in software development, queries for the birth date of a specific tennis player in a sports database,
+inquires about authors affiliated with "PRESTO Japan Science and Technology Corporation’ working in a specific field, inquires about
+the presence of specific groups in certain states, utilizes multiple table joins for data retrieval, focuses on joining multiple tables in a
+database, retrieves data based on certain conditions, targets a specific issue’s fix version in a software engineering database, utilizes
+filtering based on conditions, asks for details about authors and their affiliations, requests data on singles released in a specific year,
+focuses on database schema and tables, involves querying for birth date based on player name, inquires about authors affiliated with a
+specific organization and field of study, requires joining multiple tables in SQL queries, seeks fix version information for a software
+issue in an SEOSS database, queries for states with specific types of residents, requests a list of affiliates in a particular field, asks
+for details about poker players’ performance and achievements, asks for the birth date of a player named Justine, involves counting
+entries based on specific criteria, emphasizes the importance of accurate SQL query translations, focuses on identifying common
+attributes between tables, inquires about poker player performance metrics, joins multiple tables to retrieve data, seeks information
+about authors affiliated with specific organizations and fields of study, inquires about the number of singles released in a particular
+year, addresses fixing versions of specific software issues, utilizes SQL functions and operators, requests specific data from a database
+related to academic research, pertains to final tables made and best finishes for poker players, concerns finding states with specific
+groups of residents, seeks information on singles released in a specific year, focuses on joining multiple tables in sql queries, aims to
+retrieve authors affiliated with a specific organization and field from an academic database, inquires about the fix version of a specific
+issue, requests the fix version of a specific issue in a software development database, filters data based on specific conditions, requires
+correcting errors in SQL queries, seeks data related to tennis players and their rankings, focuses on querying for specific information
+from databases, queries for final tables made and best finishes of poker players in a poker database, demonstrates the importance
+of accurate SQL query representation, addresses errors in SQL queries for accurate data retrieval, requests counts based on specific
+criteria, focuses on retrieving information about authors and their affiliations, requests data on final tables made and best finishes for
+poker players, involves finding common data points between two tables in a dog kennel database, requests the count of entries based on
+a specific criterion, for specific information about tennis players, requests information about poker player performance, inquires
+about fix versions for software development es, involves working with database tables and columns, queries for specific information
+from a database, requests the count of authors working in a specific field per affiliate, focuses on querying for player data in a database,
+asks for specific information retrieval, involves joining multiple tables in SQL queries, seeks names of authors affiliated with a specific
+organization in a particular field, requests information on fix versions for software development issues, seeks information about music
+releases in a specific year, emphasizes the importance of accurate conditions in the WHERE clause, retrieves fix version of a specific
+issue from a database, addresses states with both dog owners and veterinary professionals residing, requests poker player performance
+metrics, asks for details about authors affiliated with specific organizations and working in particular fields, inquires about states with
+specific types of residents, requests birth date of a specific player, focuses on specific data extraction, requests specific player details
+from a tennis database, involves joining multiple tables to extract information, focuses on querying player details in a tennis database,
+asks for author information based on affiliations and fields of study, aims to extract fix version for a particular issue, inquires about
+authors affiliated with a particular organization in a specific field, provides counts and lists based on specified conditions, focuses on
+retrieving specific information from a database, demonstrates the use of INTERSECT operator in SQL queries, requests specific details
+about a player in a sports database, identifies states with specific types of residents in a dog kennel database, inquires about the number
+of singles released in a specific year in a music database, asks for the count of singles released in a specific year from a music database,
+seeks information on states with specific types of residents in a dog kennel database, emphasizes the importance of accurate query
+reflection, focuses on retrieving specific data from a database, illustrates the importance of correct conditions in SQL queries, focuses
+on filtering data based on conditions, involves using SQL to retrieve data based on conditions, relates to analyzing data from databases
+

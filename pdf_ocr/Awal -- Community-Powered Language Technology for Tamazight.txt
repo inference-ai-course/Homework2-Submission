@@ -1,0 +1,802 @@
+Awal — Community-Powered Language
+Technology for Tamazight
+
+Alp Oktem"?, Farida Boudichat®
+
+Col lectivaT ’Awal Team
+alp@collectivat.cat awal@collectivat.cat
+
+Abstract.
+
+This paper presents Awal (oUoll), a community-powered initiative for
+developing language technology resources for Tamazight. We provide a
+comprehensive review of the NLP landscape for Tamazight, examining recent
+progress in computational resources, and the emergence of community-driven
+approaches to address persistent data scarcity. Launched in 2024,
+awaldigital.org platform addresses the underrepresentation of Tamazight in
+digital spaces through a collaborative platform enabling speakers to contribute
+translation and voice data. We analyze 18 months of community engagement,
+revealing significant barriers to participation including limited confidence in
+written Tamazight and ongoing standardization challenges. Despite
+widespread positive reception, actual data contribution remained concentrated
+among linguists and activists. The modest scale of community contributions
+—6,421 translation pairs and 3 hours of speech data—highlights the
+limitations of applying standard crowdsourcing approaches to languages with
+complex sociolinguistic contexts. We are working on improved open-source
+MT models using the collected data.
+
+to XELIZH
+
+cOXXS oA oO LOLZHL Lol, sol OIL WI © +XEO+ | HEE €
+OOH | LOX I LHLRIHIILI | t3thost £ HEXEN. X cOXXKS oA, Oo
+
+[OOO Sol eX KXKOo5 0 XotoO | AHO | sOLCKH | +etHo5+ +o XoLolt (NLP)
+EXE, A Oo IFO tollosgl HELo5Ictgl X 5EXO | £OXLLI |
+LLOOAQ.Il (computational resources), A | sOIHH | tH.O.OLl LOAALI
+
+
+OKTEM, BOUDICHAT
+
+HH +XOolt 50K oA IOCH +e AOOZ | SCHol £HoAQol. £H:OIC Ho sO
+| awaldigital.org X cOXX"O | 2024. £OO00O OIL A LEE [IO YH
+tAOOL | tit | +5+Ho5t +E KEW X SLoEoll oLIEESL IROO Sot
+1tAe©2t toLoldo®t Ao 5cITol SEOolloll | +E XKEHt oA OORGCLEI OHI
+A SCONE IOI. oO IOOHBO.s 18 | UosssOl | +AO.Ut +.CXO.Lt.
+1oAQollt oA 1oUO olf JAA IOOIHY LORIE £XotoOl Ao LHOAANGI
+CHEA tXOolUt. ©X LOHtgHl oA tAOOL | +200. © +L XH A
+tXCL.O | cOloldoSo | tothost. LoXXo oOHL oA ZIlSH Sol sOICOX
+oLIEXI, +oAOoLlt 1eLXO0llt Uo®o tho tAOO Do tAA: A Ho® OX
+NoO LLOILHOI A ELHIOI. LUoXXo tAOO, teAOoLt 1.LXO6Lt - Ao
+LOL: KOs | 6,421 | RILUI | sOHH A 3 tO0X2I | SLOHL - +OCHs A
+LOH Ao OANA CUA | O00 | +EL50AOZI tElolos| WH +HOZL |
+tULOL | +3tho5El AO CL Holt LLIEl LOICIEHOH CSololll. YH KK"
+oo, oO 1OUIOL WH OHMRL | £XK3O0t | 1OHHE +ELLOT £HTolo HI €
+oXASA © theUo®t | SCHol £HOLGII.
+
+1. Introduction
+
+The digital representation of the world's languages remains deeply unequal,
+with technological advances primarily benefiting a small subset of widely-
+spoken languages while thousands of others remain marginalized in digital
+spaces. This digital language divide is particularly pronounced for African
+languages, where despite representing over 2,000 languages spoken by more
+than a billion people, computational resources and language technologies
+remain scarce (Nekoto et al., 2020; Kreutzer et al., 2022). Among these
+underrepresented languages, Tamazight (also known as Amazigh or Berber)
+stands as a compelling case study of both the challenges and possibilities of
+community-driven language technology development.
+
+Tamazight, spoken by over 40 million people across North Africa and
+diaspora communities worldwide, has experienced a remarkable journey from
+marginalization to official recognition in multiple countries since 2011.
+However, this political recognition has not automatically translated into robust
+digital presence or computational resources. Despite recent progress—
+including the launch of Tamazight Wikipedia in 2023, the inclusion of
+Tamazight in Google Translate, and the availability of digital tools by IRCAM
+and other linguists and developers—the language still lacks sufficient
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+3
+
+presence on the web to power Al-based technologies, especially large
+language models (LLMs). While current initiatives focus on standardization
+and promoting writing skills, parallel efforts are needed to create high-quality
+digital content and structured data that can train effective AI systems.
+
+This paper presents the Awal (oUoll) project, a community-driven initiative
+launched in 2024 by three organizations in Catalonia to foster the development
+of language technologies for Tamazight through crowdsourced data
+collection. Awal collects translation pairs and transcribed speech data directly
+usable for training AI models such as automatic speech recognition (ASR),
+machine translation (MT), and large language models (LLMs). The platform
+encourages community participation through gamification elements, while
+maintaining quality through peer validation mechanisms.
+
+The paper is structured as follows. In Section 2, we provide a comprehensive
+review of the NLP landscape for Tamazight, examining its linguistic profile
+and sociopolitical status (Section 2.1) and the challenges and progress in
+Tamazight NLP (Section 2.2), and community-driven approaches (Section
+2.3). Section 3 details the Awal project, covering its inception and objectives
+(Section 3.1), the awaldigital.org platform (Section 3.2), voice data collection
+through Common Voice (Section 3.3), community engagement and outreach
+campaigns (Section 3.4), current statistics and data access (Section 3.5), and
+limitations, challenges and way forward (Section 3.6). We finally conclude in
+Section 4.
+
+2. Landscape in Tamazight NLP
+
+This section examines the current state of Tamazight in the digital realm. We
+first provide an overview of the language's linguistic diversity and
+sociopolitical evolution, then review existing computational work and
+resources, before discussing the emergence of community-driven
+approaches.
+
+2.1. Linguistic profile and sociopolitical status of
+Tamazight
+
+Tamazight, also known as Amazigh or Berber, belongs to the Afro-Asiatic
+language branch, with over 40 million people across a vast region in North
+Africa, principally in Morocco, Algeria, Tunisia, Libya, and by communities
+in Spain, Mauritania, Niger, Mali, and Egypt, and also within the diaspora.
+Figure 1 shows geographic distribution of Tamazight dialects across North
+Africa. Tamazight is an official language in Morocco, since 2011, Algeria,
+
+
+OKTEM, BOUDICHAT
+
+since 2016, in certain districts of Libya, since 2017, and Mali, since 2023. The
+language exhibits significant diversity, with notable dialects such as Tachelhit
+(shi), spoken in the southwest and the High Atlas, Tarifit (rif), spoken in the
+Rif region of Morocco, Central Atlas Tamazight (tzm), spoken in central and
+southeast Morocco, Kabyle (kab) spoken in Algeria, Shawiya or Tacawit (shy)
+also in Algeria, Tuareg Tamahaq (thv) in the southern regions of Algeria,
+Niger, and Mali, and Tamasheq (taq) in Mali and Niger (Lafkioui, 2018).
+
+wa
+
+a - a imi
+a
+
+CL" MAY Erni Ys 8 I .
+: ’ | ®) ohn SW
+
+y-- ~ wv TRG MIU - i 1 Mapa lingfistic de 'amazle
+V Le 3 Ll Tent i Aiasistoma seplentional
+Laka = ! N
+t \ N AAAAMAAALY
+[1 .
+N ) ~ Tamenghes. \
+\ N Ea
+SN ” ~|
+\ Pl \
+WRG MCO \ — \
+; ~ 1
+- i 0 bOTRGMIQ _.  kaanans )
+’ he pr " dialectes nccidentals, mi
+- _ [re on
+AY bd - . I Ader ! Fl cc dzanls | dnc ioe
+ED
+i I Li ¥  S ’ ®. = /
+a i \ 7
+—y - PA
+) ~ ~ y) -r ~~ Vos
+
+Figure 1: Geographic distribution of Tamazight dialects across North Africa
+(Murcia, 2017)
+
+Tamazight has faced marginalization under the effects of colonization and
+Arabization, leading to a decline in the language's status and use. Amazigh
+activism, particularly during the Amazigh Spring, played a crucial role in
+highlighting these issues and advocating for linguistic and cultural rights
+(Roque, 2009; CIEMEN and Casa Amaziga de Catalunya, 2019). This
+activism led to significant progress in Morocco, starting with the
+establishment of the Royal Institute of Amazigh Culture IRCAM) in 2001,
+which marked the beginning of the institutionalization of Tamazight. The
+standardized form Standard Moroccan Tamazight (ISO-639 code: zgh) was
+developed by IRCAM, combining features of the three main dialects shi, tzm
+and rif (Boukous, 2014), as well as other variants such as Touareg. As part of
+the standardization efforts, the Neo-Tifinagh script, developed by IRCAM and
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+5
+
+based on the traditional Tifinagh script, was chosen as the official script for
+Tamazight in 2003. This modern graphical system, known as Tifinaghe-
+IRCAM, was preferred over the historically used Latin and Arabic scripts,
+providing a standardized and phonologically accurate writing system for the
+diverse Moroccan Tamazight varieties (Soulaimani, 2016; Ataa-Allah and
+Boulaknadel, 2012).
+
+2.2. Challenges and Progress in Tamazight NLP
+
+Tamazight’s complexity in NLP arises from its script, morphology, and high
+dialectal variations. The existence of various alphabets, including Tifinagh,
+Latin, and Arabic, complicates standardization and computational processing.
+Additionally, the language’s rich morphology, involving both inflectional and
+derivational processes, along with significant dialectal differences, poses
+challenges for developing consistent NLP applications. These factors make
+tasks such as part-of-speech tagging, syntactic parsing, and machine
+translation particularly difficult (Ataa-Allah and Boulaknadel, 2012).
+
+Despite its relatively recent standardization and entry into the digital realm,
+exemplified by the launch of the Tamazight Wikipedia in 2023, Tamazight
+NLP has shown considerable progress in recent years. Notable work includes
+the construction of a Standard Tamazight Corpus (Boulaknadel and Ataa
+Allah, 2013), the development of a morphosyntactically annotated corpus
+(Amiri et al., 2017), and advancements in Amazigh word embedding (Faouzi
+et al., 2023). Additionally, a tool for Tamazight verb conjugation has been
+developed by Ataa-Allah and Boulaknadel (2014), concordancer and
+Tifinagh-adapted search engine by Ataa-Allah and Boulaknadel (2012). Some
+of these tools and resources are made available through IRCAM’s portal.
+
+The most notable open-source MT work includes the NLLB project, which
+incorporates Tamazight among the 200 languages it supports (NLLB Team et
+al., 2022). This project relies on the FLORES training and evaluation sets,
+which, as the Awal project also intends to address, require corrections for
+improved accuracy (Goyal et al., 2022). SIB-200, an extension of FLORES,
+offers a new benchmark for topic classification across 205 languages,
+including Tamazight (Adelani et al., 2024). The MADLAD project, another
+significant development, offers a large multilingual and document-level
+audited dataset based on CommonCrawl, further expanding the resources
+available for low-resource languages like Tamazight (Kudugunta et al., 2023).
+Additionally, the GlotCC project provides a general domain monolingual
+dataset derived from CommonCrawl (Kargaran et al., 2024), covering more
+
+1 https://tal.ircam.ma/talam/
+
+
+
+OKTEM, BOUDICHAT
+
+than 1000 languages, and introduces GlotLID, an open-source language
+identification model supporting over 2000 labels, both of which include
+Moroccan Standard Tamazight as well as other Tamazight varieties (Kargaran
+et al., 2023).
+
+2.3. Community-Driven Approaches
+
+The fundamental challenge facing Tamazight and other underrepresented
+languages in the digital age is clear: no data means no Al. Large language
+models and other AI technologies depend on massive amounts of data to
+function effectively. For underrepresented languages like Tamazight, the
+solution requires both organic content creation—blogs, videos, and online
+resources—and direct data collection efforts specifically designed for Al
+training.
+
+Community-driven initiatives have emerged as a response to the
+underrepresentation of languages in digital spaces. Since these languages are
+less present online, they rarely appear in large-scale web crawls that form the
+basis of modern language technologies. Community participation in data
+collection, similar to Wikipedia's collaborative model, has shown success in
+creating substantial linguistic resources. Notable examples include Common
+Voice (Ardila et al., 2020), Tatoeba®, NaijaVoices for Igbo, Hausa, and
+Yoruba (Emezue et al., 2025) and Darija data collection®.
+
+These types of initiatives have demonstrated that even marginalized languages
+can achieve representation in both commercial language technology services
+and open-source models when communities engage seriously in data
+collection efforts (Emezue et al., 2025; Gonzalez-Agirre et al., 2024). In
+contrast to this participatory approach, the development of language
+technologies for underrepresented languages typically follows a top-down
+approach, driven by academic institutions or technology companies with
+limited community input (Moshagen et al., 2024; Bird, 2020; Schwartz, 2022).
+This approach risks significant harm to languages and communities by
+misrepresenting languages through technologies built without meaningful
+participation from speaker communities. As Bird (2020) warns, by treating
+Indigenous knowledge as a commodity, speech and language technologists
+risk "disenfranchising local knowledge authorities, reenacting the causes of
+language endangerment." The quality of training data becomes particularly
+critical for marginalized languages as well, where inaccurate content can
+
+2 http://tatoeba.org
+3 https://www.atlasia.ma/
+
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+7
+
+distort digital representations and propagate errors through AI systems
+(Kreutzer et al., 2022; Lau et al., 2025).
+
+For Tamazight specifically, several community-driven initiatives have
+emerged to fill the gap. The inclusion of Tamazight in Google Translate
+marked a significant milestone, though initial translation quality was poor.
+However, community feedback and participation gradually improved the
+system's performance, demonstrating the importance of speaker involvement
+in refining language technologies.
+
+The Tamazight NLP community in Hugging Face® represents another
+grassroots effort to advance language technologies. This community of 40
+members aims to develop models and tools for Tamazight in both NLP and
+speech technologies. In the Wikipedia ecosystem, Standard Moroccan
+Tamazight was launched in 2024°, joining existing Tamazight varieties
+including Kabyle (launched in 2007) and Tachelhit/Shilha (launched in 2021),
+with other Tamazight varieties in incubation phases.
+
+Understanding these dynamics informed the design of the Awal project, which
+seeks to build upon the lessons learned from existing community efforts while
+addressing some of their limitations.
+
+3. Awal Project
+
+The Awal project (osUoll, “Speech” or “Discourse” in Tamazight) represents a
+community initiative focused on preserving and promoting Tamazight in the
+digital realm. Launched in 2024 through collaboration among Catalan non-
+profit entities promoting Tamazight and open language technology®, the
+project aims to strengthen language technologies in Tamazight with a focus
+on crowdsourced language data collection from native speakers.
+
+This chapter details the Awal project's methodology, platform architecture,
+current achievements and its limitations. We examine both the translation data
+collection system implemented at awaldigital.org and the voice data collection
+efforts through Common Voice, analyzing their effectiveness in building
+language resources for Tamazight NLP development.
+
+3.1. Project Inception and Objectives
+
+4 https://huggingface.co/Tamazight-NLP
+5 https://zgh.wikipedia.org/
+6 CIEMEN, Casa Amaziga de Catalunya, and Col-lectivaT
+
+
+
+OKTEM, BOUDICHAT
+
+The Awal project emerged from Catalunya, home to over 100,000 Tamazight
+speakers within a territory that has a history of promoting its marginalized
+languages Catalan and Aranese Occitan. This context comes with institutional
+support and community infrastructure necessary for language technology
+development initiatives as can be seen in initiatives Aina’ and Araina®.
+
+Awal's core objectives include:
+
+1. preserving and promoting Tamazight through innovative digital tools,
+
+2. motivating community participation in data creation,
+
+3. developing open-source assistive technologies including machine
+translation and speech recognition systems adapted to Tamazight.
+
+4. providing educational resources for language learning, and
+
+5. strengthening communication among speakers to reinforce cultural
+identity
+
+Initial efforts focused on manual collection of translated phrases, but this
+approach proved insufficient for scaling to the thousands of sentence pairs
+needed for effective machine translation. The project therefore adopted a
+community-driven platform approach that encourages broader participation
+while maintaining quality through peer validation mechanisms.
+
+3.2. awaldigital.org Platform
+
+The awaldigital.org platform’ serves as the central hub for the project. Any
+user can access information about the project and use the integrated machine
+translation application. Figure 2 shows the “Contribute” page where registered
+users can contribute translations where the source sentence appears on the left
+and the target on the right. Users select the language for both sides, with at
+least one required to be Tamazight, which can be written in either Tifinagh or
+Latin script.
+
+7 https://projecteaina.cat/
+
+8 https://www.projecte-araina.org/
+9 https://awaldigital.org/
+
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+Contribution Points : 645 @ English
+
+Contribute
+
+| have never believed In wars. 0 OOYVYEY 0, X SCIVES
+
+Random Sentence Pre-translate Contribute
+
+Figure 2: Contribute page allows registered users to add translations
+
+Users can optionally mark the dialect they’re writing in. The Random
+Sentence feature loads sentences from a database of Creative Commons-
+licensed texts into the source box.
+
+The Pre-translate option automatically translates source text to the target
+language using the integrated machine translation model. Users must then
+correct this translation before submission, creating a post-editing workflow
+that improves efficiency.
+
+A gamification system awards points for each character input in both source
+and target boxes, with users able to view their ranking on a leaderboard. This
+mechanism creates a friendly competition atmosphere and encourages
+sustained participation.
+
+The translation interface supports bidirectional translation between Tamazight
+and multiple languages including Catalan, Spanish, French, Moroccan Arabic,
+and English. Contribution of sentence pairs are also allowed in these
+languages.
+
+
+OKTEM, BOUDICHAT
+
+Contribution Points : 645
+
+|lika Franch, but | cannat speak it wall, ACRE HE QLIO04, [6 10,020 O.UML CrEL
+
+Figure 3: Validation screen.
+
+Quality control is maintained through peer-validation (Figure 3) where users
+review translations submitted by others. Validators use acceptability
+guidelines focusing on meaning, fluency, and grammatical accuracy, with two
+validation approvals moving entries into the validated corpus through peer
+review. Two validation approvals move entries into the validated corpus.
+
+The visual identity of the platform reflects Tamazight cultural identity and
+responds to the language's specific requirements, particularly its dialectal
+diversity and script variations. Rather than imposing strict dialectal
+standardization, Awal welcomes contributions from speakers of all Tamazight
+variants".
+
+3.3. Voice Data Collection through Common Voice
+
+Voice data collection is realized through Mozilla's Common Voice
+platform". This integration required translating the platform interface into
+Tamazight and populating it with an appropriate sentence collection for
+recording. Figure 4 shows the recording screen. Contributors read displayed
+sentences aloud, creating a speech corpus for automatic speech recognition
+
+10 The platform categorizes contributions into five variants: Standard Moroccan
+Tamazight, Central, Tarifit, Tachelhit, and Other. This classification represents a
+pragmatic compromise between differing community perspectives on dialectal
+standardization and necessarily excludes some varieties, particularly those outside
+Morocco.
+
+11 https://commonvoice.mozilla.org/zgh
+
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+11
+
+development. A similar peer-validation system also exists in Common
+Voice.
+
+Common Voice
+
+( mecoxccic | ® zaw
+
+J own © om 0.
+
+OI .0:00
+
+«©. 0H XH SXXKEUX.
+
+Figure 4: Tamazight voice data contribution in Common Voice.
+
+3.4. Community Engagement and Outreach Campaigns
+
+Our outreach involved social media campaigns across Instagram, Facebook,
+LinkedIn, and Telegram channels, alongside presentations at cultural events
+and a flagship datathon.
+
+The Awal Datathon, held on February 17, 2024 in Barcelona, marked the
+project's launch event. Organized both virtually and in-person, the weekend-
+long datathon successfully collected over 3,500 translated sentences and 1
+hour of voice recordings in Tamazight with participation from Catalonia,
+Morocco and different parts of Spain. Beyond this event, the project
+conducted targeted workshops and presentations in Bilbao, Tortosa, and Vic.
+
+3.5. Current statistics and data access
+
+As of 13th of June, 2025, the platform has 286 registered users, though only
+66 users (23%) have actually contributed translations to the platform. The
+remaining users registered but did not submit any content. Since its inception
+in January 2024, the platform has collected 6,421 total contributions, of which
+
+
+OKTEM, BOUDICHAT
+
+2,182 (34%) are validated. Among contributing users, the average is 86
+contributions per user.
+
+The number of translations collected for each pair is detailed in Table 1.
+Catalan-Tamazight (Latin) emerges as the most productive pair with 1,718
+contributions, followed by English-Tamazight (Tifinagh) with 1,539
+contributions and Spanish-Tamazight (Latin) with 1,203 contributions.
+
+In addition to text translations, Awal has collected 3 hours of speech data
+through Common Voice platform with 2 of them validated".
+
+aw [0 |
+a es 2
+
+EI
+aw | ew | ee
+
+Table 1: Contribution in each language pair as of 13.06.2025.
+
+We share all parallel and monolingual text data through our Hugging Face
+repository"? while the voice data can be directly accessed from Common Voice
+platform. Regular data pulls from the Awal platform ensure the repository
+stays current with new contributions. Real-time data metrics are available on
+the Awal homepage.
+
+3.6. Limitations, challenges and way forward
+
+After eighteen months of community engagement, the Awal project has
+revealed several challenges that impact participation and data collection
+effectiveness. Through interviews with promoters and contributors, we
+identified key barriers that explain why the initiative has not reached the
+
+12 Common Voice Corpus 22.0 release
+13 https://huggingface.co/datasets/collectivat/amazic
+14 https://commonvoice.mozilla.org/en/datasets
+
+
+
+13
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+participation levels initially expected. Our analysis revealed six main
+
+conclusions:
+
+General tamazight-speaking public don't trust their reading and
+writing abilities. Most people don't know Tifinagh and never had the
+chance to learn it. Despite being fluent speakers, many community
+members expressed deep uncertainty about their writing abilities.
+Even those who regularly write Tamazight in Latin form in family
+messaging groups or social media view their informal writing as
+inadequate for data collection purposes. Participants in workshops
+often said they "don't write correctly" or "don't know the standard
+form," leading them to exclude themselves from contributing to a
+space where their writing will be recorded and seen by others.
+Micro-translation tasks emerge as a promising approach for data
+creation. Current activist-linguist efforts focus on encouraging
+people to write, and translation emerges as a promising approach for
+content creation. Rather than asking participants to generate original
+text, providing source material in other languages—or even Al-
+generated content—removes the creative barrier that prevents many
+from contributing. This approach has shown success in platforms like
+Tatoeba, where collaborative translation has resulted in substantial
+Tamazight content across multiple varieties. The Awal platform's
+automatic sentence loading feature addresses this obstacle by
+eliminating the "what should I write?" problem that blocks
+participation.
+
+Most contributions come from academic, linguist and activist
+community members. Even though we received many positive
+responses from the general public during events, most impact in terms
+of data volume came from activists and academics who already
+understood the importance of language digitization—people already
+working within cultural associations, researchers, or those with
+formal linguistic training. The crowdsourcing model assumes a level
+of literacy and standardization that does not match the current reality
+of the general Tamazight-speaking community, particularly in the
+diaspora. The project should focus on this specialized public if it
+wants to generate impact in terms of data size, while maintaining
+outreach to the general public so that more people become
+knowledgeable about technology and motivated to develop their
+reading and writing skills.
+
+There's no consensus on representing dialects on the platform.
+The project aimed to welcome dialectal diversity while maintaining
+
+
+OKTEM, BOUDICHAT
+
+data quality through a contribution labeling system allowing users to
+mark their dialect. But this approach revealed tensions within the
+Tamazight linguistic ecosystem. Standard Moroccan Tamazight
+remains unfamiliar to many diaspora speakers and those who learned
+the language orally at home. Meanwhile, the academic community
+recommends not using any dialect labels at all, considering there's
+already unity in written form.
+
+5. Code-mixing and linguistic purity present challenges for data
+quality. Diaspora communities often incorporate terms from their
+residence languages, while speakers in Morocco frequently mix
+Darija into their Tamazight. Finding truly Amazigh equivalents
+requires extensive research across dialects and regions, including
+consulting variants from other countries—a task that demands
+linguistic expertise rather than casual knowledge. We observed that
+elderly women in the diaspora maintained purer dialectal forms
+compared to younger speakers, suggesting that language contact
+effects intensify across generations and geographic distance from
+origin communities.
+
+6. A more internationalist approach could generate more impact.
+The promotional materials primarily in Catalan limited reach to the
+broader international Amazigh diaspora in Belgium, France, and other
+regions, and also prevented reaching the population in Morocco,
+which would help scale participation massively. This would require
+collaboration with entities beyond Catalonia, which the current scope
+doesn't allow.
+
+Despite these challenges, the project has demonstrated valuable pathways
+forward. The positive reception and widespread awareness generated by Awal
+indicates strong community interest in language technology development.
+Many people, thanks to this initiative, were surprised and motivated by the
+idea that advanced technologies can also exist in their native language.
+
+As a way forward, the most promising approach involves concentrating efforts
+on academic and activist communities who possess both linguistic expertise
+and technological literacy for digital language preservation. These
+contributors can build foundational datasets while the project develops
+complementary pedagogical components that build writing confidence in the
+broader community. Additionally, adapting the platform to accept audio input
+alongside text could reduce the complexities of having contributions on two
+different platforms. The challenges identified here also point toward the need
+for longer-term institutional partnerships with educational institutions in
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+15
+
+Morocco, where standardization efforts are more advanced and writing
+instruction is integrated into formal education®.
+
+4. Conclusion
+
+The Awal project demonstrates that community-driven language technology
+development for underrepresented languages requires adaptation to local
+linguistic realities and cannot simply replicate models designed for
+standardized languages. While our 18-month experiment collected
+meaningful data and raised community awareness, it revealed fundamental
+tensions between crowdsourcing assumptions and the complex sociolinguistic
+context of Tamazight speakers. In parallel work, we are curating and
+correcting standard MT datasets and fine-tuning MT models using the
+collected data. As a public-funded diaspora initiative, Awal highlights the
+need for cross-border collaboration that reflects the transnational reality of
+Tamazight-speaking communities. We call for greater institutional support
+that combines grassroots community efforts with formal language planning,
+moving beyond isolated initiatives toward coordinated language technology
+development that serves speakers across borders and generations.
+
+5. Acknowledgements
+
+This article was written as a result of research conducted under CIEMEN's
+and Fundaci6 pels Drets Col-lectius dels Pobles' Som Part project, which
+received funding from the Catalan Agency for Development Cooperation
+(ACCD) and the Municipality of Barcelona.
+
+We extend our sincere gratitude to Lalla Ghizlan Baryala, Brahim Essaidi,
+Mohamed Aymane Farhi, and Naceur Jabouja for their invaluable assistance
+and insights that contributed to the development of this paper.
+
+We also thank all the volunteers who contributed to the Awal platform and
+participated in our workshops, sharing their experiences and insights about
+their knowledge in Tamazight and technology.
+
+References
+
+Adelani D., Liu H., Shen X., Vassilyev N., Alabi J., Mao Y., Gao H. and Lee E.
+(2024). SIB-200: A Simple, Inclusive, and Big Evaluation Dataset for Topic
+Classification in 200+ Languages and Dialects. In Graham Y. and Purver M.,
+
+15 Despite multiple attempts to establish collaboration with IRCAM, we received no
+response from the institution.
+
+
+OKTEM, BOUDICHAT
+
+editors, Proc. of the 18th Conference of the European Chapter of the Association for
+Computational Linguistics (Volume 1: Long Papers), pp. 226-245. Association for
+Computational Linguistics.
+
+Amri S., Zenkouar L. and Outahajala M. (2017). Build a Morphosyntaxically
+Annotated Amazigh Corpus. In Proceedings of the 2nd International Conference on
+Big Data, Cloud and Applications, article 8. Association for Computing Machinery.
+
+Ardila R., Branson M., Davis K., Kohler M., Meyer J., Henretty M., Morais R.,
+Saunders L., Tyers F. and Weber G. (2020). Common Voice: A Massively-
+Multilingual Speech Corpus. In Calzolari N. et al., editors, Proceedings of the Twelfth
+Language Resources and Evaluation Conference, pp. 4218-4222. European Language
+Resources Association.
+
+Ataa-Allah F. and Boulaknadel S. (2012). Toward Computational Processing of Less
+Resourced Languages: Primarily Experiments for Moroccan Amazigh Language. In
+Sakurai S., editor, Theory and Applications for Advanced Text Mining, chapter 9.
+IntechOpen.
+
+Ataa-Allah F. and Boulaknadel S. (2014). Amazigh Verb Conjugator. In International
+Conference on Language Resources and Evaluation.
+
+Bird S. (2020). Decolonising Speech and Language Technology. In Scott D., Bel N.
+and Zong C., editors, Proceedings of the 28th International Conference on
+Computational Linguistics, pp. 3504-3519, Barcelona, Spain (Online). International
+Committee on Computational Linguistics.
+
+Boukous A. (2014). The Planning of Standardizing Amazigh Language: The
+Moroccan Experience. Iles d'Imesli, vol. 6(1): 7-23.
+
+Boulaknadel S. and Ataa Allah F. (2013). Building a Standard Amazigh Corpus. In
+Kudélka M., Pokorny J., SnaSel V. and Abraham A., editors, Proceedings of the Third
+International Conference on Intelligent Human Computer Interaction (IHCI 2011),
+Prague, Czech Republic, August, 2011, pp. 91-98. Springer Berlin Heidelberg.
+
+CIEMEN and Casa Amaziga de Catalunya (2019). El poble amazic a Catalunya.
+CIEMEN.
+
+Emezue C., NaijaVoices Community, Awobade B., Owodunni A., Emezue H.,
+Emezue G. M. T., Emezue N. N., Ogun S., Akinremi B., Adelani D. I. and Pal C.
+(2025). The NaijaVoices Dataset: Cultivating Large-Scale, High-Quality, Culturally-
+Rich Speech Data for African Languages. In Proc. of Interspeech 2025, Rotterdam,
+Netherlands.
+
+
+AWAL: COMMUNITY-POWERED LANGUAGE TECHNOLOGY FOR TAMAZIGHT
+
+17
+
+Faouzi H., El-Badaoui M., Boutalline M., Tannouche A. and Ouanan H. (2023).
+Towards Amazigh Word Embedding: Corpus Creation and Word2Vec Models
+Evaluations. Revue d'Intelligence Artificielle, vol. 37(3): 753-759.
+
+Goyal N., Gao C., Chaudhary V., Chen P., Wenzek G., Ju D., Krishnan S., Ranzato
+M., Guzman F. and Fan A. (2022). The Flores-101 Evaluation Benchmark for Low-
+Resource and Multilingual Machine Translation. Transactions of the Association for
+Computational Linguistics, vol. 10.
+
+Kargaran A., Imani A., Yvon F. and Schuetze H. (2023). GlotLID: Language
+Identification for Low-Resource Languages. In Findings of the Association for
+Computational Linguistics: EMNLP 2023. Association for Computational
+Linguistics.
+
+Kargaran A. H., Yvon F. and Schiitze H. (2025). GlotCC: an open broad-coverage
+CommonCrawl corpus and pipeline for minority languages. In Proceedings of the
+38th International Conference on Neural Information Processing Systems (NIPS
+'24), Vol. 37, pp. 16983-17005, Red Hook, NY, USA. Curran Associates Inc.
+
+Kreutzer J., Caswell I., Wang L., Wahab A., van Esch D., Ulzii-Orshikh N., Tapo A.,
+Subramani N., Sokolov A., Sikasote C., Setyawan M., Sarin S., Samb S., Sagot B.,
+Rivera C., Rios A., Papadimitriou I., Osei S., Ortiz Suarez P., Orife I., Ogueji K.,
+Niyongabo Rubungo A., Nguyen T. Q., Miiller M., Miiller A., Muhammad S. H.,
+Muhammad N., Mnyakeni A., Mirzakhalov J., Matangira T., Leong C., Lawson N.,
+Kudugunta S., Jernite Y., Jenny M., Firat O., Dossou B. F. P., Dlamini S., de Silva
+N., Cabuk Balli S., Biderman S., Battisti A., Baruwa A., Bapna A., Baljekar P., Azime
+I. A., Awokoya A., Ataman D., Ahia O., Ahia O., Agrawal S. and Adeyemi M. (2022).
+Quality at a Glance: An Audit of Web-Crawled Multilingual Datasets. Transactions
+of the Association for Computational Linguistics, vol. 10: 50-72.
+
+Kudugunta S., Caswell I., Zhang B., Garcia X., Xin D., Kusupati A., Stella R., Bapna
+A. and Firat O. (2023). MADLAD-400: a multilingual and document-level large
+audited dataset. In Proceedings of the 37th International Conference on Neural
+Information Processing Systems (NIPS '23), pp. 67284-67296, Red Hook, NY, USA.
+Curran Associates Inc.
+
+Lafkioui M. B. (2018). Berber Languages and Linguistics. Oxford Bibliographies.
+
+Lau M., Chen Q., Fang Y., Xu T., Chen T. and Golik P. (2025). Data Quality Issues
+in Multilingual Speech Datasets: The Need for Sociolinguistic Awareness and
+Proactive Language Planning. In Proceedings of the 63rd Annual Meeting of the
+Association for Computational Linguistics, Vienna, Austria, July 27-August 1.
+Association for Computational Linguistics.
+
+
+OKTEM, BOUDICHAT
+Moshagen, S. N., Antonsen, L., Wiechetek, L., & Trosterud, T. (2024). Indigenous
+language technology in the age of machine learning. Acta Borealia, 41(2), 102-116.
+
+Murcia, Carles. "La llengua amaziga." Amazic.cat, 2017. https://www.amazic.cat/wp-
+content/uploads/2017/02/1.-La-llengua-amaziga.pdf
+
+Nekoto W., Marivate V., Matsila T., Fasubaa T., Fagbohungbe T., Akinola S. O.,
+Muhammad S., Kabenamualu S. K., Osei S., Sackey F., Niyongabo R. A., Macharm
+R., Ogayo P., Ahia O., Berhe M. M., Adeyemi M., Mokgesi-Selinga M., Okegbemi
+L., Martinus L., Tajudeen K., Degila K., Ogueji K., Siminyu K., Kreutzer J., Webster
+J., Ali J. T., Abbott J., Orife I., Ezeani I., Dangana I. A., Kamper H., Elsahar H., Duru
+G., Kioko G., Espoir M., van Biljon E., Whitenack D., Onyefuluchi C., Emezue C.
+C., Dossou B. F. P., Sibanda B., Bassey B., Olabiyi A., Ramkilowan A., Oktem A.,
+Akinfaderin A. and Bashir A. (2020). Participatory Research for Low-resourced
+Machine Translation: A Case Study in African Languages. In Findings of the
+Association for Computational Linguistics: EMNLP 2020, pages 2144-2160, Online.
+Association for Computational Linguistics.
+
+NLLB Team, Costa-jussa M. R., Cross J., Celebi O., Elbayad M., Heafield K.,
+Heffernan K., Kalbassi E., Lam J., Licht D., Maillard J., Sun A., Wang S., Wenzek
+G., Youngblood A., Akula B., Barrault L., Mejia-Gonzalez G., Hansanti P., Hoffman
+J., Jarrett S., Sadagopan K. R., Rowe D., Spruit S., Tran C., Andrews P., Ayan N. F.,
+Bhosale S., Edunov S., Fan A., Gao C., Goswami V., Guzman F., Koehn P.,
+Mourachko A., Ropers C., Saleem S., Schwenk H. and Wang J. (2022). No Language
+Left Behind: Scaling Human-Centered Machine Translation. arXiv preprint
+arXiv:1902.01382.
+
+Roque M. (2009). Els amazigs avui, la cultura berber. Pages editors/IEMed.
+
+Schwartz L. (2022). Primum Non Nocere: Before working with Indigenous data, the
+ACL must confront ongoing colonialism. In Proceedings of the 60th Annual Meeting
+of the Association for Computational Linguistics (Volume 2: Short Papers), pp. 724-
+731, Dublin, Ireland. Association for Computational Linguistics.
+
+Soulaimani D. (2016). Writing and rewriting Amazigh/Berber identity: Orthographies
+and language ideologies. Writing Systems Research, vol. 8(1): 1-16.

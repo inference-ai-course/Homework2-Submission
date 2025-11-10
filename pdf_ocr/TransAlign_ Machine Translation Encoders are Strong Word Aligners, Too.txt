@@ -1,0 +1,1372 @@
+arX1v:2510.27337v1 [cs.CL] 31 Oct 2025
+
+TransAlign: Machine Translation Encoders are Strong Word Aligners, Too
+
+Benedikt Ebing, Christian Goldschmied, and Goran Glavas
+University of Wiirzburg
+Center for Artificial Intelligence and Data Science (CAIDAS)
+{benedikt.ebing, goran.glavas}@uni-wuerzburg.de
+
+Abstract
+
+In the absence of sizable training data
+for most world languages and NLP tasks,
+translation-based strategies such as translate-
+test—evaluating on noisy source language
+data translated from the target language—
+and translate-train—training on noisy tar-
+get language data translated from the source
+language—have been established as compet-
+itive approaches for cross-lingual transfer
+(XLT). For token classification tasks, these
+strategies require label projection: mapping the
+labels from each token in the original sentence
+to its counterpart(s) in the translation. To this
+end, it is common to leverage multilingual word
+aligners (WAs) derived from encoder language
+models such as mBERT or LaBSE. Despite ob-
+vious associations between machine translation
+(MT) and WA, research on extracting align-
+ments with MT models is largely limited to
+exploiting cross-attention in encoder-decoder
+architectures, yielding poor WA results. In this
+work, in contrast, we propose TransAlign, a
+novel word aligner that utilizes the encoder of
+a massively multilingual MT model. We show
+that TransAlign not only achieves strong WA
+performance but substantially outperforms pop-
+ular WAs and state-of-the-art non-WA-based
+label projection methods in MT-based XLT for
+token classification.
+
+1 Motivation and Background
+
+In recent years, multilingual language models
+(mLMs) have been positioned as the primary tool
+for cross-lingual transfer (XLT). By fine-tuning
+on task data in a high-resource source language,
+mLMs can make predictions in target languages
+with no (zero-shot XLT) or limited (few-shot XLT)
+labeled examples (Wu and Dredze, 2019; Wang
+et al., 2019; Lauscher et al., 2020; Schmidt et al.,
+2022). However, for token classification tasks (e.g.,
+named entity recognition), translation-based XLT
+strategies, where a machine translation (MT) model
+
+is used to either (1) translate the original target lan-
+guage instance into the (noisy) source language
+before inference, known as translate-test (T-Test),
+or (2) generate noisy target language data by trans-
+lating the original source language data before train-
+ing, known as translate-train (T-Train) (Hu et al.,
+2020; Ruder et al., 2021; Ebrahimi et al., 2022;
+Aggarwal et al., 2022; Artetxe et al., 2023; Ebing
+and Glavas, 2024), substantially outperform zero-
+shot XLT (Chen et al., 2023; Garcia-Ferrero et al.,
+2023; Le et al., 2024; Parekh et al., 2024), espe-
+cially for low(er)-resource languages (Ebing and
+Glavas, 2025).
+
+Translation-based XLT strategies for token clas-
+sification tasks require the additional step of la-
+bel projection: mapping the labeled spans from
+the original to the translated sentence. A broad
+body of work addressed label projection starting
+from task-specific (Duong et al., 2013; Ni et al.,
+2017; Stengel-Eskin et al., 2019; Eskander et al.,
+2020; Fei et al., 2020, inter alia) and evolving to
+task-agnostic methods (Chen et al., 2023; Garcia-
+Ferrero et al., 2023; Le et al., 2024; Parekh et al.,
+2024). While WA-based label projection (Och and
+Ney, 2003; Dyer et al., 2013; Jalili Sabet et al.,
+2020; Dou and Neubig, 2021; Wang et al., 2022)—
+which projects labels by establishing pairwise align-
+ments between tokens in the original sentence and
+corresponding tokens in the translated sentence—
+served as baseline throughout, recent work has ren-
+dered it less effective than other label projection
+strategies (Chen et al., 2023; Garcia-Ferrero et al.,
+2023; Le et al., 2024; Parekh et al., 2024). How-
+ever, Ebing and Glavas (2025) show that WA-based
+label projection can perform at least on a par with
+these state-of-the-art projection methods as long as:
+(i) a robust algorithm for label projection and (ii) a
+sentence encoder-based WA model are used.
+
+In this work, we hypothesize that multilingual
+MT models are better suited for producing word
+alignments than WAs based on multilingual sen-
+
+
+tence encoders (e.g. LaBSE) (Wang et al., 2022)
+or vanilla encoders (e.g. mBERT) (Jalili Sabet
+etal., 2020; Dou and Neubig, 2021), due to WA and
+MT being two highly related and interleaved tasks
+(Och and Ney, 2003; Callison-Burch et al., 2004;
+Koehn et al., 2007; Dyer et al., 2013). Yet, research
+on extracting word alignments from MT models
+has largely been limited to extracting alignments
+from the cross attention mechanism, yielding poor
+WA performance for transformer-based encoder-
+decoder MT models (Bahdanau et al., 2015; Ghader
+and Monz, 2017; Ferrando and Costa-jussa, 2021).
+
+Contributions. This is why, (1) we propose
+TransAlign, a WA that leverages (only) the en-
+coder of NLLB (Team et al., 2022), a massively
+multilingual encoder-decoder MT model. Next,
+to its vanilla (non-fine-tuned) variant, we explore
+the impact of further fine-tuning TransAlign on
+parallel WA data. (2) We extensively evaluate
+TransAlign extrinsically on translation-based XLT
+for token classification on two established bench-
+marks covering 28 diverse languages. We find
+TransAlign to substantially outperform popular
+word aligners as well as a state-of-the-art non-
+WA-based label projection method. Furthermore,
+we evaluate TransAlign intrinsically on the word
+alignment task showing its strong performance,
+particularly on words carrying semantic meaning.
+(3) Finally, we ablate important design decisions
+including the encoder layer to extract the align-
+ments from and the similarity threshold based on
+which an alignment is established. We publicly re-
+lease our code and data in the following repository:
+https://github.com/bebing93/transalign.
+
+2 An MT Encoder as a Word Aligner
+
+The task of word alignment aims at finding se-
+mantically corresponding pairs of words between a
+source language sentence = = (x1, 2, ..., T,,) and
+target language sentence y = (y1,Y2, ---, Ym)"
+
+A= {(x;,yj) : x; € x,y; € y}. (1)
+
+Extracting Alignments. For TransAlign, we ex-
+tract word alignments from the contextualized em-
+beddings produced by the encoder of a multilingual
+encoder-decoder MT model. We separately feed
+the source language sentence x and target language
+sentence y through the encoder, obtaining their con-
+textualized representations h, and h,, respectively.
+Following prior work (Jalili Sabet et al., 2020; Dou
+
+and Neubig, 2021; Wang et al., 2022), we next
+obtain the token similarity matrix Sy:
+
+Sey = hah, 2)
+
+We row- and column-normalize the similarity ma-
+trix using softmax to obtain Sey and Sys which
+capture the similarity from x to y and y to x. Fi-
+nally, we compute the alignment matrix A by inter-
+secting the two similarity matrices:
+
+3)
+
+Ajj _ b if (Say)ij > cand (Sya)ji >c
+0 otherwise
+
+where c is the alignment threshold and A4;; = 1
+indicates that two tokens are aligned. As the MT
+encoder operates on the level of sub-word tokens,
+we consider two words to be aligned if any of their
+sub-word tokens are aligned, in line with the prior
+WA work (Jalili Sabet et al., 2020; Dou and Neubig,
+2021; Wang et al., 2022).
+
+Fine-Tuning for Word Alignment. Addition-
+ally, we explore fine-tuning TransAlign on a word
+alignment-specific objective to further improve per-
+formance. Different from related work—that em-
+ployed full fine-tuning (Dou and Neubig, 2021;
+Wang et al., 2022) or adapter-based fine-tuning
+(Wang et al., 2022)—we opt for LoRA (Hu et al.,
+2022) as it does not increase model depth while
+maintaining parameter efficiency. We resort to the
+following loss function for WA fine-tuning:
+
+~ n m
+2)
+
+where A refers to the gold alignments from the
+labeled data and n (or m) is the number of tokens
+in sentence x (or y) (Dou and Neubig, 2021; Wang
+et al., 2022).
+
+3 Experiments
+
+With label projection as the key remaining appli-
+cation of WAs, we first evaluate TransAlign on
+translation-based XLT for token classification. We
+then additionally benchmark TransAlign intrinsi-
+cally on word alignment itself.
+
+3.1 Experimental Setup
+
+Extrinsic Evaluation. We evaluate T-Test! as
+our translation-based XLT strategy: at inference,
+
+'T-Test is shown to outperform T-Train (Le et al., 2024;
+Ebing and Glavas, 2025).
+
+
+the original target language sentence is translated
+into English. We then gather predictions for the
+translated English sentence from a fine-tuned down-
+stream mLM. Next, we use a WA to extract pair-
+wise alignments between the tokens in the trans-
+lated English sentence and the original target lan-
+guage sentence. Having obtained the alignments,
+we follow the span-based label projection algo-
+rithm of Ebing and Glava§ (2025)? to map the
+predictions back to the target language sentence.
+We compare TransAlign against two popular WAs:
+(i) AwsmAlign (Dou and Neubig, 2021), based
+on multilingual BERT, and (ii) AccAlign (Wang
+et al., 2022), based on the multilingual sentence
+encoder LaBSE. We utilize the word alignment-
+specific fine-tuned variants of all WAs. For a fair
+comparison between WAs, we follow the same fine-
+tuning protocol and extract alignments following
+the same procedure as described in section 2. Addi-
+tionally, we benchmark TransAlign against Codec
+(Le et al., 2024): a state-of-the-art non- WA-based
+label projection method that projects the predic-
+tions back to the original target language sentence
+by means of constrained decoding. We evaluate
+for 28 diverse languages on two established to-
+ken classification tasks: named entity recognition
+(NER) and slot labeling (SL). For NER, we utilize
+MasakhaNER?2.0 (Masakha) (Adelani et al., 2022),
+which encompasses low-resource languages from
+Sub-Saharan Africa. For SL, the evaluation dataset
+is xSID (van der Goot et al., 2021), covering mid-
+to high-resource languages and dialects. For our
+downstream mLMs, we fine-tune XLM-R Large
+(Conneau et al., 2020) and DeBERTaV3 Large (He
+et al., 2023) on the English portion of our data. We
+run experiments with 3 random seeds and report the
+mean F; score and standard deviation. We provide
+details for the extrinsic evaluation in Appendix A.
+
+Intrinsic Evaluation. We evaluate TransAlign
+on 8 language pairs: en-cz/de/fr/hi/ja/ro/sv/zh and
+compare it against the same WA baselines. All
+WAS are evaluated in their non-fine-tuned variant.
+We report AER for each language pair. We provide
+details of the intrinsic evaluation in Appendix B.
+
+TransAlign. For both extrinsic and intrinsic eval-
+uation, we use the encoder of the distilled 600M
+parameter version of NLLB (Team et al., 2022) as
+the backbone of TransAlign. We extract alignments
+
+The algorithm projects labels across spans and not indi-
+vidual tokens, and can compensate for some word alignment
+errors. For details, we refer the reader to the original work.
+
+Masakha xSID Avg
+ZS X 52.9418 76.5+1.4 64.7+11.7
+Translate-Test: non-WA
+Codec X 72.0405 80.140.3 76.140.4
+Codec D 72.4104 80.240.4 76.3+0.4
+Translate-Test: WA
+AwsmAlign ~~ X 68.410.4 78.840.3 73.6+0.4
+AwsmAlign ~~ D 68.8+0.4 78.740.4 73.840.4
+AccAlign X 72.310.4 80.940.3 76.6+0.4
+AccAlign D 72.710.4 80.8+0.4 76.840.4
+TransAlign X 73.9+0.4 82.2104 78.140.4
+TransAlign D 74.310.4 82.2104 78.3+0.4
+
+Table 1: Main results for translation-based XLT for
+token classification. Results with XILM-R (X) and De-
+BERTa (D). All WA models are evaluated in their fine-
+tuned variant. We report mean F1.
+
+after the last (i.e., 12th) layer using an alignment
+threshold of ¢ = 0.001.
+
+3.2 Main Results
+
+Extrinsic Evaluation. Table 1 outlines the T-Test
+results for the fine-tuned WAs and Codec. We
+demonstrate that all T-Test strategies exceed zero-
+shot XLT substantially reaching an improvement
+of up to 13.4% on average (with TransAlign and
+XLM-R). Comparing TransAlign against the other
+WA baselines, we find it to clearly outperform
+AwsmAlign and AccAlign by 5.5% and 1.5% on
+average.> Not only does TransAlign outperform
+popular WAs in translation-based XLT for token
+classification, but it also improves over the compet-
+itive non-WA-based label projection method Codec
+by 2% on average. This finding is noteworthy as
+TransAlign is a fair baseline for Codec: both ap-
+proaches use a fine-tuned NLLB model of the same
+size for label projection. However, TransAlign is
+computationally more efficient as it only uses the
+encoder of NLLB and thus avoids the costly con-
+strained decoding of Codec (Le et al., 2024).
+
+Intrinsic Evaluation. We present the results for
+intrinsic evaluation in Table 2. Considering all
+words in the source and target sentence equally, we
+find that TransAlign produces the best results for
+4 out of 8 language pairs (AccAlign reaches the
+best performance on the remaining ones). While
+TransAlign and AccAlign perform similarly on
+
+3Since TransAlign covers substantially more languages
+than AccAlign, we provide additional experiments demon-
+strating that the improved performance does not stem from
+broader language coverage (see Appendix E).
+
+
+en-zh en-cs en-fr en-de en-hi en-ja en-ro en-sv
+All Words
+
+AwsmAlign 18.2 12.3 6.3 18.6 42.9 46.2 289 99
+AccAlign 16.2 93 5.2 16.4 30.4 433 20.8 17.3
+TransAlign 18.8 89 6.8 17.7 29.4 43.2 20.6 7.8
+
+w/o Stopwords
+
+AwsmAlign 12.5 10.6 5.3 14.2 35.6 35.3 22.0 9.2
+AccAlign 10.7 6.8 4.3 11.6 249 375 16.1 58
+TransAlign 10.6 6.3 4.0 11.8 23.4 365 15.2 5.1
+
+Table 2: Main results for word alignment evaluation.
+All WA models are evaluated in their vanilla (non-fine-
+tuned) variant. We report the AER considering all words
+and without considering stopwords.
+
+alignment itself, our TransAlign exhibited stronger
+downstream XLT performance (Table 1). For exam-
+ple, in intrinsic evaluation, AccAlign outperforms
+TransAlign for Chinese and German by 2.6% and
+1.3%, respectively. In contrast, for T-Test on xSID
+(see App. G), the trend turns around: TransAlign
+outperforms AccAlign for both Chinese (0.7%) and
+German (2.2%).
+
+These results point to a mismatch between the
+standard word alignment evaluation that treats each
+word in the input as equally important and label
+projection for translation-based XLT that requires
+correct alignments on a subset of the input sentence.
+Commonly, labeled spans in downstream evalua-
+tion span words that carry meaning (e.g., named
+entities). We thus additionally report the align-
+ment results by excluding stopwords—words with
+little semantic meaning—from the evaluation. Re-
+sults presented in Table 2 (bottom half) support our
+hypothesis: not accounting for the (accuracy of)
+stopword alignment, TransAlign outperforms both
+baselines consistently: this means it produces more
+accurate alignments between content words, which
+explains why it yields downstream XLT gains.
+
+3.3 Analysis
+
+Performance per Layer. The layer from which
+we extract the alignments can have a substantial
+impact on performance (Jalili Sabet et al., 2020;
+Dou and Neubig, 2021; Wang et al., 2022). Fig-
+ure 1 shows the average AER performance for all
+layers of vanilla TransAlign: using the last layer
+of TransAlign substantially outperforms using any
+other layer.
+
+Alignment Threshold. The threshold parameter
+c decides whether two tokens are considered to be
+aligned. We ablate the choice of c for all WAs in
+
+40 -
+30 -
+
+20 -
+
+2 4 6 8 10 12
+
+Figure 1: Word alignment performance across layers of
+vanilla TransAlign. We present the average AER over
+all 8 language pairs.
+
+40 -
+m— AwsmAlign
+= AccAlign
+
+30 - TransAlign
+
+20 - —
+
+1 1 1 1 [
+10-5 10-4 1073 10-2 10-1!
+
+Figure 2: Word alignment performance for different
+thresholds of c. We evaluate vanilla WAs and present
+the average AER over all 8 language pairs.
+
+their vanilla variant (see Figure 2). While AwsmA-
+lign and TransAlign are robust to the threshold
+value, we find AccAlign’s performance to severely
+vary with the value of c.
+
+Impact of WA Fine-Tuning. We obtained the best
+results for our WA-fine-tuned TransAlign (Table
+1). We next assess the contribution of word align-
+ment fine-tuning for all WAs on downstream MT-
+based XLT performance (see Table 3). We find that
+fine-tuning improves the XLT results for all WAs,
+but the gains are more pronounced for WAs with
+weaker initial performance: AwsmAlign improves
+by 3.6% compared to 0.6% for TransAlign. We
+also note that using a stronger WA model is more
+beneficial than fine-tuning: vanilla TransAlign out-
+performs the WA-fine-tuned AccAlign by 0.7%.
+
+Masakha xSID Avg
+Non-Fine-Tuned WAs
+AwsmAlign 66.2+0.3 74.140. 70.240.3
+AccAlign 71.2404 80.0+0.4 75.6+0.4
+TransAlign 73.5+0.4 81.840.4 T7.7+0.4
+Fine-Tuned WAs
+AwsmAlign 68.8+0.4 78.740.4 73.840.4
+AccAlign 72.7+0.4 80.8+0.4 76.840.4
+TransAlign 74.3104 82.2104 78.3404
+
+Table 3: Impact of WA fine-tuning on translation-based
+XLT for token classification. Results with DeBERTa.
+
+4 Conclusion
+
+In this work, we proposed TransAlign, a new
+word aligner (WA) that leverages the encoder of
+
+
+NLLB, a massively multilingual encoder-decoder
+MT model. Our extrinsic evaluation on translation-
+based XLT for token classification on two estab-
+lished benchmarks covering 28 languages, shows
+that Trans Align outperforms popular existing WAs
+as well as state-of-the-art non-WA-based label
+projection methods. Furthermore, our intrinsic
+word alignment evaluation reveals that, Trans Align
+aligns content words (rather than functional words)
+in particular better than existing WAs, which then
+reflects in downstream XLT gains.
+
+5 Limitations
+
+We focused on choosing well-established and rep-
+resentative tasks for token classification. However,
+in NLP, multilingual evaluation benchmarks are
+often created by translating the data from an ex-
+isting high-resource language followed by post-
+editing. This applies to xSID and some languages
+of Masakha. As a result, the newly introduced
+languages might contain translation artifacts re-
+ferred to as translationese. Prior work (Artetxe
+et al., 2020, 2023) stated that translation-based
+XLT strategies might lead to exploitation of trans-
+lationese, slightly overestimating performance.
+
+Our intrinsic evaluation points to a potential mis-
+match between the word alignment task and the
+extrinsic evaluation on translation-based XLT for
+token classification. Our results suggest that the
+mismatch stems from the discrepancy of treating all
+words equally (intrinsic evaluation) against focus-
+ing on a specific subset of words (extrinsic evalua-
+tion). While we hypothesize as to why MT models
+perform worse in aligning words with little seman-
+tic meaning than sentence encoders, further work
+is needed to test our hypothesis.
+
+Acknowledgments
+
+Simulations were performed with computing re-
+sources from Julia 2. Julia 2 was funded as DFG
+project as “Forschungsgrofigerit nach Art 91b GG”
+under INST 93/1145-1 FUGG". Further, simula-
+tions were performed with computing resources
+granted by WestAl under project westai8850.
+
+References
+
+David Ifeoluwa Adelani, Graham Neubig, Sebastian
+Ruder, Shruti Rijhwani, Michael Beukman, Chester
+Palen-Michel, Constantine Lignos, Jesujoba O. Al-
+abi, Shamsuddeen H. Muhammad, Peter Nabende,
+
+Cheikh M. Bamba Dione, Andiswa Bukula, Roowei-
+ther Mabuya, Bonaventure F. P. Dossou, Blessing
+Sibanda, Happy Buzaaba, Jonathan Mukiibi, Godson
+Kalipe, Derguene Mbaye, Amelia Taylor, Fatoumata
+Kabore, Chris Chinenye Emezue, Anuoluwapo
+Aremu, Perez Ogayo, Catherine Gitau, Edwin
+Munkoh-Buabeng, Victoire Memdjokam Koagne, Al-
+lahsera Auguste Tapo, Tebogo Macucwa, Vukosi
+Marivate, Elvis Mboning, Tajuddeen Gwadabe, Tosin
+Adewumi, Orevaoghene Ahia, Joyce Nakatumba-
+Nabende, Neo L. Mokono, Ignatius Ezeani, Chia-
+maka Chukwuneke, Mofetoluwa Adeyemi, Gilles Q.
+Hacheme, Idris Abdulmumim, Odunayo Ogundepo,
+Oreen Yousuf, Tatiana Moteu Ngoli, and Dietrich
+Klakow. 2022. MasakhaNER 2.0: Africa-centric
+transfer learning for named entity recognition. In Pro-
+ceedings of the 2022 Conference on Empirical Meth-
+ods in Natural Language Processing, pages 4488—
+4508, Abu Dhabi, United Arab Emirates. Association
+for Computational Linguistics.
+
+Divyanshu Aggarwal, Vivek Gupta, and Anoop
+Kunchukuttan. 2022. IndicXNLI: Evaluating multi-
+lingual inference for Indian languages. In Proceed-
+ings of the 2022 Conference on Empirical Methods in
+Natural Language Processing, pages 10994-11006,
+Abu Dhabi, United Arab Emirates. Association for
+Computational Linguistics.
+
+Mikel Artetxe, Vedanuj Goswami, Shruti Bhosale, An-
+gela Fan, and Luke Zettlemoyer. 2023. Revisiting
+machine translation for cross-lingual classification.
+In Proceedings of the 2023 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+6489-6499, Singapore. Association for Computa-
+tional Linguistics.
+
+Mikel Artetxe, Gorka Labaka, and Eneko Agirre. 2020.
+Translation artifacts in cross-lingual transfer learning.
+In Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP),
+pages 7674-7684, Online. Association for Computa-
+tional Linguistics.
+
+Niraj Aswani and Robert Gaizauskas. 2005. Aligning
+words in English-Hindi parallel corpora. In Proceed-
+ings of the ACL Workshop on Building and Using
+Parallel Texts, pages 115-118, Ann Arbor, Michigan.
+Association for Computational Linguistics.
+
+Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Ben-
+gio. 2015. Neural machine translation by jointly
+learning to align and translate. In 3rd International
+Conference on Learning Representations, ICLR 2015,
+San Diego, CA, USA, May 7-9, 2015, Conference
+Track Proceedings.
+
+Mehmet Talha Cakmak, Siilleyman Acar, and Giilsen
+Eryigit. 2012. Word alignment for English-Turkish
+language pair. In Proceedings of the Eighth Inter-
+national Conference on Language Resources and
+Evaluation (LREC‘12), pages 2177-2180, Istanbul,
+Turkey. European Language Resources Association
+(ELRA).
+
+
+Chris Callison-Burch, David Talbot, and Miles Osborne.
+2004. Statistical machine translation with word- and
+sentence-aligned parallel corpora. In Proceedings
+of the 42nd Annual Meeting of the Association for
+Computational Linguistics (ACL-04), pages 175-182,
+Barcelona, Spain.
+
+Yang Chen, Chao Jiang, Alan Ritter, and Wei Xu. 2023.
+Frustratingly easy label projection for cross-lingual
+transfer. In Findings of the Association for Compu-
+tational Linguistics: ACL 2023, pages 5775-5796,
+Toronto, Canada. Association for Computational Lin-
+guistics.
+
+Alexis Conneau, Kartikay Khandelwal, Naman Goyal,
+Vishrav Chaudhary, Guillaume Wenzek, Francisco
+Guzman, Edouard Grave, Myle Ott, Luke Zettle-
+moyer, and Veselin Stoyanov. 2020. Unsupervised
+cross-lingual representation learning at scale. In Pro-
+ceedings of the 58th Annual Meeting of the Asso-
+ciation for Computational Linguistics, pages 8440—
+8451, Online. Association for Computational Lin-
+guistics.
+
+Alice Coucke, Alaa Saade, Adrien Ball, Théodore
+Bluche, Alexandre Caulier, David Leroy, Clément
+Doumouro, Thibault Gisselbrecht, Francesco Calt-
+agirone, Thibaut Lavril, Maél Primet, and Joseph
+Dureau. 2018. Snips voice platform: an embedded
+spoken language understanding system for private-by-
+design voice interfaces. Preprint, arXiv:1805.10190.
+
+Zi-Yi Dou and Graham Neubig. 2021. Word alignment
+by fine-tuning embeddings on parallel corpora. In
+Proceedings of the 16th Conference of the European
+Chapter of the Association for Computational Lin-
+guistics: Main Volume, pages 2112-2128, Online.
+Association for Computational Linguistics.
+
+Long Duong, Paul Cook, Steven Bird, and Pavel Pecina.
+2013. Simpler unsupervised POS tagging with bilin-
+gual projections. In Proceedings of the 51st Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 2: Short Papers), pages 634-639,
+Sofia, Bulgaria. Association for Computational Lin-
+guistics.
+
+Chris Dyer, Victor Chahuneau, and Noah A. Smith.
+2013. A simple, fast, and effective reparameteriza-
+tion of IBM model 2. In Proceedings of the 2013
+Conference of the North American Chapter of the
+Association for Computational Linguistics: Human
+Language Technologies, pages 644-648, Atlanta,
+Georgia. Association for Computational Linguistics.
+
+Benedikt Ebing and Goran Glava$. 2024. To trans-
+late or not to translate: A systematic investigation
+of translation-based cross-lingual transfer to low-
+resource languages. In Proceedings of the 2024
+Conference of the North American Chapter of the
+Association for Computational Linguistics: Human
+Language Technologies (Volume 1: Long Papers),
+pages 5325-5344, Mexico City, Mexico. Association
+for Computational Linguistics.
+
+Benedikt Ebing and Goran Glavas. 2025. The devil is
+in the word alignment details: On translation-based
+cross-lingual transfer for token classification tasks.
+Preprint, arXiv:2505.10507.
+
+Abteen Ebrahimi, Manuel Mager, Arturo Oncevay,
+Vishrav Chaudhary, Luis Chiruzzo, Angela Fan, John
+Ortega, Ricardo Ramos, Annette Rios, Ivan Vladimir
+Meza Ruiz, Gustavo Giménez-Lugo, Elisabeth
+Mager, Graham Neubig, Alexis Palmer, Rolando
+Coto-Solano, Thang Vu, and Katharina Kann. 2022.
+AmericasNLI: Evaluating zero-shot natural language
+understanding of pretrained multilingual models in
+truly low-resource languages. In Proceedings of the
+60th Annual Meeting of the Association for Compu-
+tational Linguistics (Volume 1: Long Papers), pages
+6279-6299, Dublin, Ireland. Association for Compu-
+tational Linguistics.
+
+Michael Elhadad. 2010. Book review: Natural language
+processing with python by steven bird, ewan Klein,
+and edward loper. Computational Linguistics, 36(4).
+
+Ramy Eskander, Smaranda Muresan, and Michael
+Collins. 2020. Unsupervised cross-lingual part-of-
+speech tagging for truly low-resource scenarios. In
+Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP),
+pages 4820-4831, Online. Association for Computa-
+tional Linguistics.
+
+Hao Fei, Meishan Zhang, and Donghong Ji. 2020.
+Cross-lingual semantic role labeling with high-
+quality translated training corpus. In Proceedings
+of the 58th Annual Meeting of the Association for
+Computational Linguistics, pages 7014-7026, On-
+line. Association for Computational Linguistics.
+
+Javier Ferrando and Marta R. Costa-jussa. 2021. Atten-
+tion weights in transformer NMT fail aligning words
+between sequences but largely explain model predic-
+tions. In Findings of the Association for Computa-
+tional Linguistics: EMNLP 2021, pages 434-443,
+Punta Cana, Dominican Republic. Association for
+Computational Linguistics.
+
+Iker Garcia-Ferrero, Rodrigo Agerri, and German Rigau.
+2023. T-projection: High quality annotation projec-
+tion for sequence labeling tasks. In Findings of the
+Association for Computational Linguistics: EMNLP
+2023, pages 15203-15217, Singapore. Association
+for Computational Linguistics.
+
+Hamidreza Ghader and Christof Monz. 2017. What
+does attention in neural machine translation pay atten-
+tion to? In Proceedings of the Eighth International
+Joint Conference on Natural Language Processing
+(Volume 1: Long Papers), pages 30-39, Taipei, Tai-
+wan. Asian Federation of Natural Language Process-
+ing.
+
+Jodo Gracga, Joana Paulo Pardal, Luisa Coheur, and Dia-
+mantino Caseiro. 2008. Building a golden collec-
+tion of parallel multi-language word alignment. In
+Proceedings of the Sixth International Conference
+
+
+on Language Resources and Evaluation (LREC 08),
+Marrakech, Morocco. European Language Resources
+Association (ELRA).
+
+Pengcheng He, Jianfeng Gao, and Weizhu Chen. 2023.
+Debertav3: Improving deberta using electra-style pre-
+training with gradient-disentangled embedding shar-
+ing. Preprint, arXiv:2111.09543.
+
+Maria Holmqvist and Lars Ahrenberg. 2011. A gold
+standard for English-Swedish word alignment. In
+Proceedings of the 18th Nordic Conference of Compu-
+tational Linguistics (NODALIDA 2011), pages 106—
+113, Riga, Latvia. Northern European Association
+for Language Technology (NEALT).
+
+Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan
+Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and
+Weizhu Chen. 2022. Lora: Low-rank adaptation of
+large language models. In The Tenth International
+Conference on Learning Representations, ICLR 2022,
+Virtual Event, April 25-29, 2022. OpenReview.net.
+
+Junjie Hu, Sebastian Ruder, Aditya Siddhant, Gra-
+ham Neubig, Orhan Firat, and Melvin Johnson.
+2020. XTREME: A massively multilingual multi-
+task benchmark for evaluating cross-lingual gener-
+alisation. In Proceedings of the 37th International
+Conference on Machine Learning, volume 119 of
+Proceedings of Machine Learning Research, pages
+4411-4421. PMLR.
+
+Masoud Jalili Sabet, Philipp Dufter, Francois Yvon,
+and Hinrich Schiitze. 2020. SimAlign: High qual-
+ity word alignments without parallel training data
+using static and contextualized embeddings. In Find-
+ings of the Association for Computational Linguistics:
+EMNLP 2020, pages 1627-1643, Online. Association
+for Computational Linguistics.
+
+Philipp Koehn, Hieu Hoang, Alexandra Birch, Chris
+Callison-Burch, Marcello Federico, Nicola Bertoldi,
+Brooke Cowan, Wade Shen, Christine Moran,
+Richard Zens, Chris Dyer, Ondrej Bojar, Alexandra
+Constantin, and Evan Herbst. 2007. Moses: Open
+source toolkit for statistical machine translation. In
+Proceedings of the 45th Annual Meeting of the As-
+sociation for Computational Linguistics Companion
+Volume Proceedings of the Demo and Poster Sessions,
+pages 177-180, Prague, Czech Republic. Association
+for Computational Linguistics.
+
+Anne Lauscher, Vinit Ravishankar, Ivan Vuli¢, and
+Goran Glavas. 2020. From zero to hero: On the
+limitations of zero-shot language transfer with mul-
+tilingual Transformers. In Proceedings of the 2020
+Conference on Empirical Methods in Natural Lan-
+guage Processing (EMNLP), pages 4483-4499, On-
+line. Association for Computational Linguistics.
+
+Duong Minh Le, Yang Chen, Alan Ritter, and Wei Xu.
+2024. Constrained decoding for cross-lingual label
+projection. In The Twelfth International Conference
+on Learning Representations, ICLR 2024, Vienna,
+Austria, May 7-11, 2024. OpenReview.net.
+
+Yang Liu and Maosong Sun. 2015. Contrastive unsu-
+pervised word alignment with non-local features. In
+Proceedings of the Twenty-Ninth AAAI Conference
+on Artificial Intelligence, AAAT’ 15, page 2295-2301.
+AAAI Press.
+
+Lieve Macken. 2010. An annotation scheme and gold
+standard for dutch-english word alignment. In LREC.
+
+David Marecek, Zdenek Zabokrtsky, and Viclav Novak.
+2008. Automatic alignment of Czech and English
+deep syntactic dependency trees. In Proceedings of
+the 12th Annual Conference of the European Associ-
+ation for Machine Translation, pages 103-113, Ham-
+burg, Germany. European Association for Machine
+Translation.
+
+Rada Mihalcea and Ted Pedersen. 2003. An evaluation
+exercise for word alignment. In Proceedings of the
+HLT-NAACL 2003 Workshop on Building and Using
+Parallel Texts: Data Driven Machine Translation and
+Beyond, pages 1-10.
+
+Graham Neubig. 2011. The Kyoto free translation task.
+http://www.phontron.com/kftt.
+
+Jian Ni, Georgiana Dinu, and Radu Florian. 2017.
+Weakly supervised cross-lingual named entity recog-
+nition via effective annotation and representation pro-
+jection. In Proceedings of the 55th Annual Meeting
+of the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 1470-1480, Vancouver,
+Canada. Association for Computational Linguistics.
+
+Franz Josef Och and Hermann Ney. 2003. A systematic
+comparison of various statistical alignment models.
+Computational Linguistics, 29(1):19-51.
+
+Tanmay Parekh, I-Hung Hsu, Kuan-Hao Huang, Kai-
+Wei Chang, and Nanyun Peng. 2024. Contextual
+label projection for cross-lingual structured predic-
+tion. In Proceedings of the 2024 Conference of the
+North American Chapter of the Association for Com-
+putational Linguistics: Human Language Technolo-
+gies (Volume 1: Long Papers), pages 5738-5757,
+Mexico City, Mexico. Association for Computational
+Linguistics.
+
+Evgeniia Razumovskaia, Ivan Vulié¢, and Anna Korho-
+nen. 2023. Transfer-free data-efficient multilingual
+slot labeling. In Proceedings of the 2023 Conference
+on Empirical Methods in Natural Language Process-
+ing, pages 6041-6055, Singapore. Association for
+Computational Linguistics.
+
+Sebastian Ruder, Noah Constant, Jan Botha, Aditya Sid-
+dhant, Orhan Firat, Jinlan Fu, Pengfei Liu, Junjie
+Hu, Dan Garrette, Graham Neubig, and Melvin John-
+son. 2021. XTREME-R: Towards more challenging
+and nuanced multilingual evaluation. In Proceedings
+of the 2021 Conference on Empirical Methods in
+Natural Language Processing, pages 10215-10245,
+Online and Punta Cana, Dominican Republic. Asso-
+ciation for Computational Linguistics.
+
+
+Fabian David Schmidt, Ivan Vuli¢, and Goran Glavas.
+2022. Don‘t stop fine-tuning: On training regimes
+for few-shot cross-lingual transfer with multilingual
+language models. In Proceedings of the 2022 Con-
+ference on Empirical Methods in Natural Language
+Processing, pages 10725-10742, Abu Dhabi, United
+Arab Emirates. Association for Computational Lin-
+guistics.
+
+Sebastian Schuster, Sonal Gupta, Rushin Shah, and
+Mike Lewis. 2019. Cross-lingual transfer learning
+for multilingual task oriented dialog. In Proceedings
+of the 2019 Conference of the North American Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies, Volume 1 (Long and
+Short Papers), pages 3795-3805, Minneapolis, Min-
+nesota. Association for Computational Linguistics.
+
+Elias Stengel-Eskin, Tzu-ray Su, Matt Post, and Ben-
+jamin Van Durme. 2019. A discriminative neural
+model for cross-lingual word alignment. In Proceed-
+ings of the 2019 Conference on Empirical Methods
+in Natural Language Processing and the 9th Inter-
+national Joint Conference on Natural Language Pro-
+cessing (EMNLP-IJCNLP), pages 910-920, Hong
+Kong, China. Association for Computational Lin-
+guistics.
+
+NLLB Team, Marta R. Costa-jussa, James Cross, Onur
+Celebi, Maha Elbayad, Kenneth Heafield, Kevin Hef-
+fernan, Elahe Kalbassi, Janice Lam, Daniel Licht,
+Jean Maillard, Anna Sun, Skyler Wang, Guillaume
+Wenzek, Al Youngblood, Bapi Akula, Loic Bar-
+rault, Gabriel Mejia Gonzalez, Prangthip Hansanti,
+John Hoffman, Semarley Jarrett, Kaushik Ram
+Sadagopan, Dirk Rowe, Shannon Spruit, Chau
+Tran, Pierre Andrews, Necip Fazil Ayan, Shruti
+Bhosale, Sergey Edunov, Angela Fan, Cynthia
+Gao, Vedanuj Goswami, Francisco Guzman, Philipp
+Koehn, Alexandre Mourachko, Christophe Rop-
+ers, Safiyyah Saleem, Holger Schwenk, and Jeff
+Wang. 2022. No language left behind: Scal-
+ing human-centered machine translation. Preprint,
+arXiv:2207.04672.
+
+Erik F. Tjong Kim Sang and Fien De Meulder.
+2003. Introduction to the CoNLL-2003 shared task:
+Language-independent named entity recognition. In
+Proceedings of the Seventh Conference on Natural
+Language Learning at HLT-NAACL 2003, pages 142—
+147.
+
+Rob van der Goot, Ibrahim Sharaf, Aizhan Imankulova,
+Ahmet Ustiin, Marija Stepanovié, Alan Ramponi,
+Siti Oryza Khairunnisa, Mamoru Komachi, and Bar-
+bara Plank. 2021. From masked language modeling
+to translation: Non-English auxiliary tasks improve
+zero-shot spoken language understanding. In Pro-
+ceedings of the 2021 Conference of the North Amer-
+ican Chapter of the Association for Computational
+Linguistics: Human Language Technologies, pages
+2479-2497, Online. Association for Computational
+Linguistics.
+
+David Vilar, Maja Popovic, and Hermann Ney. 2006.
+AER: do we need to “improve” our alignments? In
+
+Proceedings of the Third International Workshop on
+Spoken Language Translation: Papers, Kyoto, Japan.
+
+Weikang Wang, Guanhua Chen, Hanging Wang, Yue
+Han, and Yun Chen. 2022. Multilingual sentence
+transformer as a multilingual word aligner. In Find-
+ings of the Association for Computational Linguistics:
+EMNLP 2022, pages 2952-2963, Abu Dhabi, United
+Arab Emirates. Association for Computational Lin-
+guistics.
+
+Zihan Wang, Stephen Mayhew, Dan Roth, et al. 2019.
+Cross-lingual ability of multilingual bert: An empiri-
+cal study. arXiv preprint arXiv:1912.07840.
+
+Shijie Wu and Mark Dredze. 2019. Beto, bentz, becas:
+The surprising cross-lingual effectiveness of BERT.
+In Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing and the 9th
+International Joint Conference on Natural Language
+Processing (EMNLP-1IJCNLP), pages 833-844, Hong
+Kong, China. Association for Computational Linguis-
+tics.
+
+A Experimental Details: Extrinsic
+Evaluation
+
+Machine Translation. For translation, we utilize
+the state-of-the-art massively multilingual NLLB
+model with 3.3B parameters (Team et al., 2022).
+Following prior work (Artetxe et al., 2023; Ebing
+and Glavas, 2024; Ebing and Glavas, 2025), we
+decode using beam search with a beam size of
+5. For Masakha (Adelani et al., 2022) and xSID
+(van der Goot et al., 2021), we concatenated the pre-
+tokenized input on whitespace before translation.
+We deviate from this for the Chinese data in xSID,
+where we merge Chinese tokens without whites-
+pace. Additionally, the dialect South Tyrol (de-st)
+in xSID is not supported by NLLB. We translate
+the dialect pretending it to be German (i.e., using
+the German language code) as it is closely related
+to the latter. We accessed all datasets through the
+Hugging Face library and ensured compliance with
+the licenses. All translations were run on a single
+A100 with 40GB VRAM.
+
+Word Aligners. We will publicly release our
+word alignment code (Apache 2.0 license) and the
+model checkpoints for the fine-tuned TransAlign
+(CC-BY-NC 4.0 license). Next to TransAlign, we
+re-implemented two popular word aligners as our
+baselines: AwsmAlign (Dou and Neubig, 2021)
+and AccAlign (Wang et al., 2022). We chose the
+code repository of SimAlign (Jalili Sabet et al.,
+2020) as the starting point for our implementa-
+tion. We accessed the code through their repos-
+itory: (https://github.com/cisnlp/simalign). Follow-
+
+
+ing Dou and Neubig (2021), we extracted align-
+ments for AwsmAlign after the 8th layer using an
+alignment threshold of ¢ = 0.001. For AccAlign,
+we use the 6th layer and an alignment threshold of
+c = 0.1 (Wang et al., 2022). We comply with the
+licenses of AwsmAlign (BSD 3-Clause) and SimA-
+lign (MIT). We could not find licensing information
+for AccAlign.
+
+Codec. Codec (Le et al., 2024) is a label projec-
+tion method that leverages constrained decoding
+as part of a two-step translation procedure. In the
+first step, the source sentence is translated into the
+target language (e.g., from English: “This is New
+York” to German: “Das ist New York”). Then, in
+the second step, tags are inserted around the la-
+beled spans in the source sentence (English: “This
+is [ New York ]”). The marked sentence is fed
+again as input to the MT model: during decod-
+ing, the MT model is now constrained to gener-
+ate only the tokens from the translation obtained
+in the first step (“Das”, “ist”, “New”, “York™)
+or a tag (“[”, “]”). We chose Codec as a repre-
+sentative method for non-WA-based label projec-
+tion: Ebing and Glavas$ (2025) suggest that Codec
+performs on par or better than comparable non-
+WA-based label projection methods (Chen et al.,
+2023; Garcia-Ferrero et al., 2023; Parekh et al.,
+2024). To project the labels for T-Test, we used
+the publicly available code repository of Codec:
+https://github.com/duonglm38/Codec. While an
+implementation for Masakha is already provided,
+we extended their implementation to handle label
+projection for xSID. We adhered to the hyperparam-
+eters in their repository and followed the existing
+implementation closely. The constrained decoding
+(i.e., inserting the tags post-translation) requires
+a fine-tuned NLLB that is able to preserve/insert
+tags. Therefore, we follow Le et al. (2024) using
+the fine-tuned 600M parameter version of NLLB
+released by Chen et al. (2023). We could not find
+licensing information for Codec.
+
+Label Projection. We follow the span-based label
+projection procedure used by (Ebing and Glavas,
+2025). The algorithm projects labels across spans
+and not individual tokens and can compensate for
+some word alignment errors. For details, we refer
+the reader to the original work. Unlike their work,
+we do not apply filtering heuristics for T-Test.
+
+Word Aligner Fine-Tuning. For fine-tuning, we
+apply LoRA to the feed-forward sublayer of each
+encoder layer. We train each WA for 20 epochs
+
+using a learning rate of le. The rank is set to
+8 and alpha to 32. We apply LoRA dropout with
+0.01. For WA training, we utilize the labeled data
+from the intrinsic evaluation (see Table 7).
+
+Downstream Fine-Tuning. We train both tasks
+(NER and SL) for 10 epochs using an effective
+batch size of 32. In case we can not fit the desired
+batch size, we utilize gradient accumulation. The
+learning rate is set to le~> with a weight decay
+of 0.01. We implement a linear schedule of 10%
+warm-up and employ mixed precision. We evaluate
+models at the last checkpoint of training. We use
+the seqeval F1 implementation accessed through
+the Hugging Face library. Further, we access our
+downstream models—XLM-RoBERTa Large and
+DeBERTaV3 Large—through the Hugging Face
+library. All downstream training and evaluation
+runs were completed on a single V100 with 32GB
+VRAM. We estimate the GPU time to be 2000
+hours across all translations and downstream fine-
+tunings.
+
+Datasets.
+
+MasakhaNER2.0. Our experiments cover 18 out
+of 20 languages that are supported by NLLB. Note
+that Google Translate (GT) does not support all 18
+languages. Following, we mark the 11 languages
+that are supported by GT with an additional as-
+terisk: Bambara (bam)*, Ewé (ewe)*, Fon (fon),
+Hausa (hau)*, Igbo (ibo)*, Kinyarwanda (kin)*,
+Luganda (lug), Luo (luo), Mossi (most), Chichewa
+(nya), chiShona (sna)*, Kiswahili (saw)*, Setswana
+(tsn), Akan/Twi (twi)*, Wolof (wol), isiXhosa
+(xho)*, Yorurbd (yor)*, and isiZulu (zul)*. As
+source data, we use the English training (14k in-
+stances) and validation portions (3250 instances) of
+CoNLL (Tjong Kim Sang and De Meulder, 2003).
+
+xSID. We evaluate 10 languages all covered by
+NLLB and GT: Arabic (ar), Danish (da), Ger-
+man (de), South-Tyrolean (de-st), Indonesian (id),
+Italian (it), Kazakh (kk), Dutch (nl), Turkish (tr),
+and Chinese (zh). Following Razumovskaia et al.
+(2023), we excluded Japanese from the evaluation
+because it only has half of the validation and test
+instances and spans only a fraction of entities com-
+pared to the other languages. Moreover, we ex-
+clude Serbian as the evaluation data is written in the
+Latin script whereas NLLB was only trained in the
+Cyrillic script. xSID is an evaluation-only dataset.
+Therefore, we follow van der Goot et al. (2021) and
+use their publicly released English data for training
+
+
+and validation. The instances are sourced from the
+Snips (Coucke et al., 2018) and Facebook (Schus-
+ter et al., 2019) SL datasets. We deduplicate the
+training instances, ending up with over 36k training
+and 300 validation examples.
+
+B Experimental Details: Intrinsic
+Evaluation
+
+Word Alignment Baselines. We use the same
+WA models as for the extrinsic evaluation—
+AwsmAlign and AccAlign (see App. A). All WAs
+are evaluated in their non-fine-tuned variant.
+
+Languages. We evaluate the following 8 lan-
+guage pairs: English-Chinese (en-zh), English-
+Czech (en-cz), English-French (en-fr), English-
+German (en-de), English-Hindi (en-hi), English-
+Japanese (en-ja), English-Romanian (en-ro) and
+English-Swedish (en-sv). We provide details on
+the used datasets in Table 7.
+
+Stopword Filtering. For the results in Table 2,
+we applied stopword filtering prior to AER com-
+putation. We identified stopwords from the En-
+glish source sentences using the stopword list pro-
+vided by NLTK (Elhadad, 2010) and removed cor-
+responding target language words accordingly. The
+NLTK source code is published under the Apache
+2.0 license. We comply with their license.
+
+C Further Analysis: Robustness of
+Fine-Tuning
+
+For the application of a fine-tuned WA model, only
+a single seed of a fine-tuned model will eventu-
+ally be used. Therefore, we ablate the variance of
+the random seed chosen for fine-tuning. We fine-
+tune AwsmAlign, AccAlign, and TransAlign on
+three distinct random seeds and evaluate them on
+translation-based XLT. The resulting variance is de-
+picted in Figure 3. We observe little impact by the
+choice of the random seed for TransAlign: for xSID
+the variance is comparable to that of AwsmAlign
+and AccAlign, while for Masakha, it is substan-
+tially lower.
+
+D Further Analysis: MT Model
+
+In translation-based XLT for token classification, it
+is pragmatic to use the encoder of the MT model
+for word alignment since (i) only a single model
+is required for the label projection pipeline (i.e.,
+translation and label projection) and (ii) the lan-
+guage coverage of target languages is ensured for
+
+0.4 +0.39 mm AwsmAlign
+’ Bm AccAlign
+
+pm TransAlign
+0.3
+
++0.26
+0.2
+0.1 +0.10
++0.02
+0.0 po — i
+Masakha xSID
+
+Figure 3: Variance of WA model fine-tuning with three
+distinct random seeds evaluated on translation-based
+XLT. Results with DeBERTa.
+
+Masakha xSID Avg
+AwsmAlign NLLB 69.2104 78.7404 74.0404
+AccAlign NLLB 73.7104 80.8104 77.3104
+TransAlign NLLB 75.1405 82.2404 78.7405
+AwsmAlign GT 70.6103 80.1104 75.3104
+AccAlign GT 75.2104 82.1104 78.6104
+TransAlign ~~ GT 76.4105 83.6104 80.0+to0.4
+
+Table 4: Results for translation-based XLT for token-
+level tasks with translations obtained from different MT
+models—Google Translation (GT) and NLLB (NLLB).
+Results with DeBERTa.
+
+both steps. However, open access to the encoder
+of the MT model is required. With closed com-
+mercial MT models being considered to produce
+superior translation quality, we explore whether
+the gains obtained by TransAlign are orthogonal to
+the MT model. Our results in Table 4 suggest that
+TransAlign does not depend on its own translations.
+The performance improvements obtained by label
+projection with TransAlign are orthogonal to gains
+obtained by higher translation quality.
+
+E Further Analysis: Language Coverage
+
+NLLB has seen substantially more languages in
+pretraining than LaBSE (200 vs. 109 languages).
+To ensure that performance improvements obtained
+by TransAlign do not simply stem from broader
+language coverage, we evaluate TransAlign and Ac-
+cAlign on a subset of languages seen in the pretrain-
+ing of both models. We observe that TransAlign
+still outperforms AccAlign even on a subset of lan-
+guages seen by both models (see Table 5).
+
+F Further Analysis: NLLB Model Size
+
+NLLB is released in different model sizes rang-
+ing from 600M up to 54B parameters. Table 6
+
+
+Masakha xSID Avg
+
+AccAlign 74.1405 83.210.4 78.7+0.4
+TransAlign 75.4+0.5 84.710.4 80.0+0.4
+
+Table 5: Results for translation-based XLT for token-
+level tasks only evaluating languages seen in the pre-
+training of both WAs. Results with DeBERTa.
+
+Masakha xSID Avg
+
+TransAlign ~~ 600M 74.3104 82.2104 78.3+0.4
+TransAlign ~~ 3.3B 74.5404 81.4104 78.0+to0.4
+
+Table 6: Results for translation-based XLT for token-
+level tasks with different sizes of NLLB as WA. Results
+with DeBERTa.
+
+compares the fine-tuned TransAlign in two differ-
+ent model sizes. We evaluate the 600M (distilled)
+and 3.3B parameter models on translation-based
+XLT for token classification. Our results reveal that
+the larger model does not provide any advantage.
+Hence, we used the 600M parameter model for our
+main results.
+
+
+Lang Source Link #Sents
+en-zh (Liu and Sun, 2015) ttps://nlp.csai.tsinghua.edu.cn/ ly/systems/TsinghuaAligner/TsinghuaAligner.html 450
+en-cs (Marecek et al., 2008) ttps://ufal.mff.cuni.cz/czech-english-manual-word-alignment 2400
+en-fr (Mihalcea and Pedersen, 2003) ttps://web.eecs.umich.edu/ mihalcea/wpt/ 447
+en-de (Vilar et al., 2006) ttps://www-i6.informatik.rwth-aachen.de/gold Alignment/ 508
+en-hi (Aswani and Gaizauskas, 2005) ttps://web.eecs.umich.edu/ mihalcea/wpt05/ 90
+en-ja (Neubig, 2011) ttps://www.phontron.com/kftt/ 582
+en-ro (Mihalcea and Pedersen, 2003) ttps://web.eecs.umich.edu/ mihalcea/wpt05/ 248
+en-sv (Holmqvist and Ahrenberg, 2011) ttps://www.ida.liu.se/divisions/hcs/nlplab/resources/ges/ 192
+en-nl (Macken, 2010) ttp://www.tst.inl.nl/ 372
+en-tr (Cakmak et al., 2012) ttps://web.itu.edu.tr/gulsenc/resources.htm 300
+en-es (Graga et al., 2008) ttps://www.hlt.inesc-id.pt/w/Word_Alignments 100
+en-pt (Graga et al., 2008) ttps://www.hlt.inesc-id.pt/w/Word_Alignments 100
+
+Table 7: Datasets used for intrinsic evaluation and fine-tuning of WAs. The upper half is used for intrinsic evaluation
+and WA fine-tuning, whereas the lower half is only used for WA fine-tuning. For the fine-tuning, we held out 100
+randomly selected instances of the en-cs dataset as validation portion.
+
+G Detailed Results: Main Results
+
+bam ewe fon hau ibo kin lug luo mos nya sna swa tsn twi  wol xho yor zul Avg
+
+VA X 434 728 61.0 735 499 463 649 550 56.1 51.1 344 881 S515 495 562 222 351 415 529
+Translate-Test: non-WA
+Codec X 545 788 674 729 728 776 83.6 728 494 781 793 822 792 725 673 725 584 77.1 72.0
+Codec D 543 79.1 68.0 733 739 782 835 742 488 79.0 79.8 829 793 731 678 726 580 77.0 724
+Translate-Test: WA
+
+AwsmAlign  X 51.4 787 613 709 754 668 827 722 476 775 71.8 81.5 795 708 62.1 56.0 61.7 638 684
+AwsmAlign D 51.1 788 62.1 714 77.0 67.6 825 73.6 476 779 723 821 798 717 625 562 612 638 68.8
+AccAlign X 544 799 69.7 747 752 70.8 844 726 531 786 81.7 83.0 800 712 649 732 554 787 723
+AccAlign D 538 799 70.1 752 76.7 715 842 741 532 79.1 823 83.6 804 720 654 733 553 788 72.7
+TransAlign X 56.8 808 728 749 758 71.0 848 747 540 788 822 823 822 751 686 73.8 628 79.0 739
+TransAlign D 56.6 808 733 754 773 71.7 846 763 537 792 828 829 826 758 693 740 625 79.1 743
+
+Table 8: Detailed main results for translation-based XLT on Masakha. Results with XLM-R (X) and DeBERTa (D).
+
+ar da de de-st id it kk nl tr zh Avg
+
+7S X 71.5 85.6 80.8 439 86.8 88.2 80.8 88.8 81.5 57.4 76.5
+Translate-Test: non-WA
+Codec X 79.0 81.9 86.1 60.4 84.8 88.4 83.0 86.5 83.6 67.0 80.1
+Codec D 79.9 81.8 85.5 58.8 85.8 89.0 83.2 86.0 84.2 67.5 80.2
+Translate-Test: WA
+
+AwsmAlign X 79.1 76.2 85.2 60.2 79.1 87.9 75.3 87.3 78.1 80.1 78.8
+AwsmAlign D 79.3 75.9 84.4 58.4 79.9 88.6 75.1 86.5 78.9 80.0 78.7
+AccAlign X 80.2 75.8 85.2 61.0 84.1 88.2 82.6 86.6 82.4 82.5 80.9
+AccAlign D 80.7 75.5 84.5 59.3 85.0 88.9 82.7 86.0 83.3 82.4 80.8
+TransAlign X 81.0 81.0 87.4 61.0 87.0 88.5 82.4 87.8 83.2 83.2 82.2
+TransAlign D 81.4 80.7 86.7 59.3 87.9 89.2 82.4 86.9 84.1 83.1 82.2
+
+Table 9: Detailed main results for translation-based XLT on xSID. Results with XLM-R (X) and DeBERTa (D).
+
+
+H Detailed Results: Impact of Fine-Tuning
+
+bam ewe fon hau ibo kin lug luo mos nya sna swa tsn twi  wol xho yor zul Avg
+
+Non-Fine-Tuned WAs
+
+AwsmAlign X 46.0 769 579 70.1 755 649 830 71.8 435 779 633 798 806 709 531 50.0 581 603 658
+AwsmAlign D 46.0 77.0 58.6 70.6 769 656 828 732 43.6 784 63.7 80.5 81.2 71.7 535 50.0 57.7 602 66.2
+AccAlign X 547 79.1 682 741 727 69.7 83.6 70.7 495 775 80.5 81.3 813 719 632 709 483 769 70.8
+AccAlign D 541 79.1 686 746 740 70.2 833 720 493 782 81.0 820 81.6 73.0 636 71.1 482 77.0 71.2
+TransAlign X 55.6 80.1 705 746 75.0 704 848 73.6 524 778 815 822 822 752 672 734 60.1 786 73.1
+TransAlign D 554 80.1 71.2 751 766 71.0 846 750 524 785 821 828 825 759 680 735 599 788 735
+Fine-Tuned WAs
+AwsmAlign X 514 787 613 709 754 668 827 722 476 775 718 815 795 70.8 62.1 56.0 61.7 638 684
+AwsmAlign D 51.1 788 62.1 714 77.0 676 825 73.6 476 779 723 821 798 71.7 625 562 612 638 688
+AccAlign X 544 799 69.7 747 752 70.8 844 726 531 786 81.7 83.0 80.0 712 649 732 554 787 723
+AccAlign D 538 799 70.1 752 76.7 71.5 842 741 532 79.1 823 836 804 720 654 733 553 788 72.7
+TransAlign X 56.8 80.8 72.8 749 758 71.0 848 747 540 788 822 823 822 751 68.6 738 628 79.0 739
+TransAlign D 56.6 80.8 733 754 773 71.7 846 763 53.7 79.2 828 829 826 758 693 740 625 79.1 743
+
+Table 10: Impact of WA fine-tuning on translation-based XLT on Masakha. Results with XLM-R (X) and DeBERTa
+D).
+
+ar da de de-st id it kk nl tr zh Avg
+Non-Fine-Tuned WAs
+
+AwsmAlign X 74.2 75.8 84.6 58.9 76.0 85.3 59.3 85.7 69.2 73.6 74.1
+AwsmAlign D 74.8 75.5 83.8 56.9 76.4 86.0 59.7 85.2 69.7 73.3 74.1
+AccAlign X 78.8 75.4 84.8 59.5 82.0 86.4 81.8 86.6 82.7 82.2 80.0
+AccAlign D 79.2 75.2 84.1 57.9 83.0 87.2 81.8 85.9 83.6 82.1 80.0
+TransAlign X 80.0 81.0 87.3 61.0 86.5 87.8 81.8 87.3 83.8 82.6 81.9
+TransAlign D 80.3 80.7 86.6 59.4 87.5 88.5 81.8 86.6 84.6 82.6 81.8
+Fine-Tuned WAs
+AwsmAlign X 79.1 76.2 85.2 60.2 79.1 87.9 75.3 87.3 78.1 80.1 78.8
+AwsmAlign D 79.3 75.9 84.4 58.4 79.9 88.6 75.1 86.5 78.9 80.0 78.7
+AccAlign X 80.2 75.8 85.2 61.0 84.1 88.2 82.6 86.6 82.4 82.5 80.9
+AccAlign D 80.7 75.5 84.5 59.3 85.0 88.9 82.7 86.0 83.3 82.4 80.8
+TransAlign X 81.0 81.0 87.4 61.0 87.0 88.5 82.4 87.8 83.2 83.2 82.2
+TransAlign D 81.4 80.7 86.7 59.3 87.9 89.2 82.4 86.9 84.1 83.1 82.2
+
+Table 11: Impact of WA fine-tuning on translation-based XLT on xSID. Results with XLM-R (X) and DeBERTa
+(D).
+
+I Detailed Results: MT Model
+
+bam ewe hau ibo kin sna swa twi xho yor zul Avg
+
+AwsmAlign NLLB 51.1 788 714 77.0 67.6 723 82.1 71.7 56.2 612 638 69.2
+AccAlign NLLB 538 799 752 76.7 715 823 83.6 72.0 73.3 55.3 78.8 73.7
+TransAlign ~~ NLLB 56.6 80.8 754 77.3 71.7 828 82.9 75.8 74.0 62.5 79.1 75.1
+
+AwsmAlign GT 554 789 719 794 681 752 84.1 73.5 59.0 65.1 66.1 70.6
+AccAlign GT 59.6 79.3 742 793 724 84.7 86.0 73.5 75.2 61.6 81.2 752
+TransAlign GT 61.5 799 742 804 72.6 84.8 86.11 77.13 7573 66.73 813 764
+
+Table 12: Detailed results for translation-based XLT on Masakha with translations obtained from different MT
+models—Google Translation (GT) and NLLB (NLLB). Results with DeBERTa.
+
+ar da de de-st id it kk nl tr zh Avg
+AwsmAlign NLLB 79.3 75.9 84.4 58.4 79.9 88.6 75.1 86.5 78.9 80.0 78.7
+AccAlign NLLB 80.7 75.5 84.5 59.3 85.0 88.9 82.7 86.0 83.3 82.4 80.8
+TransAlign NLLB 81.4 80.7 86.7 59.3 87.9 89.2 82.4 86.9 84.1 83.1 82.2
+AwsmAlign GT 81.3 76.0 85.6 58.9 79.7 90.2 76.3 87.8 82.0 83.2 80.1
+AccAlign GT 81.7 76.6 85.3 58.8 85.3 90.1 85.1 87.1 84.4 86.4 82.1
+TransAlign GT 82.6 81.4 87.6 58.8 87.1 91.9 84.6 89.0 86.2 86.7 83.6
+
+Table 13: Detailed results for translation-based XLT on xSID with translations obtained from different MT models—
+Google Translation (GT) and NLLB (NLLB). Results with DeBERTa.
+
+
+J Detailed Results: Language Coverage
+
+hau ibo kin nya sna swa wol xho yor zul Avg
+
+AccAlign 75.2 76.7 71.5 79.1 82.3 83.6 65.4 73.3 55.3 78.8 74.1
+TransAlign 75.4 77.3 71.7 79.2 82.8 82.9 69.3 74.0 62.5 79.1 75.4
+
+Table 14: Detailed results for translation-based XLT on Masakha only evaluating languages seen in the pretraining
+of both WAs. Results with DeBERTa.
+
+ar da de id it kk nl tr zh Avg
+AccAlign 80.7 75.5 84.5 85.0 88.9 82.7 86.0 83.3 82.4 83.2
+TransAlign 81.4 80.7 86.7 87.9 89.2 82.4 86.9 84.1 83.1 84.7
+
+Table 15: Detailed results for translation-based XLT on xSID only evaluating languages seen in the pretraining of
+both WAs. Results with DeBERTa.
+
+K Detailed Results: NLLB Model Size
+
+bam ewe fon hau ibo kin lug luo mos nya sma swa tsn twi wol xho yor zul Avg
+
+TransAlign 600M 56.6 80.8 733 754 773 71.7 84.6 763 537 792 828 829 82.6 758 693 740 625 79.1 743
+TransAlign 3.3B 57.1 80.7 740 752 773 718 84.6 763 541 79.6 827 833 825 758 695 740 628 792 745
+
+Table 16: Detailed results for translation-based XLT on Masakha with different sizes of NLLB as WA. Results with
+DeBERTa.
+
+ar da de de-st id it kk nl tr zh Avg
+
+TransAlign 600M 81.4 80.7 86.7 59.3 87.9 89.2 82.4 86.9 84.1 83.1 82.2
+TransAlign 3.3B 80.8 76.0 86.2 59.3 82.5 89.4 83.5 86.8 86.3 83.7 81.4
+
+Table 17: Detailed results for translation-based XLT on xSID with different sizes of NLLB as WA. Results with
+DeBERTa.

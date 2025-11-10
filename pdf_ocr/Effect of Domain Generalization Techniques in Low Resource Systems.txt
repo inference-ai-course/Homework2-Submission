@@ -1,0 +1,1002 @@
+arXiv:2510.27512v1 [cs.CL] 31 Oct 2025
+
+EFFECT OF DOMAIN GENERALIZATION TECHNIQUES IN
+LOW-RESOURCE SYSTEMS
+
+A PREPRINT
+
+Mahi Aminu*, Chisom Chibuike?', Fatimo Adebanjo*', Omokolade Awosanya', Samuel Oyeneye'
+
+IML Collective
+
+ABSTRACT
+
+Machine learning models typically assume that training and test data follow the same distribution,
+an assumption that often fails in real-world scenarios due to distribution shifts. This issue is espe-
+cially pronounced in low-resource settings, where data scarcity and limited domain diversity hinder
+robust generalization. Domain generalization (DG) approaches address this challenge by learning
+features that remain invariant across domains, often using causal mechanisms to improve model
+robustness. In this study, we examine two distinct causal DG techniques in low-resource natural
+language tasks. First, we investigate a causal data augmentation (CDA) approach that automatically
+generates counterfactual examples to improve robustness to spurious correlations. We apply this
+method to sentiment classification on the NaijaSenti Twitter corpus, expanding the training data with
+semantically equivalent paraphrases to simulate controlled distribution shifts. Second, we explore an
+invariant causal representation learning (ICRL) approach using the DINER framework, originally
+proposed for debiasing aspect-based sentiment analysis. We adapt DINER to a multilingual setting
+by constructing Afri-SemEval, a new benchmark derived from the SemEval-2014 Task 4 dataset via
+translation, covering 17 African languages. Through comprehensive experiments, we compare the
+effectiveness of these techniques in mitigating domain shifts and improving model performance. Our
+findings demonstrate that both approaches enhance robustness to unseen domains: counterfactual data
+augmentation yields consistent cross-domain accuracy gains in sentiment classification, while causal
+representation learning with DINER improves out-of-distribution performance in multilingual senti-
+ment analysis, albeit with varying gains across languages. These results highlight the complementary
+strengths and trade-offs of data-level vs. representation-level causal interventions in low-resource Al
+settings.
+
+Keywords Causal representation - Low-resource - Data augmentation - Language translation - LLMs
+
+1 Introduction
+
+Machine learning (ML) models have achieved remarkable success in diverse natural language processing (NLP)
+applications, yet their effectiveness largely depends on the assumption that training and test data are independently and
+identically distributed (i.i.d.). In practice, data distributions often shift across time, geography, and linguistic context,
+leading to significant performance degradation on unseen domains. This problem is especially acute in low-resource
+settings, where data scarcity and linguistic variation limit the ability of models to generalize robustly[T]
+
+Domain generalization (DG) seeks to mitigate this challenge by learning representations that remain invariant across
+multiple source domains without direct access to the target distribution. Within DG, causal inference provides a
+principled foundation: by focusing on stable cause—and—effect relationships, models can identify invariant mechanisms
+that hold under interventions or domain shifts|2]. Causal modeling aims to capture the underlying generative processes
+common to all domains, thereby improving robustness when faced with distributional changes.
+
+“Equal contribution
+
+
+arXiv Template A PREPRINT
+
+In this study, we examine two complementary causal DG approaches for low-resource sentiment analysis in African
+languages:
+
+Invariance via Causal Data Augmentation (CDA): We leverage GPT-40-mini to generate semantically
+equivalent paraphrases that preserve sentiment polarity while introducing lexical and syntactic diversity.
+This process expands the training data and simulates a controlled domain shift (from original domain D; to
+augmented domain D5) under the constraint P(y | 2’) = P(y | x). Using the Yoruba and Igbo subsets of the
+NaijaSenti dataset|3], we assess how exposure to paraphrastic variation improves generalization and reduces
+the invariance gap Aj.
+
++ Invariance via Causal Representation Learning (CRL): We adopt the DINER framework [4], which models
+sentiment prediction as a Structural Causal Model (SCM) with explicit backdoor adjustments and counterfactual
+reasoning to isolate causal sentiment paths. To extend DINER to low-resource African contexts, we introduce
+Afri-SemEval, a multilingual benchmark translated from the SemEval-2014 Task 4 ABSA dataset[3], covering
+17 African languages. Each translated instance retains the original review, target aspect, and sentiment polarity,
+allowing us to evaluate model invariance across a diverse set of languages and linguistic conditions.
+
+By integrating these two frameworks, CDA for data-level causal perturbations and CRL for representation-level causal
+learning, we evaluate whether causal interventions at both levels can jointly enhance robustness under distributional
+shifts. Empirical results across Yoruba, Igbo, and the 17 Afri-SemEval languages show consistent gains in cross-domain
+accuracy and reduced sensitivity to spurious correlations. In particular, augmenting training data with counterfactual
+paraphrases yields more invariant performance between original and shifted distributions, while causal representa-
+tion learning improves out-of-distribution generalization in multilingual sentiment analysis, with the magnitude of
+improvement varying based on linguistic and data characteristics.
+
+Our contributions are threefold:
+
+* We propose a unified experimental design that combines data-level and representation-level causal interventions
+for low-resource African sentiment analysis.
+
+* We introduce Afri-SemEval, a multilingual extension of the SemEval-2014 ABSA dataset (translated into 17
+African languages) to facilitate research on domain generalization in multilingual contexts.
+
+* We empirically demonstrate that incorporating causal mechanisms, through both data augmentation and
+causal representation learning, enhances generalization and robustness under distribution shifts in multilingual,
+low-resource NLP tasks.
+
+2 Related Works
+
+2.1 Domain Generalization and the Low-Resource Paradox
+
+Recent comprehensive surveys reveal fundamental challenges in achieving OOD robustness for NLP systems [6] [7].
+While domain adaptation techniques assume access to unlabeled target data, domain generalization confronts a more
+stringent constraint: models must extrapolate to completely unseen distributions using only source domain knowledge.
+Critically, the DomainBed evaluation demonstrated that carefully tuned empirical risk minimization often matches or
+exceeds specialized DG algorithms [8], suggesting that algorithmic complexity may not always translate to practical
+gains—a finding particularly relevant when computational resources are constrained.
+
+For African languages, this theoretical challenge becomes acute. The NaijaSenti corpus [3] and AfriSenti benchmark [9]
+represent pioneering efforts, yet even these datasets contain only thousands of examples per language compared
+to millions available for high-resource languages. Community-driven documentation reveals that 88% of African
+languages lack basic computational resources [10], creating what we term a “low-resource paradox”: the very languages
+requiring the most robust generalization techniques have the least data to learn invariant representations from. Analysis
+of counterfactual data reveals that spurious correlations in small datasets can achieve training accuracies comparable
+to true causal features [11], explaining why models trained on limited data catastrophically fail when deployment
+conditions deviate even slightly from training distributions.
+
+2.2 From Correlation to Causation: Theoretical Foundations
+
+The causal revolution in machine learning offers a principled solution: if models learn causal mechanisms rather than
+statistical associations, they should maintain performance under distribution shifts [12][13]. Comprehensive taxonomies
+of causal inference applications in NLP systematically categorize text as treatment, outcome, or confounder [14],
+
+
+arXiv Template A PREPRINT
+
+yet most work focuses on high-resource English datasets, leaving open questions about scalability to low-resource,
+morphologically complex languages.
+
+Two paradigms have emerged for implementing causal invariance. Invariant Risk Minimization penalizes representations
+where optimal classifiers vary across training environments [15], though subsequent analyses revealed optimization
+challenges and limited guarantees beyond linear settings [8]. More recently, explicit intervention methods construct
+task-specific Structural Causal Models to surgically remove spurious pathways [7][2]. Our work bridges these paradigms
+by evaluating both data-level counterfactual generation and model-level causal debiasing in a unified low-resource
+experimental framework.
+
+2.3 Counterfactual Augmentation and LL.M-Based Data Generation
+
+Counterfactual data augmentation, where annotators make minimal edits to flip labels while preserving coherence,
+demonstrates that models trained on counterfactually-augmented data exhibit 40-60% reduction in sensitivity to spurious
+features [11]. However, human annotation at scale remains prohibitive for low-resource languages. Active learning
+approaches with counterfactual generative models have achieved 18-20% robustness improvements using only 10%
+human-annotated counterfactuals [I6]—a crucial finding for resource-constrained scenarios.
+
+The emergence of instruction-tuned LLMs as data augmentation engines has been both promising and problematic.
+Recent experiments demonstrate that modern LLMs can expand 500 labeled examples to 5,000 synthetic samples
+with comparable downstream performance [17], but critically note that augmentation quality degrades substantially
+for low-resource languages like Tamil. This observation motivates our systematic evaluation of GPT-40-mini on
+Yoruba and Igbo—languages where paraphrase quality cannot be assumed but must be empirically validated. Unlike
+generic data augmentation techniques operating on token-level perturbations without semantic constraints [19], our
+approach explicitly enforces sentiment preservation through prompt engineering to maintain the counterfactual validity
+condition P(y|2’) = P(y|z).
+
+2.4 Causal Debiasing for Aspect-Based Sentiment Analysis
+
+Aspect-Based Sentiment Analysis exposes fundamental weaknesses in neural architectures. The ARTS adversarial
+benchmark revealed that state-of-the-art ABSA models suffer up to 69.73% accuracy drops when aspect-sentiment
+correlations are manipulated [20], confirming that models exploit spurious statistical patterns rather than
+genuine compositional understanding. While various debiasing strategies have been proposed [24][25], most address
+single-variable inputs and fail to account for ABSA’s inherent multi-input structure.
+
+The DINER framework represents a methodological advance by constructing an SCM distinguishing review-level
+confounding from aspect-level spurious correlation, applying backdoor adjustment to the former and counterfactual TIE
+estimation to the latter[4]. This hybrid strategy outperforms single-intervention baselines on English ABSA benchmarks.
+However, its applicability beyond English remains unexplored—a critical gap given that the SemEval-2014 Task 4
+benchmark [|S] exists only in English and a handful of European languages.
+
+Our contribution addresses this gap through Afri-SemEval, translating the canonical ABSA benchmark into 17
+typologically diverse African languages. This enables the first systematic evaluation of causal debiasing methods
+in multilingual low-resource contexts. Leveraging African-focused multilingual models with 17-language adaptive
+fine-tuning and data-efficient pretraining [27], we investigate whether causal interventions transfer across linguistic
+typologies. The mixed results we observe illuminate a crucial limitation: translation-induced artifacts (word order
+changes, morphological mismatches, aspect-review misalignment) introduce unintended distribution shifts that interact
+with the intended cross-lingual domain shift [7]. This dual-shift phenomenon suggests that future causal DG methods
+must be robust not only to natural linguistic variation but also to the systematic noise inherent in cross-lingual transfer
+pipelines—a challenge distinct from the monolingual OOD scenarios dominating current literature.
+
+3 Methodology
+
+This section presents the methodological design adopted in this study, comprising two complementary experimental
+frameworks: (1)Invariance via Causal Data Augmentation and (2) Invariance via Causal Representation Learning.
+
+3.1 Invariance via Causal Data Augmentation
+
+This study investigates causal data augmentation as a strategy for improving sentiment classification in low-resource
+African languages through enhanced representation invariance. The approach is grounded in the principles of causal rep-
+
+
+arXiv Template A PREPRINT
+
+resentation learning: if the sentiment label y causally depends on the semantic content of a tweet x, then augmentations
+that perturb only non-causal linguistic features (e.g., surface form, style, or syntax) should preserve the conditional
+distribution P(y|x). By systematically generating linguistically diverse yet semantically equivalent paraphrases, the
+model learns to focus on the underlying causal semantics rather than superficial correlations, leading to improved
+generalization across domains.
+
+3.1.1 Data and Resources
+
+We utilize the Yoruba and Igbo subsets of the NaijaSenti corpus[3], a multilingual sentiment-labeled Twitter dataset
+covering four Nigerian languages: Yoruba, Igbo, Hausa, and Nigerian Pidgin. Each instance is a tweet-label pair
+(x4,y;), where x; represents the tweet and y; € {positive, negative, neutral} is its sentiment label.
+
+3.1.2 Training Configuration
+
+Let Dy = {(;,y:)}, denote the original data distribution drawn from P(X,Y"). We define an augmentation function
+f: X — X’ that generates paraphrased examples x’ = f(x) such that the sentiment semantics are preserved, i.e.,
+
+P(yla') = P(ylz). (0
+
+To achieve this, we employ the GPT-40-mini model[18] with a carefully designed prompt that instructs the model to
+generate paraphrases that preserve sentiment polarity while introducing lexical and syntactic diversity. The prompt
+template used is:
+
+"You have been provided with {language} tweet. Paraphrase ’{tweet}’ in a way that preserves its
+sentiment and meaning but changes its wording. Return only the paraphrased tweet."
+
+This produces a new dataset Do = {(z%,y;)}, that shares semantic equivalence with D; but differs in linguistic
+realization, thereby simulating a controlled domain shift:
+
+Pp, (YX) =~ Pp, (YX).
+We train three distinct logistic regression classifiers for each language subset; (1)Original-only—trained on D;. (2)
+Paraphrased-only—trained on D,. (3) Combined—trained on Dopp, = D1 U Do (50-50 mix).
+
+Each model is evaluated under a cross-domain testing scheme to measure generalization under distributional shift;
+Models trained on D; are tested on D1, Ds and Domb, Models trained on Ds are tested on Do, D1 and Domb, Models
+trained on Dy, are tested on all three domains.
+
+For each configuration, the model hy minimizes the empirical cross-entropy loss:
+
+£0) =p S Unalgp(6(2))), 9), 3)
+
+(x,y) € Dain
+
+where ¢ represents text preprocessing (tokenization, normalization, stopword removal), and g,, denotes the embedding
+function implemented using the paraphrase-multilingual-MiniLM-L12-v2]|28] sentence transformer.
+
+Our Model performance was evaluated using accuracy computed over multiple domains, and invariance was quantified
+by measuring performance consistency across test domains:
+
+Ain = |Acep, — Acep,|, 4)
+
+where smaller A;,, indicates stronger invariance to paraphrastic shifts. This design was adopted to enable a principled
+test of the causal invariance hypothesis, which posits that models trained with causal data augmentation should
+minimize Ay, and achieve superior generalization in low-resource settings.
+
+3.2 Invariance via Causal Representation Learning
+
+Invariance via Causal Representation Learning (CRL) during inference is one of the causal domain generalization
+techniques we aim to explore in low-resource settings, as outlined by Liu et al. [1]. Our goal is to examine how domain
+generalization (DG) can be effectively applied under such conditions. To achieve this, we adopt the DINER: Debiasing
+Aspect-based Sentiment Analysis with Multi-variable Causal Inference[4], a debiasing approach for the Aspect-Based
+Sentiment Analysis (ABSA) task. We further discuss DINER and our methodology in subsequent sections.
+
+
+arXiv Template A PREPRINT
+
+Figure[T|demonstrates how high-capacity neural networks can easily learn spurious correlations arising from annotation
+bias. These biases cause models to capture misleading dependencies rather than true causal relationships. Due to their
+high representational power, neural models are particularly vulnerable to such biases, often learning shortcuts instead of
+underlying latent features [21][22][23]. For instance, reversing the polarity of target aspects can result in up to a 20%
+drop in accuracy, highlighting the model’s reliance on these correlations. The figure also supports the observation that
+models frequently depend on spurious correlations between target and non-target aspects in sentiment datasets such
+as Pontiki et al. [5]. In the *Original’ setting, both review-only and aspect-only models perform well; however, when
+these correlations are disrupted in the 'RevTgt’, ’RevNon’ and *AddDiff” settings, performance decreases or becomes
+balanced. This confirms that neural models often exploit dataset biases rather than learning genuine target-specific
+sentiment representations.
+
+3.2.1 Debiasing in Aspect Review using DINER
+
+To mitigate these effects, recent studies have proposed several debiasing strategies, including argumentation-based
+methods[19], reweighting-based training[24], and causal inference-based approaches[23][T]. Among these, causal
+inference has attracted significant interest for its solid theoretical foundation and minimal disruption to existing learning
+paradigms.
+
+The DINER framework [4] models ABSA as a Structural Causal Model (SCM) with five key variables: confounder C
+(prior contextual knowledge), review R, aspect A, fused knowledge K (derived from R and A), and sentiment label L.
+The causal relations are defined as R —+ K «+ A, K —+ L,R— L + A,and C — R,C — L. The causal structure is
+illustrated in Figure[2] showing the directed acyclic graph (DAG) that represents relationships among these variables.
+The objective of DINER is to isolate the causal path K' — L while eliminating spurious correlations via R — L «+ A
+and mene confounding through C' — R and C' — L. For details on causal graph construction, please refer to Wu
+et al. [4].
+
+0.8 Review-only Aspect-only
+
+Original RevTet RevNon AddDiff
+
+Figure 1: Demonstration of spurious correlations learned from annotation bias ([4]).
+
+¢ (r(x )—(1)
+© : Confounder
+
+(R) : Review
+
+(a) @) : Aspect
+(K) : fused Knowledge
+©
+
+: Label
+
+(b)
+
+Figure 2: Causal structure of the DINER framework ([4]).
+
+To mitigate the indirect confounding between sentiment words in the review and the context, DINER employs a
+backdoor adjustment intervention that addresses the C' — R — L pathway. The intervention uses the do-calculus
+formulation:
+
+
+arXiv Template A PREPRINT
+
+P(L|do(R =H (L|R,C)P(C)
+
+_ « P(L.RIO)P(C) 3)
+msn
+
+The debiased review representation is computed as:
+
+yr
+
+T (wi
+Cr = :
+K 2 (wall + 9
+( Tk The )
+rel] [l7well
+
+To address the direct correlation between aspect and label (A — L), DINER employs counterfactual reasoning using
+the Total Indirect Effect (TIE):
+
+(6)
+
+TIE,, =TE,, — NDE, — NDE, + IE,
+
+7
+=TE,, — (NDE, + NDE,) (since IE,, =0) 7
+
+Following Niu et al. [25], we define:
+
+TE, , = Lg rk - Lax p= pox
+NDE, = Lg r= jo - Lyx px jor (®)
+NDE, = Lg po - Lox po jor
+
+Thus:
+
+TIE, , = Lg rk - Lax rox
+
+9
+—Lg px p+ + Lax px jor ( )
+
+The final prediction is implemented through a model ensemble:
+
+Lark =L(A=a,R=1",K=Fk)
+
+= U(Ca, Gry Ci) (10)
+= Cj +tanh((,)+tanh(¢)
+
+Where (,- is the output of the debiased review-only branch, (, is the output of the aspect-only branch, and (j, is the
+output of the fused knowledge branch.
+
+3.2.2 Data
+
+We used Afri-SemEval, a multilingual dataset created by translating the SemEval 2014 [5]]) dataset into 17 African
+languages. The dataset spans diverse languages from multiple African language families, as shown in Table|[T] [29].
+
+Each translated instance preserves the original structure of SemEval, including the review text, target aspect term, and
+sentiment polarity (posistive, negative, neutral). Translation challenges included maintaining aspect-term alignment,
+preserving sentiment polarity, and capturing cultural nuances in sentiment expression.
+
+Each translated instance maintains the original SemEval-2014 format, comprising review text, target aspect, and
+sentiment polarity (positive, negative, or neutral). The translation process involved ensuring aspect alignment, polarity
+preservation, and accounting for linguistic and cultural nuances in sentiment expression.
+
+
+arXiv Template A PREPRINT
+
+Table 1: List of 17 African supported languages
+
+S/N Language Code |S/N Language Code
+1 Afrikaans af 10 Kinyarwanda rw
+2 Amharic am | 11 Shona sn
+3 Hausa ha 12 Somali SO
+4 Igbo ig 13S. Sotho st
+5 Lingala In 14 Tswana tn
+6 Luganda lug | 15 Xhosa xh
+7  N. Sotho nso | 16 Yoruba yo
+8 Chichewa nya | 17 Zulu zu
+9 Kirundi run
+
+3.3 African Language Adaptation
+
+A major challenge in adapting DINER to African languages lies in aspect term alignment. The original framework
+assumes a direct mapping between aspect terms and their positions in the review, but translation often disrupts this due
+to word order variation (e.g., English SVO vs. Hausa SXV), morphological complexity (e.g., noun classes in Bantu
+languages), and differences in expression length (multiword to single-word mappings, and vice versa).
+
+We address this with an alignment heuristic based on semantic similarity. Embeddings are computed for translated
+aspect terms and all n-grams in the review. The n-gram with the highest similarity to the aspect term is then selected as
+its aligned position for DINER processing. While effective for single-token aspects, this heuristic remains challenging
+for multi-token and non-contiguous aspect terms, which are common in many African languages.
+
+4 Experiment and Result
+
+4.1 Invariance via Causal Data Augmentation Results
+
+All experiments were conducted on the Yoruba and Igbo subsets of the NaijaSenti dataset[3], following the causal
+data augmentation setup described in Section[3.1] For each language, three logistic regression classifiers were trained
+separately on: (i) the original dataset D;, (ii) the paraphrased dataset D, generated using GPT-40-mini, and (iii) the
+combined dataset D; U Dy. Evaluation was performed across all possible test configurations; original, paraphrased, and
+combined to assess within-domain and cross-domain generalization.
+
+The core objective is to test the causal invariance hypothesis, which posits that augmentations preserving causal
+semantics (P(y|z’) = P(y|z)) encourage models to learn representations invariant to superficial linguistic variations.
+Formally, we aim to minimize the expected difference in accuracy across domains:
+
+argmin Eq, 4,¢(p, p,} [ [Acca, (ho) — Accq, (ho)| ], (1)
+0
+where hy denotes the trained classifier. A smaller cross-domain difference indicates stronger invariance to domain shift
+induced by paraphrastic augmentation.
+
+4.1.1 Results on Yoruba
+
+Tables [2|and [3] summarize the validation and test accuracies for Yoruba, respectively. The combined configuration
+consistently yields higher accuracy across domains, confirming that integrating both original and paraphrased data
+enhances generalization.
+
+Across the Yoruba results, the model trained on the combined dataset achieved the highest test accuracy of 68.92%,
+compared to 67.99% for the original-only model and 67.47% for the paraphrased-only model. This demonstrates that
+exposure to both natural and paraphrased data improves robustness to distributional variation. Moreover, the smaller
+cross-domain deviation in validation accuracies ( |AcCorig — AcCpara = 0.01) further confirms increased invariance to
+paraphrastic shifts.
+
+4.1.2 Results on Igbo
+
+Tables [4]and [3]present the corresponding results for the Igbo subset. The general tend in this case, does not mirror
+Yoruba. While the combined dataset achieves stable performance across domains, improvements are more pronounced
+on our original data due to a larger semantic drift between original and paraphrased data.
+
+
+arXiv Template A PREPRINT
+
+Table 2: Validation results on Yoruba subset (Logistic Classifier).
+
+Train Dataset Test Dataset Accuracy
+
+Original Original 0.6787
+Original Paraphrased 0.6602
+Original Combined 0.6925
+Paraphrased Original 0.6584
+
+Paraphrased Paraphrased 0.6787
+Paraphrased Combined 0.6907
+
+Combined Original 0.6999
+Combined Paraphrased 0.6898
+
+Combined Combined 0.6934
+
+Table 3: Test results on Yoruba subset (Logistic Classifier).
+
+Train Dataset Test Dataset Accuracy
+
+Original Test Set 0.6799
+Paraphrased Test Set 0.6747
+
+Combined Test Set 0.6892
+
+Table 4: Validation results on Igbo subset (Logistic Classifier).
+
+Train Dataset Test Dataset Accuracy
+
+Original Original 0.7590
+Original Paraphrased 0.6429
+Original Combined 0.7230
+Paraphrased Original 0.6922
+
+Paraphrased Paraphrased 0.6834
+Paraphrased Combined 0.7502
+
+Combined Original 0.7370
+Combined Paraphrased 0.6895
+Combined Combined 0.7326
+
+Table 5: Test results on Igbo subset (Logistic Classifier).
+
+Train Dataset Test Dataset Accuracy
+
+Original Test Set 0.7283
+Paraphrased Test Set 0.7084
+
+Combined Test Set 0.7176
+
+
+arXiv Template A PREPRINT
+
+While the Igbo combined model achieved a slightly lower test accuracy (71.76%) compared to the original-only model
+(72.83%), it exhibited more consistent validation performance across paraphrastic and combined domains, indicating
+reduced overfitting to surface lexical cues. This suggests that the degree of causal alignment between paraphrased and
+original text affects the strength of invariance gained.
+
+Overall, results confirm that causal-preserving data augmentation yields measurable improvements in cross-domain
+robustness. In Yoruba, where paraphrases were semantically well-aligned, the combined model achieved the best gener-
+alization with the smallest invariance gap Ain. In Igbo, where GPT-40 paraphrases introduced a larger distributional
+shift, the combined model still maintained competitive performance, albeit with smaller gains.
+
+These findings support the hypothesis that training on both original and paraphrased data enhances model invariance to
+superficial linguistic variability. The modest but consistent improvements, particularly in Yoruba, shows the potential of
+causal data augmentation as a lightweight strategy for generalization in low-resource sentiment classification.
+
+4.2 Invariance via Causal Representation Learning
+4.2.1 Training Configuration
+
+We evaluate three transformer-based models: XLM-R, a multilingual RoOBERTa model trained on 100 languages[30] ;
+Afro-XLMR Large, a specialized version fine-tuned for African languages[26] and Afro-XLMR Large-76L[31], an
+extended variant with additional African language coverage. For each model, we compare two training configurations:
+CT=False, which implements standard training where aspect and review are concatenated, and CT=True, which employs
+causal training where aspect and review are treated separately.
+
+All models were fine-tuned with consistent hyperparameters including a learning rate of 2e-5, batch size of 16, maximum
+sequence length of 128, 10 training epochs, weight decay of 0.01, and the AdamW optimizer. For CT=True models,
+we implemented DINER ’s causal inference components including backdoor adjustment with 7 = 0.1, counterfactual
+reasoning using shared encoders, and TIE calculation with ensemble fusion function.
+
+We evaluate performance using accuracy, macro Fl-score, and Aspect Robustness Score (ARS), which measures
+performance under aspect perturbations[4]. To assess out-of-domain (OOD) generalization, we employ cross-language
+evaluation by training on one language and testing on others, as well as perturbation tests including RevTgt (reversing
+the polarity of target aspects), RevNon (reversing the polarity of non-target aspects), and AddDiff (adding aspects with
+different polarity).
+
+4.2.2 Results on Convergence Analysis
+
+A key finding is that causal training (CT=True) typically converges faster across multiple transformer models. As shown
+in our accuracy charts (Figures [3a3c), models trained with causal inference require fewer steps to reach comparable
+performance. XLM-R with CT=True converges 13 steps earlier than CT=False, while Afro-XLMR Large with CT=True
+shows steeper initial learning curves, and Afro-XLMR Large-76L exhibits similar patterns with accelerated convergence.
+This efficiency advantage is particularly valuable in resource-constrained African Al contexts, enabling faster training
+cycles and reduced computational demands.
+
+4.2.3 Results on Performance Across Languages
+
+Performance varies significantly across African languages, reflecting both linguistic differences and translation quality.
+Table[6]shows that for the 5 low-resource languages studied in depth, results differ considerably. Afrikaans demonstrates
+the highest overall performance, likely due to its similarity to English and high-quality translations. Amharic shows
+the lowest performance across all models, reflecting script and morphological complexity. Hausa exhibits moderate
+performance with significant gains under causal training. Igbo shows notable improvement with CT=True in XLM-R
+but less pronounced gains in AfroXLM variants. Yoruba follows a similar pattern to Igbo, with causal training providing
+modest improvements. These results highlight the language-dependent nature of causal inference benefits, with some
+languages benefiting more than others.
+
+4.2.4 OOD Generalization Results
+
+The theoretical advantage of causal models in OOD settings shows mixed results in practice. Table[7]reveals that XLM-R
+shows better generalization with CT=True for Afrikaans, Igbo, and Yoruba, while AfroXLM-R Large underperforms
+with CT=True on many OOD tasks, though exceptions exist where causal training significantly improves OOD
+performance. These inconsistencies likely stem from translation noise affecting causal variable alignment, model
+architecture sensitivity to causal training, and varying degrees of distributional shift across languages.
+
+
+arXiv Template
+
+A PREPRINT
+
+Accuracy
+
+© © oo oo oo o
+2 oo oo oo oo
+S NN A OO ® ©
+
+o
+[5
+®
+
+XLM-R Accuracy over Steps Afro-XLMR-Large Accuracy over Steps
+
+—— False -
+—-—- CT=False STN Ne 0.750 True _ 7 At <
+—— CT=True ard jtmind NA Vi
+7 ALT = v
+~ 0.725 11
+AY; 1
+~ 1
+7° 1
+0.700 rong
+/ \,
+> ! !
+8
+€ 0675 !
+3 I
+£ 1
+1
+0.650 1
+1
+1
+1
+0.625 H
+|
+1
+J 0.600 }
+=- 1
+0 5 10 15 20 25 30 35 40 0 5 10 15 20 25 30 35
+Step
+
+Steps
+
+(a) XLM-R accuracy (b) Afro-XLMR-large accuracy
+
+Afro-XLMR-Large-76L Accuracy over Steps
+
+0.750 ry >
+Nd \ ~
+0.725 oN ink. /
+~~ NN [—
+r vg LI
+0.700 1 Ar a
+1 Vv 1 H
+1 1
+I
+g 0.675 ! i!
+IN]
+3 0.650 I
+0.625 |
+1
+1
+0.600
+| -—-- CT=False
+0.575 —— CT=True
+0 5 10 15 20 25 30 35 40
+Steps
+
+(c) Afro-XLMR-large-76L accuracy
+
+Figure 3: Comparison of accuracy charts. (a) XLM-R, (b) Afro-XLMR-large, (c) Afro-XLMR-large-76L.
+
+Table 6: Performance on test set for 5 low-resource languages (Accuracy %)
+
+Afrikaans Amharic Hausa Igbo Yoruba
+
+Model Setting
+
+XLM-R CT=False 78.2 62.1 70.4 71.5 72.3
+XLM-R CT=True 79.6 63.5 72.8 74.2 75.1
+Afro-XLMR Large CT=False 80.4 64.7 72.5 73.7 74.6
+Afro-XLMR Large CT=True 81.1 65.2 74.1 74.9 75.8
+
+73.2 74.5 75.4
+
+Afro-XLMR Large-76L.  CT=False 81.6 65.3
+74.9 76.1 77.2
+
+Afro-XLMR Large-76L.  CT=True 82.5 66.1
+
+Table 7: Performance in OOD settings (Accuracy %)
+
+Model Setting ~~ Afrikaans Amharic Hausa Igbo Yoruba
+XLM-R CT=False 524 48.3 49.2 47.6 48.5
+XLM-R CT=True 55.8 47.9 48.7 51.2 52.1
+Afro-XLMR Large CT=False 54.7 50.1 51.3 49.8 49.6
+Afro-XLMR Large CT=True 53.5 48.7 49.5 48.4 50.3
+Afro-XLMR Large-76L.  CT=False 41.02 41.14 41.28 37.79 39.41
+34.92 35.13 30.89 3341
+
+Afro-XLMR Large-76L.  CT=True 34.52
+
+10
+
+40
+
+
+arXiv Template A PREPRINT
+
+4.2.5 Case Studies
+
+Table [8|presents illustrative examples demonstrating the robustness improvements from causal training. In the original
+example, both baseline and DINER correctly classify positive sentiment. For RevTgt cases, both models correctly
+adjust when target sentiment is reversed. However, for RevNon scenarios, DINER correctly maintains focus on target
+aspect despite negative non-target aspects, while baseline models fail. Similarly, with AddDiff examples, DINER shows
+robustness when additional negative aspects are introduced. These examples highlight DINER’s ability to isolate target
+aspect sentiment from confounding context—a crucial capability for practical ABSA applications.
+
+Table 8: Example case studies. The corresponding gold labels and the predictions for each example are presented.
+
+Type Examples (Target Aspect: food) Gold Baseline DINER
+
+Original The food is top notch, the service is attentive, and the atmosphere is great. Positive ~~ Positive vv Positive v’
+RevTgt The food is nasty, but the service is attentive, and the atmosphere is great. Negative Negative vv Negative v’
+RevNon The food is top notch, the service is heedless, but the atmosphere is not great. Positive ~~ Negative X ~~ Positive v’
+AddDiff The food is top notch, the service is attentive, and the atmosphere is great, but music is ~~ Positive =~ Negative X ~~ Positive v'
+
+too heavy, waiters is angry and staff is arrogant.
+
+5 Conclusion and Future Work
+
+In this study, we systematically investigated the efficacy of two distinct causal domain generalization techniques in the
+challenging context of low-resource African languages. By examining both a data-level intervention through Causal
+Data Augmentation (CDA) and a representation-level intervention with Invariant Causal Representation Learning
+(ICRL), we aimed to understand their complementary strengths and practical trade-offs.
+
+Our findings confirm that both approaches offer tangible benefits for enhancing model robustness against distribution
+shifts. The CDA experiments on the NaijaSenti corpus demonstrated that augmenting training data with semantically
+equivalent paraphrases is a lightweight yet effective strategy for improving cross-domain generalization. The positive
+results in Yoruba, where the combined model achieved higher accuracy and a smaller invariance gap, underscore the
+potential of this method when paraphrase quality is high. Conversely, the results in Igbo highlight a key dependency:
+the success of CDA is contingent on the semantic fidelity of the generated counterfactuals, as significant distributional
+drift can temper performance gains.
+
+The application of the DINER framework to our newly created Afri-SemEval benchmark provided a more nuanced
+picture. While causal training consistently accelerated model convergence and improved in-domain accuracy for many
+of the 17 languages, its impact on Out-of-Distribution (OOD) generalization was varied. This inconsistency reveals
+a critical insight: the theoretical promise of sophisticated causal models can be attenuated by the practical realities
+of cross-lingual transfer. We identify a "dual-shift" problem, where models must contend not only with the intended
+linguistic domain shift but also with an unintended, artifact-based shift introduced by translation noise and aspect
+alignment errors. This suggests that the language-dependent nature of the observed gains is a direct reflection of this
+complex interaction.
+
+Looking ahead, our work points to several promising research directions. First, the limitations of our heuristic-based
+aspect alignment highlight the need for more robust methods to adapt complex models like DINER to typologically
+diverse languages. Future work could explore jointly trained alignment models or the development of syntactic
+parsers tailored to African languages. Second, the variable quality of LLM-generated paraphrases suggests a need
+for more controlled generation techniques or human-in-the-loop validation pipelines to maximize the benefits of
+CDA. Finally, the "dual-shift" phenomenon calls for the development of novel domain generalization methods that
+are explicitly designed to be robust not only to natural linguistic variation but also to the systematic noise inherent in
+cross-lingual transfer. A hybrid approach, perhaps using CDA to create more robust pre-trained models before applying
+representation-level debiasing, could prove to be a fruitful avenue for future exploration.
+
+Acknowledgments:
+
+We are grateful to ML Collective for generously providing the computational resources required for this study. The
+success of our extensive experiments, particularly the resource-intensive large language model (LLM) fine-tuning and
+the multi-language DINER training, was directly enabled by their dedicated compute support.
+
+11
+
+
+arXiv Template A PREPRINT
+
+References
+
+[1] Jiashuo Liu, Zheyan Shen, Yue He, Xingxuan Zhang, Renzhe Xu, Han Yu, and Peng Cui. Towards out-of-
+distribution generalization: A survey, 2023. URL https: //arxiv.org/abs/2108.13624
+[2] Paras Sheth, Raha Moraffah, K. Selcuk Candan, Adrienne Raglin, and Huan Liu. Domain generalization — a
+
+causal perspective, 2022. URL https: //arxiv.org/abs/2209.15177
+
+Shamsuddeen Hassan Muhammad, David Ifeoluwa Adelani, Sebastian Ruder, Ibrahim Sa’id Ahmad, Idris
+Abdulmumin, Bello Shehu Bello, Monojit Choudhury, Chris Chinenye Emezue, Saheed Salahudeen Abdullahi,
+Anuoluwapo Aremu, Alipio Jorge, and Pavel Brazdil. NaijaSenti: A Nigerian Twitter sentiment corpus for
+multilingual sentiment analysis. In Nicoletta Calzolari, Frédéric Béchet, Philippe Blache, Khalid Choukri,
+Christopher Cieri, Thierry Declerck, Sara Goggi, Hitoshi Isahara, Bente Maegaard, Joseph Mariani, Hélene Mazo,
+Jan Odijk, and Stelios Piperidis, editors, Proceedings of the Thirteenth Language Resources and Evaluation
+Conference, pages 590-602, Marseille, France, June 2022. European Language Resources Association. URL
+
+https://aclanthology.org/2022.1rec-1.63/
+
+Jialong Wu, Linhai Zhang, Deyu Zhou, and Guogiang Xu. DINER: Debiasing aspect-based sentiment analysis
+with multi-variable causal inference. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Findings
+of the Association for Computational Linguistics: ACL 2024, pages 3504-3518, Bangkok, Thailand, August
+
+2024. Association for Computational Linguistics. doi{10.18653/v1/2024.findings-acl.208, URL
+aclanthology.org/2024.findings-acl.208/
+
+[5] Maria Pontiki, Dimitris Galanis, John Pavlopoulos, Harris Papageorgiou, Ion Androutsopoulos, and Suresh
+Manandhar. SemEval-2014 task 4: Aspect based sentiment analysis. In Proceedings of the 8th International
+Workshop on Semantic Evaluation (SemEval 2014), pages 27-35, 2014.
+
+[3
+
+—_—
+
+=
+
+[6] Linyi Yang, Yaoxian Song, Xuan Ren, Chenyang Lyu, Yidong Wang, Jingming Zhuo, Linggiao Liu, Jindong Wang,
+Jennifer Foster, and Yue Zhang. Out-of-distribution generalization in natural language processing: Past, present,
+and future. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Proceedings of the 2023 Conference on
+Empirical Methods in Natural Language Processing, pages 4533-4559, Singapore, December 2023. Association
+
+for Computational Linguistics. doij10.18653/v1/2023.emnlp-main.276. URL https: //aclanthology.org/
+
+2023.emnlp-main.276/
+
+=
+
+Siyin Wang, Jie Deng, Wenming Zhang, Hao Sun, Bingquan Wang, and Qi Zhang. Domain generalization via
+causal adjustment for cross-domain sentiment analysis. In Proceedings of the 2024 Joint International Conference
+on Computational Linguistics, Language Resources and Evaluation, pages 1-11, 2024.
+
+[8] Ishaan Gulrajani and David Lopez-Paz. In search of lost domain generalization. In International Conference on
+Learning Representations, 2021. URL https: //openreview.net/forum?id=1QdXeXDoWtI
+
+Shamsuddeen Hassan Muhammad, Idris Abdulmumin, Abinew Ali Ayele, Nedjma Ousidhoum, David Ifeoluwa
+Adelani, Seid Muhie Yimam, Ibrahim Sa’id Ahmad, Meriem Beloucif, Saif M. Mohammad, Sebastian Ruder,
+Oumaima Hourrane, Pavel Brazdil, Alipio Jorge, Felermino Dario Mario Anténio Ali, Davis David, Salomey
+Osei, Bello Shehu Bello, Falalu Ibrahim, Tajuddeen Gwadabe, Samuel Rutunda, Tadesse Belay, Wendimu Baye
+Messelle, Hailu Beshada Balcha, Sisay Adugna Chala, Hagos Tesfahun Gebremichael, Bernard Opoku, and
+Stephen Arthur. AfriSenti: A Twitter sentiment analysis benchmark for African languages. In Houda Bouamor,
+Juan Pino, and Kalika Bali, editors, Proceedings of the 2023 Conference on Empirical Methods in Natural
+Language Processing, pages 13968-13981, Singapore, December 2023. Association for Computational Linguistics.
+doi{10.18653/v1/2023.emnlp-main.862| URL https://aclanthology.org/2023.emnlp-main.862/
+
+Iroro Orife, Julia Kreutzer, Blessing K. Sibanda, Daniel Whitenack, Kathleen Siminyu, Laura Martinus,
+Jamiil Toure Ali, Jade Z. Abbott, Vukosi Marivate, Salomon Kabongo KABENAMUALU, Musie Meressa,
+Espoir Murhabazi, Orevaoghene Ahia, Elan Van Biljon, Arshath Ramkilowan, Adewale Akinfaderin, Alp Oktem,
+Wole Akin, Ghollah Kioko, Kevin Degila, Herman Kamper, Bonaventure F. P. Dossou, Chris C. Emezue, Kelechi
+Ogueji, and Abdallah Bashir. Masakhane - machine translation for africa. ArXiv, abs/2003.11529, 2020. URL
+
+https://api.semanticscholar.org/CorpusID:214641201
+
+Divyansh Kaushik, Eduard Hovy, and Zachary Lipton. Learning the difference that makes a difference with
+counterfactually-augmented data. In International Conference on Learning Representations, 2020. URL https |
+
+//openreview.net/forum?id=SklgsONFvr
+[12] Bernhard Scholkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, and
+
+Yoshua Bengio. Towards causal representation learning, 2021. URL https: //arxiv.org/abs/2102.11107
+
+[13] Judea Pearl. Causality: Models, Reasoning, and Inference. Cambridge University Press, 2009.
+
+[9
+
+—
+
+[10
+
+—_
+
+[1
+
+—_—
+
+12
+
+
+arXiv Template A PREPRINT
+
+[14] Zhijing Jin, Amir Feder, and Kun Zhang. CausalNLP tutorial: An introduction to causality for natural language
+
+[16
+
+[17
+
+[18
+
+[19
+
+—_—
+
+—_
+
+]
+
+]
+
+—
+
+processing. In Samhaa R. El-Beltagy and Xipeng Qiu, editors, Proceedings of the 2022 Conference on Empirical
+Methods in Natural Language Processing: Tutorial Abstracts, pages 17-22, Abu Dubai, UAE, December
+
+2022. Association for Computational Linguistics. doi:10.18653/v1/2022.emnlp-tutorials.4, URL
+aclanthology.org/2022.emnlp-tutorials.4/
+
+Martin Arjovsky, Léon Bottou, Ishaan Gulrajani, and David Lopez-Paz. Invariant risk minimization, 2020. URL
+https://arxiv.org/abs/1907.02893
+
+Ananth Balashankar, Xuezhi Wang, Yao Qin, Ben Packer, Nithum Thain, Ed Chi, Jilin Chen, and Alex Beutel. Im-
+proving classifier robustness through active generative counterfactual data augmentation. In Houda Bouamor, Juan
+Pino, and Kalika Bali, editors, Findings of the Association for Computational Linguistics: EMNLP 2023, pages
+
+127-139, Singapore, December 2023. Association for Computational Linguistics. doii10.18653/v1/2023 findings
+emnlp.10; URL https: //aclanthology.org/2023.findings-emnlp.10/
+
+Anders Giovanni Mgller, Jacob Aarup Dalsgaard, Arianna Pera, and Luca Maria Aiello. The parrot dilemma:
+
+Human-labeled vs. llm-augmented data in classification tasks, 2024. URL https://arxiv.org/abs/2304
+
+13861
+
+OpenAl, Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman,
+Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, Red Avila, Igor Babuschkin, Suchir Balaji,
+Valerie Balcom, Paul Baltescu, Haiming Bao, Mohammad Bavarian, Jeff Belgum, Irwan Bello, Jake Berdine,
+Gabriel Bernadett-Shapiro, Christopher Berner, Lenny Bogdonoff, Oleg Boiko, Madelaine Boyd, Anna-Luisa
+Brakman, Greg Brockman, Tim Brooks, Miles Brundage, Kevin Button, Trevor Cai, Rosie Campbell, Andrew
+Cann, Brittany Carey, Chelsea Carlson, Rory Carmichael, Brooke Chan, Che Chang, Fotis Chantzis, Derek Chen,
+Sully Chen, Ruby Chen, Jason Chen, Mark Chen, Ben Chess, Chester Cho, Casey Chu, Hyung Won Chung, Dave
+Cummings, Jeremiah Currier, Yunxing Dai, Cory Decareaux, Thomas Degry, Noah Deutsch, Damien Deville,
+Arka Dhar, David Dohan, Steve Dowling, Sheila Dunning, Adrien Ecoffet, Atty Eleti, Tyna Eloundou, David Farhi,
+Liam Fedus, Niko Felix, Simén Posada Fishman, Juston Forte, Isabella Fulford, Leo Gao, Elie Georges, Christian
+Gibson, Vik Goel, Tarun Gogineni, Gabriel Goh, Rapha Gontijo-Lopes, Jonathan Gordon, Morgan Grafstein,
+Scott Gray, Ryan Greene, Joshua Gross, Shixiang Shane Gu, Yufei Guo, Chris Hallacy, Jesse Han, Jeff Harris,
+Yuchen He, Mike Heaton, Johannes Heidecke, Chris Hesse, Alan Hickey, Wade Hickey, Peter Hoeschele, Brandon
+Houghton, Kenny Hsu, Shengli Hu, Xin Hu, Joost Huizinga, Shantanu Jain, Shawn Jain, Joanne Jang, Angela Jiang,
+Roger Jiang, Haozhun Jin, Denny Jin, Shino Jomoto, Billie Jonn, Heewoo Jun, Tomer Kaftan, Lukasz Kaiser, Ali
+Kamali, Ingmar Kanitscheider, Nitish Shirish Keskar, Tabarak Khan, Logan Kilpatrick, Jong Wook Kim, Christina
+Kim, Yongjik Kim, Jan Hendrik Kirchner, Jamie Kiros, Matt Knight, Daniel Kokotajlo, Lukasz Kondraciuk,
+Andrew Kondrich, Aris Konstantinidis, Kyle Kosic, Gretchen Krueger, Vishal Kuo, Michael Lampe, Ikai Lan,
+Teddy Lee, Jan Leike, Jade Leung, Daniel Levy, Chak Ming Li, Rachel Lim, Molly Lin, Stephanie Lin, Mateusz
+Litwin, Theresa Lopez, Ryan Lowe, Patricia Lue, Anna Makanju, Kim Malfacini, Sam Manning, Todor Markov,
+Yaniv Markovski, Bianca Martin, Katie Mayer, Andrew Mayne, Bob McGrew, Scott Mayer McKinney, Christine
+McLeavey, Paul McMillan, Jake McNeil, David Medina, Aalok Mehta, Jacob Menick, Luke Metz, Andrey
+Mishchenko, Pamela Mishkin, Vinnie Monaco, Evan Morikawa, Daniel Mossing, Tong Mu, Mira Murati, Oleg
+Murk, David Mély, Ashvin Nair, Reiichiro Nakano, Rajeev Nayak, Arvind Neelakantan, Richard Ngo, Hyeonwoo
+Noh, Long Ouyang, Cullen O’Keefe, Jakub Pachocki, Alex Paino, Joe Palermo, Ashley Pantuliano, Giambattista
+Parascandolo, Joel Parish, Emy Parparita, Alex Passos, Mikhail Pavlov, Andrew Peng, Adam Perelman, Filipe
+de Avila Belbute Peres, Michael Petrov, Henrique Ponde de Oliveira Pinto, Michael, Pokorny, Michelle Pokrass,
+Vitchyr H. Pong, Tolly Powell, Alethea Power, Boris Power, Elizabeth Proehl, Raul Puri, Alec Radford, Jack Rae,
+Aditya Ramesh, Cameron Raymond, Francis Real, Kendra Rimbach, Carl Ross, Bob Rotsted, Henri Roussez, Nick
+Ryder, Mario Saltarelli, Ted Sanders, Shibani Santurkar, Girish Sastry, Heather Schmidt, David Schnurr, John
+Schulman, Daniel Selsam, Kyla Sheppard, Toki Sherbakov, Jessica Shieh, Sarah Shoker, Pranav Shyam, Szymon
+Sidor, Eric Sigler, Maddie Simens, Jordan Sitkin, Katarina Slama, Ian Sohl, Benjamin Sokolowsky, Yang Song,
+Natalie Staudacher, Felipe Petroski Such, Natalie Summers, Ilya Sutskever, Jie Tang, Nikolas Tezak, Madeleine B.
+Thompson, Phil Tillet, Amin Tootoonchian, Elizabeth Tseng, Preston Tuggle, Nick Turley, Jerry Tworek, Juan
+Felipe Cerén Uribe, Andrea Vallone, Arun Vijayvergiya, Chelsea Voss, Carroll Wainwright, Justin Jay Wang,
+Alvin Wang, Ben Wang, Jonathan Ward, Jason Wei, CJ Weinmann, Akila Welihinda, Peter Welinder, Jiayi Weng,
+Lilian Weng, Matt Wiethoff, Dave Willner, Clemens Winter, Samuel Wolrich, Hannah Wong, Lauren Workman,
+Sherwin Wu, Jeff Wu, Michael Wu, Kai Xiao, Tao Xu, Sarah Yoo, Kevin Yu, Qiming Yuan, Wojciech Zaremba,
+Rowan Zellers, Chong Zhang, Marvin Zhang, Shengjia Zhao, Tianhao Zheng, Juntang Zhuang, William Zhuk,
+
+and Barret Zoph. Gpt-4 technical report, 2024. URL https: //arxiv.org/abs/2303.08774
+
+Jason Wei and Kai Zou. EDA: Easy data augmentation techniques for boosting performance on text classification
+tasks. In Kentaro Inui, Jing Jiang, Vincent Ng, and Xiaojun Wan, editors, Proceedings of the 2019 Conference
+
+13
+
+
+arXiv Template A PREPRINT
+
+on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural
+Language Processing (EMNLP-IJCNLP), pages 6382-6388, Hong Kong, China, November 2019. Association for
+
+Computational Linguistics. doii10.18653/v1/D19-1670, URL https: //aclanthology.org/D19-1670/
+
+Xiaoyu Xing, Zhijing Jin, Di Jin, Bingning Wang, Qi Zhang, and Xuanjing Huang. Tasty burgers, soggy
+fries: Probing aspect robustness in aspect-based sentiment analysis. In Bonnie Webber, Trevor Cohn, Yulan
+He, and Yang Liu, editors, Proceedings of the 2020 Conference on Empirical Methods in Natural Language
+Processing (EMNLP), pages 3594-3605, Online, November 2020. Association for Computational Linguistics.
+
+doii10.18653/v1/2020.emnlp-main.292) URL https://aclanthology.org/2020.emnlp-main.292/
+
+Shuai Wang, Sahisnu Mazumder, Bing Liu, Mianwei Zhou, and Yi Chang. Target-sensitive memory networks
+for aspect sentiment classification. In Iryna Gurevych and Yusuke Miyao, editors, Proceedings of the 56th
+Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 957-967,
+
+Melbourne, Australia, July 2018. Association for Computational Linguistics. doi:10.18653/v1/P18-1088| URL
+https://aclanthology.org/P18-1088/
+
+Binxuan Huang and Kathleen M Carley. Parameterized convolutional neural networks for aspect level sentiment
+classification. arXiv preprint arXiv:1909.06276, 2019.
+
+[23] Xuefeng Bai, Pengbo Liu, and Yue Zhang. Investigating typed syntactic dependencies for targeted sentiment
+classification using graph attention neural network. IEEE/ACM Transactions on Audio, Speech, and Language
+Processing, 29:503-514, 2020.
+
+[24] Tal Schuster, Darsh J Shah, Yun Jie Serene Yeo, Daniel Filizzola, Enrico Santus, and Regina Barzilay. Towards
+debiasing fact verification models, 2019. URL https: //arxiv.org/abs/1908.05267
+
+[25] Yulei Niu, Kaihua Tang, Hanwang Zhang, Zhiwu Lu, Xian-Sheng Hua, and Ji-Rong Wen. Counterfactual vqa: A
+cause-effect look at language bias. In Proceedings of the IEEE/CVF conference on computer vision and pattern
+recognition, pages 12700-12710, 2021.
+
+Jesujoba O. Alabi, David Ifeoluwa Adelani, Marius Mosbach, and Dietrich Klakow. Adapting pre-trained language
+models to African languages via multilingual adaptive fine-tuning. In Proceedings of the 29th International
+Conference on Computational Linguistics, pages 4336-4349, Gyeongju, Republic of Korea, October 2022.
+
+International Committee on Computational Linguistics. URL https: //aclanthology.org/2022.coling-1
+
+382
+
+Kelechi Ogueji, Yuxin Zhu, and Jimmy Lin. Small data? no problem! exploring the viability of pretrained
+multilingual language models for low-resourced languages. In Proceedings of the 1st Workshop on Multilingual
+Representation Learning, pages 116-126, 2021.
+
+[20
+
+—_
+
+[21
+
+—_—
+
+[22
+
+—_—
+
+[26
+
+—_
+
+[27
+
+[—
+
+[28] Nils Reimers and Iryna Gurevych. Sentence-bert: Sentence embeddings using siamese bert-networks. In
+Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing. Association for
+
+Computational Linguistics, 11 2019. URL http://arxiv.org/abs/1908.10084
+
+[29] Guy Hadash, Einat Kermany, Boaz Carmeli, Ofer Lavi, George Kour, and Alon Jacovi. Estimate and replace: A
+novel approach to integrating deep neural networks with existing applications. arXiv preprint arXiv:1804.09028,
+2018.
+
+[30] Alexis Conneau, Kartikay Khandelwal, Naman Goyal, Vishrav Chaudhary, Guillaume Wenzek, Francisco Guzman,
+Edouard Grave, Myle Ott, Luke Zettlemoyer, and Veselin Stoyanov. Unsupervised cross-lingual representation
+learning at scale. arXiv preprint arXiv:1911.02116, 2019.
+
+[31] David Ifeoluwa Adelani, Hannah Liu, Xiaoyu Shen, Nikita Vassilyev, Jesujoba O. Alabi, Yanke Mao, Haonan
+Gao, and Annie En-Shiun Lee. Sib-200: A simple, inclusive, and big evaluation dataset for topic classification in
+200+ languages and dialects, 2023.
+
+14

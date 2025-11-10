@@ -1,0 +1,747 @@
+arX1v:2510.27038v1 [cs.CL] 30 Oct 2025
+
+Dataset Creation and Baseline Models for Sexism Detection in
+Hausa
+
+Fatima Adam Muhammad’, Shamsuddeen Muhammad Hassan?, Isa Inuwa-Dutse?®
+Federal University Dutse’, Imperial College London?, University of Huddersfield®
+
+Abstract
+Sexism reinforces gender inequality and social exclusion by perpetuating stereotypes, bias, and discriminatory
+norms. Noting how online platforms enable various forms of sexism to thrive, there is a growing need for effective
+sexism detection and mitigation strategies. While computational approaches to sexism detection are widespread in
+high-resource languages, progress remains limited in low-resource languages where limited linguistic resources and
+cultural differences affect how sexism is expressed and perceived. This study introduces the first Hausa sexism
+detection dataset, developed through community engagement, qualitative coding, and data augmentation. For
+cultural nuances and linguistic representation, we conducted a two-stage user study (n=66) involving native speakers
+to explore how sexism is defined and articulated in everyday discourse. We further experiment with both traditional
+machine learning classifiers and pre-trained multilingual language models and evaluating the effectiveness few-shot
+learning in detecting sexism in Hausa. Our findings highlight challenges in capturing cultural nuance, particu-
+larly with clarification-seeking and idiomatic expressions, and reveal a tendency for many false positives in such cases.
+
+Keywords: Sexism Detection, Online Social Media, Sexism Data, Low-resource Language, Hausa Lan-
+guage
+Warning: This paper contains instances of sexist language to serve as examples
+
+1. Introduction Africa, there exist insufficient or no linguistic re-
+sources to address sexism in Hausa language.
+Sexist hate speech entails any supposition, Thus, this work is aimed at developing the first
+belief, assertion, gesture or act that is aimed corpus and baseline models for sexism detec-
+
+at expressing contempt towards a person on
+the basis of gender (Council of Europe, 2017).
+Studies on discourse analysis have shown that
+sexism may be expressed at different linguistic
+granularity levels going from lexical to discur-
+sive (Cameron, 1992). Sexism is prejudice or
+discrimination based on a person’s gender. It
+can take several forms: sexist remarks, ges-
+tures, behaviours, practices, from insults to
+rape or murder (Chiril et al., 2020). While on-
+line social media platforms such as Facebook
+and X have facilitated various forms of sexism
+to thrive, they also enable a way of retrieving
+relevant resources and engage with diverse
+participants to study sexism. Research on sex-
+ism detection and gender bias in language has
+grown rapidly in recent years. However, most
+existing studies focus on English and other
+high-resource languages, where richer linguis-
+tic resources exist (Luo et al., 2025; Rodriguez-
+Sanchez et al., 2024; Samory et al., 2021).
+Being one of the most populous language in
+
+tion in Hausa language. We will examine var-
+ious forms of sexism and how they manifest
+while factoring cultural nuances and language
+structure. Thus, we will be addressing the fol-
+lowing research questions (1) how to create
+culturally representative corpus of sexist and
+non-sexist texts in Hausa? and (2) how na-
+tive Hausa speakers conceptualise sexism?
+To that effect, this study offers the following
+contributions:
+
+1. We contribute the first datasets for sexism
+detection in Hausa language.
+
+2. We conduct a two-stage user study (pilot
+and main) involving native Hausa speak-
+ers to explore how sexism is perceived
+and expressed within the community. This
+participatory approach ensures cultural va-
+lidity and promotes community-driven re-
+source development.
+
+3. We analyse how linguistic, cultural, and so-
+
+
+cietal nuances influence the manifestation
+and detection of sexism in Hausa. The
+insight is useful in providing a foundation
+for more inclusive and context-aware NLP
+systems.
+
+Both data augmentation, involving transla-
+tion and re-annotation of existing sexism data
+in English, and engagement with native speak-
+ers will be integrated in developing the detec-
+tion system. The idea of taken this broad ap-
+proach is to widen the data collection and not
+impose limitations that will affect the quantity
+of the data to work with. This is crucial since
+enriching resources through labelled data is
+one of the key objectives of the study.
+
+The remaining part of the paper is structured
+as follows. The next section (§ 2) covers the
+related literature. We then present our method-
+ology in § 3, followed by the results and dis-
+cussion in § 4. The paper concludes with our
+findings and ethical considerations in § 5.
+
+2. Related Work
+
+In many languages and everyday communi-
+cation, sexism often manifests through ex-
+plicit derogatory expressions and implicit bi-
+ases, especially of women (Swim et al., 2004;
+Tian et al.,, 2025). In high-resource lan-
+guages (HLRs), substantial progress has been
+made in developing computational methods
+and resources for detecting such expressions
+(Jha and Mamidi, 2017; Samory et al., 2021;
+Rodriguez-Sanchez et al., 2024; Luo et al.,
+2025). Relevant studies have examined the
+multifaceted nature of sexism and the need
+for robust computational systems for its de-
+tection. Using the EXIST dataset, Rodriguez-
+Sanchez et al. (2024) assessed its represen-
+tational capacity for diverse types of sexism.
+Similarly, Parikh et al. (2021) proposed a multi-
+label classification framework to capture co-
+occurring sexist expressions, while Redondo
+etal. (2023) developed an anti-sexism alert sys-
+tem for identifying sexist content across multi-
+media platforms. Bandyopadhyay et al. (2024)
+introduced an influence-based approach for
+evaluating the importance of individual data
+
+points in model training for sexism detection.
+However, these advances often fail to effec-
+tively generalise to low-resource languages
+(LRLs) in which linguistic, cultural and praga-
+matic markers of sexism differ from those of
+HRLs. For instance, Hausa embodies distinct
+gendered expressions and proverbs that en-
+code social hierarchies, moral expectations
+and gender norms (IBRAHIM, 2025). Noting
+the scarcity of resources and the sociolinguistic
+diversity, there is a growing body literature ex-
+ploring these challenges (Ekundayo and Okoh,
+2020; Altin and Saggion; Schitz et al., 2021;
+Buscemi et al., 2025). This study contributes
+to the literature by developing the first Hausa
+sexism detection dataset and evaluating the
+performance of multilingual and few-shot learn-
+ing models.
+
+Resources for Sexism Detection While
+there is a growing body of research on sen-
+timent analysis, offensive and hate speech
+detection in Hausa language (Muhammad
+et al., 2022; Adam et al., 2024; Alkomah and
+Ma, 2022; Zandam et al., 2023; Jahnavi and
+Chaturvedi, 2025; Talat, 2016; Rizwan et al.,
+2020), no prior study has focused specifically
+on sexism detection in Hausa. In contrast, sev-
+eral datasets have been developed for other
+languages to support moderation and the re-
+duction of sexists or discriminatory content. For
+instance, Chiril et al. (2020) introduced the first
+French corpus annotated for sexism detection
+that distinguish between sexist content and nar-
+ratives of sexism experienced by women. Sim-
+ilarly, Rodriguez-Sanchez et al. (2020) devel-
+oped the MeTwo dataset in Spanish, contain-
+ing sexist expressions and attitudes on Twit-
+ter. For Arabic, Almanea and Poesio (2022)
+presented the ArMIS corpus, annotated by in-
+dividuals with varying religious backgrounds,
+revealing how ideological differences can af-
+fect annotation outcomes. Likewise, El Ansari
+et al. (2020) combined automatic and manual
+methods to construct a dataset addressing ha-
+rassment and gender-based discrimination in
+Arabic texts. In the Turkish context, Altin and
+Saggion investigated the use of large language
+models (LLMs) for sexism detection.
+
+
+Building upon these efforts, our study intro-
+duces the first Hausa dataset for sexism detec-
+tion. Our goal is to extend sexism research to
+one of the most populous languages in Africa.
+
+3. Data Collection and User Study
+
+To achieve our main aim and address the re-
+search questions, we adopt a mixed-method
+and iterative design involving linguistic data
+collection, qualitative analysis, and model de-
+velopment (see Figure 1).
+
+3.1. Dataset Creation
+
+The study begins with the development of a rep-
+resentative Hausa sexism corpus, constructed
+through the adaptation and extension of ex-
+isting English-language sexism datasets (Kirk
+et al, 2023). To this end, we employ a combi-
+nation of translation, contextual re-annotation,
+and native expert validation to ensure that cul-
+tural and linguistic nuances unique to Hausa
+are preserved. Each text is categorised as
+sexist or not sexist, with additional thematic
+
+tagging.
+
+User Study We engage native speakers of
+the language in a two-stage user study to
+gather culturally grounded perspectives on how
+they perceive and articulate sexism. The pilot
+study (n=33) tested the clarity and relevance of
+survey prompts and coding categories. Partici-
+pants provided open-ended definitions of sex-
+ism in Hausa, allowing for iterative refinement
+of the data collection and preliminary theme
+extraction. Working with a different set of par-
+ticipants, the main user study (n = 33) builds
+on the pilot to include diverse Hausa speak-
+ers across regions, genders, and educational
+backgrounds. Respondents contributed both
+conceptual definitions and examples of every-
+day sexist expressions. The responses were
+analysed through qualitative thematic coding
+(Braun and Clarke, 2006), yielding recurring
+conceptual patterns such as gender bias, role
+restriction, social exclusion, and moral stereo-
+typing (Table 2). The user study also serves
+
+as a crowdsourced resource for model devel-
+opment (§ 4.1).
+
+We recruited native Hausa speakers from
+diverse demographic backgrounds and of vary-
+ing ages (18-25 (38%), 25-30 (38%), 35-45
+(19%) and 45-55 (5%)), genders (12.9% fe-
+male and 87.1% male) and educational levels
+(21.9% completed secondary school, 12.5%
+have a diploma qualification, 37.5% have a
+first degree and 28.1% have a postgraduate
+degree). Prior to the survey, ethical approval
+was obtained through the Institutional Review
+Board. All participants received detailed infor-
+mation about the study’s objectives and proce-
+dures and gave informed consent before par-
+ticipating. All responses were anonymised to
+protect participant identify and confidentiality.
+
+Data Augmentation In addition to the user
+study, we employ a cross-lingual data augmen-
+tation strategy using an existing English sex-
+ism detection dataset (Kirk et al., 2023). We
+recruit bilingual expert translators with domain
+knowledge of gender and sociolinguistic con-
+texts. We chose to employ human translators
+instead of relying on direct machine transla-
+tion in order to prioritise semantic and cultural
+equivalence, ensuring that the nuances of sex-
+ist and non-sexist expressions were contextu-
+ally preserved. The translated instances were
+re-annotated to align with local linguistic norms
+and gender ideologies. We leverage positive
+instances from (Adam et al., 2024) for the non-
+sexist terms in training the models; further de-
+tail and information about the data is provided
+in the project's github repository
+
+4. Sexism Detection in Hausa
+
+We present a set of experiments to detect sexist
+content in Hausa messages relying both on
+standard feature-based and deep learning/pre-
+trained approaches.
+
+4.1. Models
+
+Noting that detecting sexism is a complex, nu-
+anced task in the language, we utilise vari-
+ous models including SVM (Cortes and Vapnik,
+
+
+{Data Source
+
+] Data ;
+| Augmentation :
+
+Translation & Training Data
+Re-Annotation
+Thematic !
+
+Models Building
+
+SVM sexist /
+BERT not sexist,
+mBERT
+
+[ ) oa Analysis
+ea I)
+
+User Study
+
+Ba’a karbar shawarar mata Ree eee]
+
+Large Language
+Model
+
+Few-Shot Learning
+
+XLM-R
+
+Figure 1: Overview of our approach depicting data sources (consisting of user study and data
+augmentation) and baseline models development.
+
+1995), BERT (and its variant mBERT) (Devlin
+etal., 2019), XML-R (Conneau et al., 2019) and
+popular LLMs for few-shot learning (GPT-5",
+Grok? and Deepseek®).
+
+Few-Shot Learning For the few-shot learn-
+ing FSL, we utilise relevant large language
+models (LLMs) fine-tuned on the examples pro-
+vided by the native speakers that participated
+in the user study to enable the models learn to
+generalise from limited data.
+
+4.2. Discussion
+
+In response to addressing the question of cre-
+ating culturally representative corpus of sexism
+in Hausa, we conducted a qualitative survey
+(n=66) asking participants to contribute sexist
+expressions in Hausa. Similarly, to address
+the question of how native Hausa speakers
+conceptualise sexism, we asked open ques-
+tions and coded the corresponding responses
+to identify key thematic frames of gender-based
+bias, inequality, and social perception. In Ta-
+ble 2, our thematic coding revealed the fol-
+lowing primary themes: discrimination (43%),
+inequality or bias (26%), stereotyping (20%),
+and prejudice/derogatory (11%). Across the
+responses, participants most frequently used
+the phrase wariyar jinsi (gender discrimination)
+as a direct equivalent for sexism. Overall, the
+
+"https: //openai.com/gpt—>5/
+2nttps://grok.com/
+Shttps ://www.deepseek.com/
+
+responses indicate that the participants con-
+ceptualise sexism primarily as a form of gender-
+based injustice rooted in unequal social norms.
+The themes in Table 2 were identified induc-
+tively from the main responses using open and
+axial coding (Braun and Clarke, 2006) by two
+native speakers of Hausa, achieving high reli-
+ability (Cohen’s Kappa k = 0.82; (Landis and
+Koch, 1977)). Moreover, participants provided
+several representative definitions and exam-
+ples of how sexism manifests linguistically and
+socially in Hausa. Respondents articulated
+sexism both conceptually and through cultur-
+ally embedded expressions. The examples in
+Table 3 broadly fall into gender role restriction,
+inequality or bias, intellectual and moral stereo-
+typing.
+
+Detecting Sexism Table 1 shows a summary
+of the results from the trained models. The
+models are generally effective, recording high
+performance across the detection task. How-
+ever, the models struggle to understand subtle
+and nuance language as exemplified in Table 4.
+For instance, clarification-seeking or sarcastic
+expressions (as in sentences ending with ne’)
+are often misclassified. There is slightly better
+Precision than Recall, suggesting that the mod-
+els are better at avoiding false alarms (labelling
+non-sexist content as sexist) than it is at catch-
+ing every single instance of sexist content.
+
+
+Model/Setup Accuracy (%) Precision Recall F1i-Score
+GPT-5 (few-shot, 5 examples) 87.3 0.85 0.88 0.86
+GPT-5 (few-shot, 10 examples) 0.70 0.67 0.73 0.73
+Deepseek (few-shot, 5 examples) 0.76 0.85 0.79 0.82
+Grok (few-shot, 5 examples) 0.76 0.83 0.76 0.80
+SVM 0.65 0.65 0.65 0.65
+BERT 0.81 0.82 0.81 0.81
+mBERT 0.77 0.77 0.77 0.77
+XML-R 0.85 0.86 0.85 0.84
+
+Table 1: Performance comparison of trained models and few-shot sexism detection models in
+Hausa. Few-shot prompting (5 examples) shows better performance compared to fine-tuned
+
+baselines.
+Theme Explanation (Hausa) Explanation (English) Freq. (%)
+Discrimination Nuna wariya saboda bambancin Showing discrimination or unfair treat- 43
+jinsi. ment toward someone based on gen-
+der.
+Inequality / Bias Nuna wariya tsakanin maza ko Unequal treatment of men and 26
+mata domin nuna raunin matan. women, often to belittle or undermine
+women.
+Stereotyping lyakar wani aiki ko siffa ga wani Limiting certain roles or character- 20
+jinsi musamman mace. istics to one gender, particularly
+women.
+Prejudice/Derogatory Goyon bayan rashin Promoting the mistreatment of certain 11
+kyakykyawan mu’amala ko women
+
+cin mutuncin mata
+
+Table 2: Hausa respondents’ thematic definitions of “sexism.” Themes represent major interpretive
+categories derived from respondents’ Hausa definitions. Frequencies reflect proportions of the
+
+total responses from the main user study (n=33).
+
+5. Conclusion
+
+Noting the challenges associated with sexism
+detection in low-resource languages, this study
+contributes the first systematic effort toward
+detecting sexism in Hausa language. Our ap-
+proach include the construction of a culturally
+representative dataset through engagement
+with native speakers and data augmentation
+strategy based on existing sexism data in En-
+glish language. We experiment with both tra-
+ditional and pre-trained multilingual models to
+demonstrate how sexism detection can be ex-
+tended to low-resource languages. The re-
+sults highlight both the challenges of cross-
+lingual transfer and the promise of few-shot
+learning for scalable detection task. This work
+underscores the importance of integrating com-
+
+munity knowledge and cultural nuance into
+NLP resource development, especially in low-
+resource settings. Future research will explore
+context-aware modelling and the broader ap-
+plication of this approach to other LRLs to pro-
+mote inclusive and socially responsible lan-
+guage technologies.
+
+5.1. Ethical Considerations and
+
+Limitations
+
+We understand that this study presents some
+ethical considerations and potential harms that
+may arise. Firstly, the models may fail to recog-
+nise subtle or context-specific forms of sexism
+due to data scarcity and language dynamism.
+We incorporated input from the local commu-
+nity via user study to ensure that the dataset
+
+
+Hausa Expression English Translation Theme
+
+2 lyakance wani aiki ko siffa ga wanijinsi Restricting certain roles or qualities to Stereotyping
+2 musamman mace. one gender, especially women.
+£ Fifita namiji akan mace. Giving preference or superiority to men Inequality / Bias
+a over women.
+Sexism na nufin nuna wariya, bam- Sexism means discrimination, inequality, Discrimination
+banci, ko rashin adalci ga mutum sa- or injustice toward someone based on
+boda jinsinsa. gender.
+Mace ta fi kyau a cikin gida. A woman is best suited to the home. Stereotyping
+Fy Mace ba ta da hankali irin na namiji/ A woman is not as intelligent as a man. Prejudice/Derogatory
+ir Mace ba ta da hankali sosai.
+E Ba’a karbar shawarar mata. Women’s advice is not accepted. Stereotype
+0 Ba’a bawa mata amana. Women are not to be trusted. Stereotype
+
+Table 3: The table distinguishes between abstract definitions and everyday sexist expressions,
+with thematic categories highlighting the sociocultural dimensions of gender bias in Hausa.
+
+Text (Hausa) Human Label Model Prediction Correct? Remark
+
+Mata adon gari Sexist Sexist Vv Implicitly reinforces gender
+as ornamental.
+
+Babu bambanci tsakanin mata da Not Sexist Not Sexist v Correctly recognises inclu-
+
+maza sive phrasing.
+
+Mace ko za tafi kyau a cikin gida Not Sexist Sexist x Seeking clarification.
+
+ne
+
+Mace mai kamar maza Sexist Sexist v Correctly flags mocking tone.
+
+Mace ta san zafin nema ne Sexist Not Sexist X Clarification-
+
+seeking/Sarcasm
+
+Table 4: Qualitative examples of Hausa sexism detection. The model, GPT-5 (few-shot, 5
+examples), performs well on explicit and implicit cases but occasionally misses culturally nuanced
+expressions.
+
+used for training is as inclusive as possible.
+We acknowledged the following limitations:
+
+- The small size of available datasets may
+
+lead to suboptimum performance, espe-
+cially in detecting nuanced or subtle forms
+of sexism. Moreover, the user study data
+is skewed because only a handful of the
+participants are females (12.9%) and fu-
+ture work will need to ensure higher par-
+ticipation.
+
+Sexism is context-dependent, and the
+meaning of a phrase or statement may
+change based on social, cultural, and sit-
+uational factors. While effective at detect-
+
+ing patterns of sexism in text, the model
+may struggle to capture this contextual nu-
+ance. For example, clarification-seeking
+or sarcastic expressions may be misclas-
+sified as shown in Table 4, and the model
+may not distinguish between genuine in-
+tent and socially accepted behaviours that
+inadvertently perpetuate gender stereo-
+types.
+
+6. Bibliographical References
+
+
+Fatima Muhammad Adam, Abubakar Yakubu
+Zandam, and Isa Inuwa-Dutse. 2024. Detec-
+tion and analysis of offensive online content
+in hausa language. IJCAI Al for Good Sym-
+posium in Africa hosted by Deep Learning
+Indaba, 2(2):2—14.
+
+Fatimah Alkomah and Xiaogang Ma. 2022. A
+literature review of textual hate speech de-
+tection methods and datasets. Information,
+13(6):273.
+
+Dina Almanea and Massimo Poesio. 2022.
+ArMIS - the Arabic misogyny and sexism
+corpus with annotator subjective disagree-
+ments. In Proceedings of the Thirteenth
+Language Resources and Evaluation Confer-
+ence, pages 2282-2291, Marseille, France.
+European Language Resources Associa-
+tion.
+
+Lutfiye Seda Mut Altin and Horacio Saggion.
+Investigating large language models’(lims)
+capabilities for sexism detection on a low-
+resource language.
+
+Rabiraj Bandyopadhyay, Dennis Assenmacher,
+Jose M Alonso-Moral, and Claudia Wag-
+ner. 2024. Sexism detection on a data diet.
+In Companion Publication of the 16th ACM
+Web Science Conference, pages 94-102.
+
+Virginia Braun and Victoria Clarke. 2006. Using
+thematic analysis in psychology. Qualitative
+research in psychology, 3(2):77—101.
+
+Alessio Buscemi, Cédric Lothritz, Sergio
+Morales, Marcos Gomez-Vazquez, Robert
+Clarisd, Jordi Cabot, and German Castig-
+nani. 2025. Mind the language gap: Auto-
+mated and augmented evaluation of bias in
+lIms for high-and low-resource languages.
+arXiv preprint arXiv:2504. 18560.
+
+Deborah Cameron. 1992. Feminism and lin-
+guistic theory. Springer.
+
+Patricia Chiril, Véronique Moriceau, Farah Be-
+namara, Alda Mari, Gloria Origgi, and Mar-
+lene Coulomb-Gully. 2020. An annotated
+
+corpus for sexism detection in french tweets.
+In 12th Conference on Language Resources
+and Evaluation (LREC 2020), pages 1-7.
+ELRA: European Language Resources As-
+sociation.
+
+Alexis Conneau, Kartikay Khandelwal, Naman
+Goyal, Vishrav Chaudhary, Guillaume Wen-
+zek, Francisco Guzman, Edouard Grave,
+Myle Ott, Luke Zettlemoyer, and Veselin
+Stoyanov. 2019. Unsupervised cross-lingual
+representation learning at scale. arXiv
+preprint arXiv:1911.02116.
+
+Corinna Cortes and Vladimir Vapnik. 1995.
+Support-vector networks. Machine learning,
+20(3):273-297.
+
+Council of Europe. 2017. Combating sex-
+ist hate speech. https://rm.coe.int/
+1680651592. Accessed: 12 October 2025.
+
+Jacob Devlin, Ming-Wei Chang, Kenton Lee,
+and Kristina Toutanova. 2019. Bert: Pre-
+training of deep bidirectional transformers for
+language understanding. In Proceedings of
+the 2019 conference of the North American
+chapter of the association for computational
+linguistics: human language technologies,
+volume 1 (long and short papers), pages
+4171-4186.
+
+Omowumi Olabode Steven Ekundayo and
+Agore Bridget Okoh. 2020. Sexisms in nige-
+rian pidgin and (nigerian) english: ‘wetin man
+go do’about no ‘goddess’, no ‘spinster of arts’
+and ‘mistress of science’. Journal of The
+Linguistic Association of Nigeria, 23(1):242—
+262.
+
+Oumayma El Ansari, Zahir Jihad, and Mou-
+sannif Hajar. 2020. A dataset to support
+sexist content detection in arabic text. In In-
+ternational Conference on Image and Signal
+Processing, pages 130-137. Springer.
+
+DANIEL IBRAHIM. 2025. A feminist discourse
+of selected hausa proverbs. International
+Journal of Law, Politics and Humanities Re-
+search.
+
+
+Enduri Jahnavi and Animesh Chaturvedi. 2025.
+Hate speech detection in low-resource lan-
+guages hindi, gujarati, marathi, and sin-
+hala. In 2025 17th International Conference
+on COMmunication Systems and NE Tworks
+(COMSNETS), pages 7-12. IEEE.
+
+Akshita Jha and Radhika Mamidi. 2017. When
+does a compliment become sexist? analysis
+and classification of ambivalent sexism using
+twitter data. In Proceedings of the second
+workshop on NLP and computational social
+science, pages 7-16.
+
+Hannah Rose Kirk, Wenjie Yin, Bertie Vidgen,
+and Paul Réttger. 2023. Semeval-2023 task
+10: Explainable detection of online sexism.
+arXiv preprint arXiv:2303.04222.
+
+J Richard Landis and Gary G Koch. 1977. The
+measurement of observer agreement for cat-
+egorical data. biometrics, pages 159-174.
+
+Xuan Luo, Bin Liang, Qianlong Wang, Jing Li,
+Erik Cambria, Xiaojun Zhang, Yulan He, Min
+Yang, and Ruifeng Xu. 2025. A literature sur-
+vey on multimodal and multilingual sexism
+detection. IEEE Transactions on Computa-
+tional Social Systems.
+
+Shamsuddeen Hassan Muhammad,
+David Ifeoluwa Adelani, Sebastian
+Ruder, Ibrahim Said Ahmad, Idris Ab-
+dulmumin, Bello Shehu Bello, Monojit
+Choudhury, Chris Chinenye Emezue,
+Saheed Salahudeen Abdullahi, Anuoluwapo
+Aremu, et al. 2022. Naijasenti: A nigerian
+twitter sentiment corpus for multilin-
+gual sentiment analysis. arXiv preprint
+arXiv:2201.08277.
+
+Pulkit Parikh, Harika Abburi, Niyati Chhaya,
+Manish Gupta, and Vasudeva Varma. 2021.
+Categorizing sexism and misogyny through
+neural approaches. ACM Transactions on
+the Web (TWEB), 15(4):1-31.
+
+Rebeca P Diaz Redondo, Ana Fernandez Vi-
+las, Mateo Ramos Merino, Sonia Maria Val-
+ladares Rodriguez, Soledad Torres Guijarro,
+
+and Manar Mohamed Hafez. 2023. Anti-
+sexism alert system: identification of sex-
+ist comments on social media using ai tech-
+niques. Applied Sciences, 13(7):4341.
+
+Hammad Rizwan, Muhammad Haroon Sha-
+keel, and Asim Karim. 2020. Hate-speech
+and offensive language detection in roman
+urdu. In Proceedings of the 2020 conference
+on empirical methods in natural language
+processing (EMNLP), pages 2512-2522.
+
+Francisco Rodriguez-Sanchez, Jorge Carrillo-
+de Albornoz, and Laura Plaza. 2020. Auto-
+matic classification of sexism in social net-
+works: An empirical study on twitter data.
+IEEE Access, 8:219563-219576.
+
+Francisco Rodriguez-Sanchez, Jorge Carrillo-
+de Albornoz, and Laura Plaza. 2024. De-
+tecting sexism in social media: an empirical
+analysis of linguistic patterns and strategies.
+Applied Intelligence, 54(21):10995-11019.
+
+Mattia Samory, Indira Sen, Julian Kohne,
+Fabian Fléck, and Claudia Wagner. 2021.
+“call me sexist, but...”: Revisiting sexism de-
+tection using psychological scales and ad-
+versarial samples. In Proceedings of the
+international AAAI conference on web and
+social media, volume 15, pages 573-584.
+
+Mina Schlitz, Jaqueline Boeck, Daria Li-
+akhovets, Djordje SlijepCevi¢, Armin
+Kirchknopf, Manuel Hecht, Johannes
+Bogensperger, Sven Schlarb, Alexander
+Schindler, and Matthias Zeppelzauer. 2021.
+Automatic sexism detection with multilin-
+gual transformer models. arXiv preprint
+arXiv:2106.04908.
+
+Janet K Swim, Robyn Mallett, and Charles
+Stangor. 2004. Understanding subtle sex-
+ism: Detection and use of sexist language.
+Sex roles, 51(8):117-128.
+
+Zeerak Talat. 2016. Are you a racist or am i
+seeing things? annotator influence on hate
+speech detection on twitter. In Proceedings
+of the first workshop on NLP and computa-
+tional social science, pages 138-142.
+
+
+Lin Tian, Johanne R. Trippas, and Marian-
+Andrei Rizoiu. 2025. Mario at exist 2025:
+A simple gateway to effective multilingual
+sexism detection.
+
+Abubakar Yakubu Zandam, Fatima Adam
+Muhammad, and Isa Inuwa-Dutse. 2023. On-
+line threats detection in hausa language. In
+4th Workshop on African Natural Language
+
+Processing.

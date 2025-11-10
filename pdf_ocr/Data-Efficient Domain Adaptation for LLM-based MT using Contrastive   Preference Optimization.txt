@@ -1,0 +1,1137 @@
+arX1v:2510.27556v1 [cs.CL] 31 Oct 2025
+
+Data-Efficient Domain Adaptation for LLM-based MT using Contrastive
+Preference Optimization
+
+Inacio Vieira
+Alpha CRC, Cambridge, UK
+ivieira@alphacrc.com
+
+James O’Doherty
+Independent Researcher
+jamesjodoherty@gmail. com
+
+Abstract
+
+LLMs often require adaptation to domain-
+specific requirements, a process that can be ex-
+pensive when relying solely on SFT. We present
+an empirical study on applying CPO to simu-
+late a post-editing workflow for data-efficient
+domain adaptation. Our approach synthesizes
+preference pairs by treating the base model’s
+own raw output as the ‘rejected’ translation
+and the human-approved TM entry as the ’cho-
+sen’ one. This method provides direct feed-
+back on the model’s current knowledge, guid-
+ing it to align with domain-specific standards.
+Experiments in English-Brazilian Portuguese
+and English—Korean show that, by using just
+14.7k preference pairs, the model achieves per-
+formance close to that of a model trained on
+160k+ samples with SFT, demonstrating signif-
+icant data efficiency. Although we showcase
+its effectiveness in MT, this application of CPO
+naturally generalizes to other generative tasks
+where a model’s initial drafts can serve as a
+contrastive signal against a golden reference.
+
+1 Introduction
+
+Large Language Models (LLMs) have reshaped
+many Natural Language Generation (NLG) tasks,
+including Machine Translation (MT). They show
+impressive performance in general domain content
+(Alves et al., 2023; Hendy et al., 2023; Robinson
+et al., 2023; Zhu et al., 2023; Lyu et al., 2024),
+but often falter in specialized domains or when
+tasked with meeting strict style and terminology
+demands (Zheng et al., 2024). In these scenarios,
+domain adaptation becomes vital. Organizations
+commonly leverage proprietary data, such as trans-
+lation memories (TMs), to tailor smaller, business-
+friendly LLMs (Touvron et al., 2023; Llama Team,
+
+Antonio Castaldo
+University of Naples “L’Orientale”
+University of Pisa
+antonio. castaldo@phd.unipi.it
+
+Sheila Castilho
+SALIS / ADAPT Centre
+Dublin City University, Ireland
+sheila.castilho@adaptcentre.ie
+
+2024) without incurring the high costs of large-
+scale retraining (Moslem et al., 2023).
+
+However, questions remain regarding how best
+to exploit TMs for fine-tuning. While Supervised
+Fine-Tuning (SFT) is a common approach, recent
+work on preference optimization suggests that con-
+trastive methods can offer a more potent signal for
+alignment (Rafailov et al., 2024; Xu et al., 2024a).
+These methods train a model to distinguish between
+"chosen" (preferred) and "rejected" (dispreferred)
+outputs.
+
+Inspired by this, we investigate a specific applica-
+tion of Contrastive Preference Optimization (CPO)
+for MT domain adaptation. Our motivation draws
+from constructivist learning theory (Piaget et al.,
+1952), where a learner’s prior knowledge is elicited
+and then refined through corrective feedback. Anal-
+ogously, we treat the LLM’s raw, out-of-the-box
+translation as its "prior knowledge". We then create
+a preference pair by contrasting this raw output (the
+‘rejected’ candidate) with a high-quality, human-
+approved TM entry (the ‘chosen’ candidate). This
+process simulates a post-editing workflow, where
+the goal is to close the gap between the initial ma-
+chine translation and the desired final output.
+
+Our approach differs from other preference-
+based methods in a few key ways. Unlike work
+that learns a separate reward model with RLHF (Xu
+et al., 2024b), we use CPO for direct, single-stage
+fine-tuning, which is simpler and more computa-
+tionally efficient. Furthermore, our method gen-
+erates preference pairs using the model’s current,
+on-policy outputs, providing immediate feedback
+on its performance. This contrasts with approaches
+that rely on historical, offline logs of post-edits
+(Berger et al., 2025), and it opens the door for more
+dynamic, iterative training cycles.
+
+
+Our main contributions are empirical:
+
+* We demonstrate that applying CPO with syn-
+thetically generated pre-edits is a highly data-
+efficient method for MT domain adaptation,
+achieving with 14.7k examples what SFT re-
+quires over 160k examples for.
+
+We provide a direct, controlled comparison be-
+tween this CPO-based approach and a strong
+SFT baseline on two language pairs, quantify-
+ing the performance gains.
+
+We show that this setup, which treats human-
+approved TMs as the definitive "chosen" ref-
+erence, is effective for aligning an LLM with
+specific terminological and stylistic require-
+ments.
+
+For direct comparability with prior work in
+MT domain adaptation (Anonymous, 2024),
+we use identical dataset splits and subsets to
+compare our CPO-based approach against SFT
+on Llama-3-8B-Instruct (Dubey et al., 2024).
+Our experiments on English-Korean and En-
+glish—Brazilian Portuguese show that our method
+achieves comparable performance to a 160k+ SFT
+model with only 14.7k examples. For brevity, we
+summarize the full SFT training sets as "160k+";
+exact sizes are 217,555 (PT-BR) and 162,360 (KO).
+In short, creating preference pairs from the model’s
+own outputs against existing TMs can substantially
+reduce the amount of data required for domain
+adaptation.
+
+2 Related Work
+
+Domain adaptation has long been crucial for MT
+systems (Chu and Wang, 2018; Sennrich et al,
+2017). Post-editing (PE) workflows, where hu-
+man translators correct raw MT outputs, are stan-
+dard practice for ensuring quality (Tatsumi, 2009;
+Moorkens et al., 2018; Gladkoff and Han, 2022).
+Our work aims to leverage the insights from this
+human-in-the-loop process to improve the underly-
+ing MT model more efficiently.
+
+Recent years have seen a surge in preference-
+based fine-tuning methods for LLMs. Reinforce-
+ment Learning from Human Feedback (RLHF)
+learns a reward model from human preferences and
+then optimizes the LLM using RL (Christiano et al.,
+2017). Direct Preference Optimization (DPO) sim-
+plifies this by directly optimizing the LLM to sat-
+isfy preferences without an explicit reward model
+
+(Rafailov et al., 2024). Our work builds on CPO
+from Xu et al. (2024a), which extends these ideas.
+
+Several recent works have applied preference
+optimization to MT. Xu et al. (2024b) use an RLHF-
+style approach, training a reward model on pairs of
+human and machine translations. In contrast, our
+method uses CPO for direct optimization, avoiding
+the need for a separate reward model and offering
+a simpler, single-stage training pipeline.
+
+Our work is closely related to Berger et al.
+(2025), who also use CPO on post-edited data.
+However, a key distinction lies in the source of
+the preference data. They use historical, offline
+logs of MT outputs and their corresponding human
+post-edits. Our approach, instead, generates the 're-
+jected’ candidate using the *current* model’s out-
+put (i.e., on-policy). This provides direct feedback
+on the model’s present state, aligning with con-
+structivist principles and enabling iterative training
+paradigms where the model can be continuously
+improved with fresh outputs.
+
+Finally, our application of CPO differs slightly
+from the original formulation by Xu et al. (2024a).
+Their method can use automatic metrics to decide
+if a model-generated output is superior to a hu-
+man reference, making the preference conditional.
+We, however, operate under the assumption that
+for domain adaptation, the vetted, human-approved
+TM is always the "chosen" gold-standard reference.
+This grounds the model firmly in the specific termi-
+nology and style required by the domain.
+
+3 Methodology
+
+We propose a contrastive training approach that
+simulates a PE workflow using triplets of source
+text, synthetic ’rejected’ translation, and human-
+approved chosen’ translation. The method con-
+trasts the translation produced by the raw base
+model with the final, domain-aligned reference
+from a TM. Figure 1 summarizes the full pipeline,
+and Figure 2 illustrates how the synthetic ‘rejected’
+candidate is generated.
+
+3.1 Simulating Post-Edits for Preference Pairs
+In a standard PE workflow, a human translator re-
+
+fines a raw system output. We simulate this process
+to generate our training data:
+
+1. For each source segment = from the TM, we
+run inference on the baseline LLM to get
+its out-of-the-box translation, which we label
+
+Yrejected-
+
+
+Llama-3-8B-
+Instruct
+
+Source
+
+Rejected (MT)
+
+Translation Memory
+
+Chosen
+
+Target (Target)
+
+J
+
+od
+
+Figure 1: End-to-end workflow showing (1) synthetic preference pair generation through base model inference, (2)
+
+CPO fine-tuning, and (3) automatic evaluation.
+
+Llama-3-8B-Instruct
+
+Source
+
+Translation Memory — Machine Translation
+
+Rejected
+
+Human Translation
+
+Figure 2: Generating the synthetic ‘rejected’ candidate
+by running inference with TM source text on the base
+model.
+
+2. We pair rejected With Ychosen, the trusted TM
+entry for x.
+
+3. The CPO objective then trains the model to
+assign a higher probability to ¥chosen than to
+Yrejected, effectively teaching the model to pre-
+fer the domain-specific translation over its ini-
+tial, unaligned output.
+
+By treating the LLM’s own "prior" translation
+as the rejected candidate, we explicitly model the
+correction process. This setup does not depend
+on any additional automatic metrics; we assume
+the domain-vetted TMs are intrinsically valid refer-
+ences that embody the required style and terminol-
+ogy.
+
+Example Workflow Consider the following sim-
+plified example from our English-Brazilian Por-
+tuguese TM dataset:
+
+e Source: "Press the Save button to store
+
+changes."
+
+* Human-Approved TM Entry (‘chosen’):
+"Pressione o botdo Salvar para armazenar
+as alteragoes."
+
+* Base Model Output (‘rejected’): "Pressione
+o botdo Salvar para gravar mudangas.”
+
+Our method captures the correction required here
+by training the model to prefer "armazenar as al-
+teragoes" over "gravar mudangas”. Each training
+instance thus resembles a mini post-edit scenario
+where Yrejected 18 contrasted with chosen.
+
+3.1.1 Preference Data Construction
+
+Formally, for each source sentence x;, we generate
+two candidate translations,
+
+jected hos
+Y, = {yet ye osen,
+Here, yreected is the LLM’s raw greedy output,
+and yh! js a high-quality translation from our
+domain-specific TM. We then define a preference
+dataset
+
+N
+_ r c
+Dpret = { Yi» vi) } ’
+i=1
+where
+r __ rejected ¢ __ chosen
+Yi = UY; Yr = OY; :
+
+Thus, (y!, v5) forms a rejected/chosen pair for
+each z;.
+
+3.2 Implementation Overview
+
+We train our model using a single-stage CPO
+setup, where each data point is the triplet
+(%, Ychosen Yrejected) described above. We follow
+a procedure similar to prior work (Anonymous,
+2024) to generate Yrejected» €NSUring consistent
+prompts and post-processing. Afterwards, we fine-
+tune the L1ama-3-8B-Instruct checkpoint using
+LoRA-based low-rank adaptation (Hu et al., 2021)
+and 4-bit quantization (Dettmers et al., 2023).
+
+Training Objective: The CPO loss encourages
+the model to rank ychosen above Yrejected While si-
+multaneously maximizing the likelihood of ychosen
+
+
+under the model’s distribution. Concretely, the ob-
+jective is:
+
+Lcpo = Lpret + LsFr,
+
+where Lp. is a preference-ranking term, and Lspr
+is the negative log-likelihood on Ychosen-
+
+Preference Loss: Formally, let my be our
+model’s conditional distribution. For each triplet
+(xi, yl YS) € Dopret, we define:
+
+Lpret = —
+
+2 =
+
+i=1 0(v] | i)
+1
+1
+Lspr = —4: [log mo (vf | xi), 2)
+i=1
+Lcpo = Lpret + Ls. 3)
+Here:
+* (+) is the sigmoid function,
+* [is a positive scaling hyperparameter,
+* N is the total number of triplets,
+cyl = rejected (model output), y§ = yghosen
+
+(human reference).
+
+This objective enforces that y§ should be ranked
+higher than y;, while also maximizing the like-
+lihood of y{ under mg(-). Further details can be
+found in Xu et al. (2024a).
+
+3.3 Dataset
+
+For direct comparability with a prior study in MT
+domain adaptation (Anonymous, 2024), we bor-
+row the exact same train, dev, and test set splits
+and divide our TM data into the same subsets of
+{1k, 2k, 5k, 10k, 14.7k} segments.
+
+3.4 Training Configuration
+
+We adopt a batch size of 4 (with gradient accumu-
+lation = 8) and train for 1 epoch at a 1e-3 learning
+rate, saving checkpoints every 31 steps. This facili-
+tates using checkpoints at 31, 62, 155, 310, and 459
+steps to match the dataset sizes required for com-
+parison. All runs use a single NVIDIA A100 GPU
+(80GB). Further implementation details appear in
+Appendix A.
+3
+
+EN>PT-BR: COMET Scores Comparison
+100 n
+
+[3
+—
+S
+a 90
+=~
+2a)
+= 80
+©]
+©
+70
+>
+—A— CPO
+-——— GPT35
+—— Highest Score
+
+Figure 3: Comparison of COMET Scores for EN>PTBR
+between SFT and CPO
+
+EN>KO: COMET Scores Comparison
+
+COMET Score
+
+GPT 3.5
+
+—— Highest Score
+
+Figure 4: Comparison of COMET Scores for EN>KO
+between SFT and CPO
+
+3.5 Comparison with SFT
+
+Our methodology mirrors the SFT setup described
+in prior work (Anonymous, 2024), but replaces
+the standard cross-entropy objective with the CPO
+objective. This contrastive signal, we hypothesize,
+can achieve stronger domain alignment with fewer
+examples than SFT alone.
+
+GPU Time and Sustainability. A prior ex-
+periment (Anonymous, 2024), trained on 14.7k
+segments with SFT, required 820 seconds on 4
+NVIDIA A100 80GB GPUs (3,280 GPU-seconds
+total). By contrast, our CPO run on a single
+NVIDIA A100 80GB GPU required 1,598.90 GPU-
+seconds, a ~ 51% reduction in compute while
+achieving comparable or better effectiveness (see
+
+
+Table 4). Using the same hardware and carbon
+model, our CPO run consumed 516.06 Wh and
+173.39 gCO2%e (= 0.19 tree-months). Assuming
+similar power draw and linear scaling, we estimate
+the SFT baseline at ~1,058 Wh and ~355 gCO2e
+for the 3,280 GPU-seconds. These figures indicate
+that, beyond being faster, the CPO recipe is also
+more sustainable in practice.
+
+4 Evaluation
+
+To evaluate model performance, we report BLEU
+(Papineni et al., 2002), chrF++ (Popovié, 2017),
+TER (Snover et al., 2006), and COMET (Rei et al.,
+2020). We use the same metrics as prior work
+(Anonymous, 2024) for direct comparability. We
+select COMET as our primary metric for analy-
+sis given its strong correlation with human judg-
+ments (Zouhar et al., 2024). Full results are in
+Appendix B.
+
+As shown in Figure 3 and Figure 4, our CPO-
+based approach provides substantial benefits for
+both PT-BR and KO. While larger training sets
+predictably lead to higher scores, our strategy of
+using synthetic preference pairs significantly nar-
+rows the data gap. Notably, with only 14.7k pairs,
+we achieve performance levels that approximate or
+exceed those obtained with more than 160k exam-
+ples via SFT, demonstrating the data efficiency of
+this method.
+
+4.1 Discussion
+
+The findings underscore that injecting carefully
+crafted contrastive examples fosters domain-
+sensitive improvements without requiring massive
+data. By contrasting the model’s own ‘rejected’
+outputs with ‘chosen’ human-approved TM entries,
+our models learn to avoid undesirable constructs
+and internalizes stylistic and terminological nu-
+ances.
+
+By generating on-policy negatives and combin-
+ing ranking with likelihood in a single stage, our
+CPO recipe halves the GPU seconds needed to
+reach strong in-domain quality and delivers > 6.61
+COMET gains over SFT when both are trained on
+the same 14.7k segments (see Figure 3 and Fig-
+ure 4). This constitutes a significant efficiency gain
+that shifts the cost curve for domain adaptation,
+which is particularly valued by industry.
+
+4.2 A Practical LSP Scenario
+
+Consider an organisation with 14.7k domain-
+specific sentences in a TM. Translators currently
+spend significant time post-editing raw MT out-
+puts. Our CPO approach integrates the LLM’s
+initial output as a “negative” example in each train-
+ing instance, effectively capturing how a translator
+would correct typical mistakes. Over time, the
+model learns to align new outputs with the style
+and terms in the curated TM, potentially reducing
+human PE overhead. With our proposed method,
+it is possible to achieve the MT performance that
+previously required more than 160k segments us-
+ing SFT. Figure 5 illustrates this adaptive feedback
+loop.
+
+5 Conclusions
+
+This work investigated a data-efficient application
+of CPO to align LLMs to domain-specific stan-
+dards for MT. Our approach harnesses the concept
+of ‘unlearning’: by contrasting a rejected transla-
+tion (the model’s own raw output) against a cho-
+sen one (a human reference from a TM), we teach
+the model to replace suboptimal constructs with
+domain-aligned alternatives. This process lever-
+ages preference feedback more directly than con-
+ventional SFT, allowing the model to internalize
+where and why certain translations fail.
+
+Our experiments demonstrate that creating pref-
+erence pairs from the model’s own outputs against
+existing TMs can substantially reduce the amount
+of data required for domain adaptation. Using just
+14.7k preference pairs, our models approach or sur-
+pass the performance of models trained with SFT
+on over 160k in-domain examples, highlighting the
+value of capturing rich preference information.
+
+This CPO-based approach can be seamlessly in-
+tegrated into future PEMT workflows, where newly
+post-edited translations yield a steady stream of
+preference pairs for continual training. This cy-
+cle promotes cost-effectiveness, allowing smaller,
+open-source models to be gradually shaped to ex-
+hibit near-custom quality without expensive, large-
+scale training from scratch. By incorporating con-
+trastive signals, this method enhances model adapt-
+ability, making translation systems more robust and
+responsive to professional demands.
+
+6 Future Work
+
+Iterative CPO Investigate a fully online learning
+pipeline whereby each new batch of post-edited
+
+
+examples is regularly integrated into the model
+training loop, leveraging the on-policy nature of
+our data generation.
+
+Human Evaluation While automatic metrics
+provide vital benchmarks, leveraging well-
+designed human assessments can capture subtleties
+in fluency, style, and domain accuracy that auto-
+mated scores may miss.
+
+Real Post-Edit Data An under-explored re-
+source is the vast repository of historical post-
+editing data held by LSPs. Beyond using TMs,
+integrating the triplet of “source text,” “pre-edited
+MT output,” and “human PEMT” provides a direct
+signal of the gap between automated translations
+and desired human quality. This gap captures the
+labour and expertise of human translators, serving
+as a powerful teaching signal. We plan to explore
+the use of this real, historical data for preference
+fine-tuning.
+
+Limitations
+
+While our CPO-based framework shows promise,
+it is subject to several limitations. First, our ex-
+periments are limited to two language pairs in a
+software localization context. This may hinder gen-
+eralization to other domains (e.g., medical, legal)
+where stylistic norms and terminology differ dra-
+matically.
+
+Second, our method assumes TMs are a reliable,
+high-quality "gold standard". In practice, TMs may
+contain inconsistencies or outdated artifacts. While
+the goal of alignment still holds, performance may
+degrade if the reference TM suffers from significant
+noise.
+
+Ethics Statement
+
+This research seeks to improve LLM outputs for
+domain-specific MT by leveraging existing high-
+quality TM data. We recognize that any language
+technology pipeline can introduce ethical concerns.
+
+Translator Labour and Fairness. Although our
+method aims to reduce the repetitive workload of
+PE, it also highlights potential shifts in translators’
+roles. In principle, the approach should empower
+translators by reducing mundane edits and direct-
+ing their expertise toward higher-level linguistic
+validation. However, any real-world deployment
+should include transparent communication about
+how translators’ post-edits will be used to refine
+
+MT systems, as well as fair compensation models
+that acknowledge the intellectual labour involved.
+
+References
+
+Duarte Alves, Nuno Guerreiro, Jodo Alves, José Pom-
+bal, Ricardo Rei, José de Souza, Pierre Colombo,
+and Andre Martins. 2023. Steering large language
+models for machine translation with finetuning and
+in-context learning. In Findings of the Association
+for Computational Linguistics: EMNLP 2023, pages
+11127-11148, Singapore. Association for Computa-
+tional Linguistics.
+
+Nathaniel Berger, Miriam Exel, Matthias Huck, and
+Stefan Riezler. 2025. Post-edits are preferences too.
+
+Paul F Christiano, Jan Leike, Tom Brown, Miljan Mar-
+tic, Shane Legg, and Dario Amodei. 2017. Deep
+reinforcement learning from human preferences. Ad-
+vances in neural information processing systems, 30.
+
+Chenhui Chu and Rui Wang. 2018. A survey of domain
+adaptation for neural machine translation.
+
+Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and
+Luke Zettlemoyer. 2023. QLoRA: Efficient Finetun-
+ing of Quantized LLMs. ArXiv:2305.14314 [cs].
+
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey,
+Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman,
+Akhil Mathur, Alan Schelten, Amy Yang, Angela
+Fan, Anirudh Goyal, Anthony Hartshorn, Aobo Yang,
+Archi Mitra, Archie Sravankumar, Artem Korenev,
+Arthur Hinsvark, Arun Rao, Aston Zhang, Aurelien
+Rodriguez, Austen Gregerson, Ava Spataru, Bap-
+tiste Roziere, Bethany Biron, Binh Tang, Bobbie
+Chern, Charlotte Caucheteux, Chaya Nayak, Chloe
+Bi, Chris Marra, Chris McConnell, Christian Keller,
+Christophe Touret, Chunyang Wu, Corinne Wong,
+Cristian Canton Ferrer, Cyrus Nikolaidis, Damien Al-
+lonsius, Daniel Song, Danielle Pintz, Danny Livshits,
+David Esiobu, Dhruv Choudhary, Dhruv Mahajan,
+Diego Garcia-Olano, Diego Perino, Dieuwke Hupkes,
+Egor Lakomkin, Ehab AlBadawy, Elina Lobanova,
+Emily Dinan, Eric Michael Smith, Filip Radenovic,
+Frank Zhang, Gabriel Synnaeve, Gabrielle Lee, Geor-
+gia Lewis Anderson, Graeme Nail, Gregoire Mi-
+alon, Guan Pang, Guillem Cucurell, Hailey Nguyen,
+Hannah Korevaar, Hu Xu, Hugo Touvron, Iliyan
+Zarov, Imanol Arrieta Ibarra, Isabel Kloumann, Ishan
+Misra, Ivan Evtimov, Jade Copet, Jaewon Lee, Jan
+Geffert, Jana Vranes, Jason Park, Jay Mahadeokar,
+Jeet Shah, Jelmer van der Linde, Jennifer Billock,
+Jenny Hong, Jenya Lee, Jeremy Fu, Jianfeng Chi,
+Jianyu Huang, Jiawen Liu, Jie Wang, Jiecao Yu,
+Joanna Bitton, Joe Spisak, Jongsoo Park, Joseph
+Rocca, Joshua Johnstun, Joshua Saxe, Junteng Jia,
+Kalyan Vasuden Alwala, Kartikeya Upasani, Kate
+Plawiak, Ke Li, Kenneth Heafield, Kevin Stone,
+Khalid El-Arini, Krithika Iyer, Kshitiz Malik, Kuen-
+ley Chiu, Kunal Bhalla, Lauren Rantala-Yeary, Lau-
+rens van der Maaten, Lawrence Chen, Liang Tan, Liz
+
+
+Jenkins, Louis Martin, Lovish Madaan, Lubo Malo,
+Lukas Blecher, Lukas Landzaat, Luke de Oliveira,
+Madeline Muzzi, Mahesh Pasupuleti, Mannat Singh,
+Manohar Paluri, Marcin Kardas, Mathew Oldham,
+Mathieu Rita, Maya Pavlova, Melanie Kambadur,
+Mike Lewis, Min Si, Mitesh Kumar Singh, Mona
+Hassan, Naman Goyal, Narjes Torabi, Nikolay Bash-
+lykov, Nikolay Bogoychev, Niladri Chatterji, Olivier
+Duchenne, Onur Celebi, Patrick Alrassy, Pengchuan
+Zhang, Pengwei Li, Petar Vasic, Peter Weng, Pra-
+jjwal Bhargava, Pratik Dubal, Praveen Krishnan,
+Punit Singh Koura, Puxin Xu, Qing He, Qingxiao
+Dong, Ragavan Srinivasan, Raj Ganapathy, Ramon
+Calderer, Ricardo Silveira Cabral, Robert Stojnic,
+Roberta Raileanu, Rohit Girdhar, Rohit Patel, Ro-
+main Sauvestre, Ronnie Polidoro, Roshan Sumbaly,
+Ross Taylor, Ruan Silva, Rui Hou, Rui Wang, Saghar
+Hosseini, Sahana Chennabasappa, Sanjay Singh,
+Sean Bell, Seohyun Sonia Kim, Sergey Edunov,
+Shaoliang Nie, Sharan Narang, Sharath Raparthy,
+Sheng Shen, Shengye Wan, Shruti Bhosale, Shun
+Zhang, Simon Vandenhende, Soumya Batra, Spencer
+Whitman, Sten Sootla, Stephane Collot, Suchin Gu-
+rurangan, Sydney Borodinsky, Tamar Herman, Tara
+Fowler, Tarek Sheasha, Thomas Georgiou, Thomas
+Scialom, Tobias Speckbacher, Todor Mihaylov, Tong
+Xiao, Ujjwal Karn, Vedanuj Goswami, Vibhor
+Gupta, Vignesh Ramanathan, Viktor Kerkez, Vincent
+Gonguet, Virginie Do, Vish Vogeti, Vladan Petro-
+vic, Weiwei Chu, Wenhan Xiong, Wenyin Fu, Whit-
+ney Meers, Xavier Martinet, Xiaodong Wang, Xiao-
+ging Ellen Tan, Xinfeng Xie, Xuchao Jia, Xuewei
+Wang, Yaelle Goldschlag, Yashesh Gaur, Yasmine
+Babaei, Yi Wen, Yiwen Song, Yuchen Zhang, Yue
+Li, Yuning Mao, Zacharie Delpierre Coudert, Zheng
+Yan, Zhengxing Chen, Zoe Papakipos, Aaditya Singh,
+Aaron Grattafiori, Abha Jain, Adam Kelsey, Adam
+Shajnfeld, Adithya Gangidi, Adolfo Victoria, Ahuva
+Goldstand, Ajay Menon, Ajay Sharma, Alex Boesen-
+berg, Alex Vaughan, Alexei Baevski, Allie Feinstein,
+Amanda Kallet, Amit Sangani, Anam Yunus, An-
+drei Lupu, Andres Alvarado, Andrew Caples, An-
+drew Gu, Andrew Ho, Andrew Poulton, Andrew
+Ryan, Ankit Ramchandani, Annie Franco, Apara-
+jita Saraf, Arkabandhu Chowdhury, Ashley Gabriel,
+Ashwin Bharambe, Assaf Eisenman, Azadeh Yaz-
+dan, Beau James, Ben Maurer, Benjamin Leonhardi,
+Bernie Huang, Beth Loyd, Beto De Paola, Bhargavi
+Paranjape, Bing Liu, Bo Wu, Boyu Ni, Braden Han-
+cock, Bram Wasti, Brandon Spence, Brani Stojkovic,
+Brian Gamido, Britt Montalvo, Carl Parker, Carly
+Burton, Catalina Mejia, Changhan Wang, Changkyu
+Kim, Chao Zhou, Chester Hu, Ching-Hsiang Chu,
+Chris Cai, Chris Tindal, Christoph Feichtenhofer, Da-
+mon Civin, Dana Beaty, Daniel Kreymer, Daniel Li,
+Danny Wyatt, David Adkins, David Xu, Davide Tes-
+tuggine, Delia David, Devi Parikh, Diana Liskovich,
+Didem Foss, Dingkang Wang, Duc Le, Dustin Hol-
+land, Edward Dowling, Eissa Jamil, Elaine Mont-
+gomery, Eleonora Presani, Emily Hahn, Emily Wood,
+Erik Brinkman, Esteban Arcaute, Evan Dunbar, Evan
+Smothers, Fei Sun, Felix Kreuk, Feng Tian, Firat
+Ozgenel, Francesco Caggioni, Francisco Guzman,
+
+Frank Kanayet, Frank Seide, Gabriela Medina Flo-
+rez, Gabriella Schwarz, Gada Badeer, Georgia Swee,
+Gil Halpern, Govind Thattai, Grant Herman, Grigory
+Sizov, Guangyi, Zhang, Guna Lakshminarayanan,
+Hamid Shojanazeri, Han Zou, Hannah Wang, Han-
+wen Zha, Haroun Habeeb, Harrison Rudolph, He-
+len Suk, Henry Aspegren, Hunter Goldman, Igor
+Molybog, Igor Tufanov, Irina-Elena Veliche, Itai
+Gat, Jake Weissman, James Geboski, James Kohli,
+Japhet Asher, Jean-Baptiste Gaya, Jeff Marcus, Jeff
+Tang, Jennifer Chan, Jenny Zhen, Jeremy Reizen-
+stein, Jeremy Teboul, Jessica Zhong, Jian Jin, Jingyi
+Yang, Joe Cummings, Jon Carvill, Jon Shepard,
+Jonathan McPhie, Jonathan Torres, Josh Ginsburg,
+Junjie Wang, Kai Wu, Kam Hou U, Karan Sax-
+ena, Karthik Prasad, Kartikay Khandelwal, Katay-
+oun Zand, Kathy Matosich, Kaushik Veeraragha-
+van, Kelly Michelena, Keqian Li, Kun Huang, Ku-
+nal Chawla, Kushal Lakhotia, Kyle Huang, Lailin
+Chen, Lakshya Garg, Lavender A, Leandro Silva,
+Lee Bell, Lei Zhang, Liangpeng Guo, Licheng
+Yu, Liron Moshkovich, Luca Wehrstedt, Madian
+Khabsa, Manav Avalani, Manish Bhatt, Maria Tsim-
+poukelli, Martynas Mankus, Matan Hasson, Matthew
+Lennie, Matthias Reso, Maxim Groshev, Maxim
+Naumov, Maya Lathi, Meghan Keneally, Michael L.
+Seltzer, Michal Valko, Michelle Restrepo, Mihir
+Patel, Mik Vyatskov, Mikayel Samvelyan, Mike
+Clark, Mike Macey, Mike Wang, Miquel Jubert Her-
+moso, Mo Metanat, Mohammad Rastegari, Mun-
+ish Bansal, Nandhini Santhanam, Natascha Parks,
+Natasha White, Navyata Bawa, Nayan Singhal, Nick
+Egebo, Nicolas Usunier, Nikolay Pavlovich Laptev,
+Ning Dong, Ning Zhang, Norman Cheng, Oleg
+Chernoguz, Olivia Hart, Omkar Salpekar, Ozlem
+Kalinli, Parkin Kent, Parth Parekh, Paul Saab, Pa-
+van Balaji, Pedro Rittner, Philip Bontrager, Pierre
+Roux, Piotr Dollar, Polina Zvyagina, Prashant Ratan-
+chandani, Pritish Yuvraj, Qian Liang, Rachad Alao,
+Rachel Rodriguez, Rafi Ayub, Raghotham Murthy,
+Raghu Nayani, Rahul Mitra, Raymond Li, Rebekkah
+Hogan, Robin Battey, Rocky Wang, Rohan Mah-
+eswari, Russ Howes, Ruty Rinott, Sai Jayesh Bondu,
+Samyak Datta, Sara Chugh, Sara Hunt, Sargun
+Dhillon, Sasha Sidorov, Satadru Pan, Saurabh Verma,
+Seiji Yamamoto, Sharadh Ramaswamy, Shaun Lind-
+say, Shaun Lindsay, Sheng Feng, Shenghao Lin,
+Shengxin Cindy Zha, Shiva Shankar, Shugiang
+Zhang, Shugiang Zhang, Sinong Wang, Sneha Agar-
+wal, Soji Sajuyigbe, Soumith Chintala, Stephanie
+Max, Stephen Chen, Steve Kehoe, Steve Satterfield,
+Sudarshan Govindaprasad, Sumit Gupta, Sungmin
+Cho, Sunny Virk, Suraj Subramanian, Sy Choudhury,
+Sydney Goldman, Tal Remez, Tamar Glaser, Tamara
+Best, Thilo Kohler, Thomas Robinson, Tianhe Li,
+Tianjun Zhang, Tim Matthews, Timothy Chou, Tzook
+Shaked, Varun Vontimitta, Victoria Ajayi, Victoria
+Montanez, Vijai Mohan, Vinay Satish Kumar, Vishal
+Mangla, Vlad Ionescu, Vlad Poenaru, Vlad Tiberiu
+Mihailescu, Vladimir Ivanov, Wei Li, Wenchen
+Wang, Wenwen Jiang, Wes Bouaziz, Will Consta-
+ble, Xiaocheng Tang, Xiaofang Wang, Xiaojian Wu,
+Xiaolan Wang, Xide Xia, Xilun Wu, Xinbo Gao, Yan-
+
+
+jun Chen, Ye Hu, Ye Jia, Ye Qi, Yenda Li, Yilin
+Zhang, Ying Zhang, Yossi Adi, Youngjin Nam, Yu,
+Wang, Yuchen Hao, Yundi Qian, Yuzi He, Zach
+Rait, Zachary DeVito, Zef Rosnbrick, Zhaoduo Wen,
+Zhenyu Yang, and Zhiwei Zhao. 2024. The Llama 3
+Herd of Models. ArXiv:2407.21783 [cs].
+
+Serge Gladkoff and Lifeng Han. 2022. HOPE: A task-
+oriented and human-centric evaluation framework us-
+ing professional post-editing towards more effective
+MT evaluation. In Proceedings of the Thirteenth Lan-
+guage Resources and Evaluation Conference, pages
+13-21, Marseille, France. European Language Re-
+sources Association.
+
+Amr Hendy, Mohamed Abdelrehim, Amr Sharaf,
+Vikas Raunak, Mohamed Gabr, Hitokazu Matsushita,
+Young Jin Kim, Mohamed Afify, and Hany Hassan
+Awadalla. 2023. How Good Are GPT Models at
+Machine Translation? A Comprehensive Evaluation.
+ArXiv: 2302.09210.
+
+Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan
+Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and
+Weizhu Chen. 2021. LoRA: Low-Rank Adaptation
+of Large Language Models. ArXiv:2106.09685 [cs].
+
+Llama Team. 2024. The Llama 3 Herd of Models.
+
+Chenyang Lyu, Zefeng Du, Jitao Xu, Yitao Duan,
+Minghao Wu, Teresa Lynn, Alham Fikri Aji,
+Derek F. Wong, Siyou Liu, and Longyue Wang.
+2024. A Paradigm Shift: The Future of Ma-
+chine Translation Lies with Large Language Models.
+ArXiv:2305.01181 [cs].
+
+Joss Moorkens, Antonio Toral, Sheila Castilho, and
+Andy Way. 2018. Translators’ perceptions of liter-
+ary post-editing using statistical and neural machine
+translation. Translation Spaces, 7(2):240-262. Pub-
+lisher: John Benjamins Publishing Company.
+
+Yasmin Moslem, Rejwanul Haque, John D. Kelleher,
+and Andy Way. 2023. Adaptive Machine Translation
+with Large Language Models. In Proceedings of the
+24th Annual Conference of the European Association
+for Machine Translation, pages 227-237, Tampere,
+Finland. European Association for Machine Transla-
+tion.
+
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-
+Jing Zhu. 2002. Bleu: a Method for Automatic Eval-
+uation of Machine Translation. In Proceedings of
+the 40th Annual Meeting of the Association for Com-
+putational Linguistics, pages 311-318, Philadelphia,
+Pennsylvania, USA. Association for Computational
+Linguistics.
+
+Jean Piaget, Margaret Cook, et al. 1952. The origins
+of intelligence in children, volume 8. International
+universities press New York.
+
+Maja Popovi€. 2017. chrF++: words helping charac-
+ter n-grams. In Proceedings of the Second Confer-
+ence on Machine Translation, pages 612-618, Copen-
+hagen, Denmark. Association for Computational Lin-
+guistics.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Ste-
+fano Ermon, Christopher D. Manning, and Chelsea
+Finn. 2024. Direct Preference Optimization: Your
+Language Model is Secretly a Reward Model.
+ArXiv:2305.18290 [cs].
+
+Ricardo Rei, Craig Stewart, Ana C Farinha, and Alon
+Lavie. 2020. COMET: A Neural Framework for MT
+Evaluation. In Proceedings of the 2020 Conference
+on Empirical Methods in Natural Language Process-
+ing (EMNLP), pages 2685-2702, Online. Association
+for Computational Linguistics.
+
+Nathaniel Robinson, Perez Ogayo, David R. Mortensen,
+and Graham Neubig. 2023. ChatGPT MT: Competi-
+tive for high- (but not low-) resource languages. In
+Proceedings of the Eighth Conference on Machine
+Translation, pages 392-418, Singapore. Association
+for Computational Linguistics.
+
+Rico Sennrich, Alexandra Birch, Anna Currey, Ulrich
+Germann, Barry Haddow, Kenneth Heafield, Anto-
+nio Valerio Miceli Barone, and Philip Williams. 2017.
+The University of Edinburgh’s neural MT systems
+for WMT17. In Proceedings of the Second Confer-
+ence on Machine Translation, pages 389-399, Copen-
+hagen, Denmark. Association for Computational Lin-
+guistics.
+
+Matthew Snover, Bonnie Dorr, Rich Schwartz, Linnea
+Micciulla, and John Makhoul. 2006. A Study of
+Translation Edit Rate with Targeted Human Anno-
+tation. In Proceedings of the 7th Conference of the
+Association for Machine Translation in the Ameri-
+cas: Technical Papers, pages 223-231, Cambridge,
+Massachusetts, USA. Association for Machine Trans-
+lation in the Americas.
+
+Midori Tatsumi. 2009. Correlation between automatic
+evaluation metric scores, post-editing speed, and
+some other factors. In Proceedings of Machine Trans-
+lation Summit XII: Posters, Ottawa, Canada.
+
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+Baptiste Roziere, Naman Goyal, Eric Hambro, Faisal
+Azhar, Aurelien Rodriguez, Armand Joulin, Edouard
+Grave, and Guillaume Lample. 2023. LLaMA:
+Open and Efficient Foundation Language Models.
+ArXiv:2302.13971 [cs].
+
+Haoran Xu, Amr Sharaf, Yunmo Chen, Weiting
+Tan, Lingfeng Shen, Benjamin Van Durme, Ken-
+ton Murray, and Young Jin Kim. 2024a. Con-
+trastive Preference Optimization: Pushing the Bound-
+aries of LLM Performance in Machine Translation.
+ArXiv:2401.08417 [cs].
+
+Nuo Xu, Jun Zhao, Can Zu, Sixian Li, Lu Chen, Zhi-
+hao Zhang, Rui Zheng, Shihan Dou, Wenjuan Qin,
+Tao Gui, et al. 2024b. Advancing translation prefer-
+ence modeling with rlhf: a step towards cost-effective
+solution. arXiv preprint arXiv:2402.11525.
+
+
+Jiawei Zheng, Hanghai Hong, Feiyan Liu, Xiaoli Wang, A Implementation Details
+Jingsong Su, Yonggui Liang, and Shikai Wu. 2024.
+Fine-tuning Large Language Models for Domain- Hardware and Environment. We ran all experi-
+specific Machine Translation. ArXiv:2402.15061 ments on a cluster equipped with:
+[cs].
+
+Wenhao Zhu, Hongyi Liu, Qingxiu Dong, Jingjing Xu,
+Shujian Huang, Lingpeng Kong, Jiajun Chen, and .
+Lei Li. 2023. Multilingual Machine Translation with CUDA 12.5, PyTorch 2.0, Python 3.11.11
+Large Language Models: Empirical Results and Anal-
+ysis. ArXiv: 2304.04675.
+
+* 1 NVIDIA A100 GPU (80GB) per run
+
+* bitsandbytes for 4-bit quantization
+
+Vilém Zouhar, Pinzhen Chen, Tsz Kin Lam, Nikita * peft.LoraConfig for LoRA injection
+Moghe, and Barry Haddow. 2024. Pitfalls and out- . ]
+looks in using COMET. In Proceedings of the Ninth The code is based on HuggingFace’s
+Conference on Machine Translation, pages 1272—  CPOTrainer, using a custom script (run_cpo. py)
+
+1288, Miami, Florida, USA. Association for Compu- that handles triplet parsing and training.
+tational Linguistics.
+
+Table 1: Detailed Training Configuration
+
+Parameter Value
+
+Base Model Checkpoint meta-llama/Meta-Llama-3-8B-Instruct
+Quantization 4-bit, bnb_4bit_quant_type="nf4"
+Compute Dtype bfloat16
+
+LoRA Rank (r) 64
+
+LoRA « 6
+
+LoRA Dropout 0.1
+
+LoRA Target Modules {q_proj, v_proj}
+
+Training Epochs epoch
+
+Batch Size 4 (gradient accumulation = 8)
+Learning Rate e-3
+
+LR Scheduler Type cosine
+
+Seed 42
+
+Warmup Steps 200
+
+Checkpoint Frequency Every 31 steps
+
+Logging Frequency Every 100 steps
+
+We closely follow the hyperparameter scheme
+used in prior work (Anonymous, 2024) as much
+as possible, except we replace the standard cross-
+entropy loss with our CPO objective (see Section 3
+in the main text) and we follow some hyperparam-
+eters from Xu et al. (2024a).
+
+
+B Experimental Results
+
+Table 2: SFT Results for PT-BR and KO
+
+Language Examples BLEU chrF++ TER COMET
+PT-BR GPT 3.5 56.50 76.33 32.03 86.02
+PT-BR Baseline 48.25 69.21 39.36 77.28
+PT-BR 1k 48.00 69.34 40.11 78.28
+PT-BR 2k 46.04 6793 44.09 75.70
+PT-BR Sk 49.73 69.92 38.03 80.80
+PT-BR 10k 5090 70.92 35.96 86.15
+PT-BR 14.7 5342 73.07 32.92 89.18
+PT-BR 217k+ 62.45 78.57 2620 95.98
+KO GPT 3.5 33.07 49.72 60.60 63.28
+KO Baseline 20.81 3537 77.95 36.45
+KO 1k 20.12 42.16 83.37 35.24
+KO 2k 19.25 41.13 82.48 26.03
+KO Sk 28.60 46.84 65.42 54.17
+KO 10k 31.36 52.62 60.86 70.56
+KO 14.7 28.15 58.88 53.11 76.65
+KO 162k+ 45.80 64.81 44.73 84.30
+
+Table 3: CPO Results for PT-BR and KO
+
+Language Examples BLEU chrF++ TER COMET
+PT-BR 1k 38.14 56.75 56.72 68.12
+PT-BR 2k 52.25 72.32 34.23 87.63
+PT-BR Sk 56.31 74.80 30.83 89.62
+PT-BR 10k 60.74 77.43 28.30 93.54
+PT-BR 14.7k 59.67 76.91 28.09 95.79
+KO 1k 19.12 38.79 86.29 56.95
+KO 2k 33.75 55.39 58.38 73.74
+KO Sk 38.19 59.22 53.08 80.35
+KO 10k 41.33 60.84 47.06 82.52
+KO 14.7k 45.24 63.78 44.81 85.78
+C Prompts and Special Tokens
+
+C1
+
+C.2
+
+Special Token Descriptions
+
+< |begin_of text| >: This is equivalent to the
+BOS token.
+
+< leot_id| >: This signifies the end of the
+message in a turn.
+
+< |start_header_id|
+|end_header_id|
+
+the role for a particular message. The possible
+
+>{role}<
+>: These tokens enclose
+roles can be: system, user, assistant.
+
+< |end_of _text| >: This is equivalent to the EOS
+
+token.
+
+Prompt
+
+< |begin_of _text| > <
+|start_header_id| >system< |end_header_id| >
+
+You are a helpful Al assistant for translation from
+
+{source_language} to {target language}. You
+
+MUST answer with the following JSON scheme:
+
+C3
+
+{ “translation”: “string” } < |eot_id| >
+
+< |start_header_id| Suser<
+|end_header_id| >
+{source_sentence}< leot_id| ><
+|start_header_id| >assistant<
+|end_header_id| >
+
+Training Prompt
+< |begin_of _text| ><
+
+|start_header_id| >system< |end_header_id| >
+
+You are a helpful Al assistant for translation from
+{source_language} to {target_language}. You
+MUST answer with the following JSON scheme:
+{ “translation”: “string” } < |eot_id| >
+
+< |start_header_id| Suser<
+|end_header_id| > {source_sentence}<
+leor_id| >
+
+< |start_header_id| >assistant<
+
+|end_header_id|
+|end_of text| >
+
+>{target_sentence}<
+
+
+Table 4: Summary of Training Runs
+
+Parameter Training Run 1 (PT-BR) Training Run 2 (KO)
+Job ID 229296 229263
+Node 2129 2130
+GPU Model NVIDIA A100-SXM4-80GB NVIDIA A100-SXM4-80GB
+CUDA Version 12.5 12.5
+Batch Size (Train/Eval) 4/8 4/8
+Gradient Accumulation Steps 8 8
+Learning Rate 0.001 0.001
+LR Scheduler Cosine Cosine
+Quantization 4-bit BitsAndBytes 4-bit BitsAndBytes
+Epochs 1.0 1.0
+Dataset Size (Train/Validation) 14,700 /0 14,700 /0
+Final Train Loss 0.6351 0.9413
+Train Runtime (s) 1598.90 1560.08
+Samples per Second 9.194 9.423
+Steps per Second 0.287 0.294
+LoRA Adapter Path Ilama-aligned-cpo080225pt-br/checkpoint-xx  llama-aligned-cpo080225ko/checkpoint-xx
+Translation Batch Size 5 5
+Max New Tokens 128 128
+Iq RY
+
+Llama-3-8B-
+Instruct
+Source Rejected (MT)
+
+Chosen
+Translation Memory Translator | ———> (Target) Llama-3-88-CPO
+Target > Source
+
+Figure 5: Adaptive MT: Symbiotic Human and LLM Translation Feedback Loop. Contrastive training on post-edited
+machine translation triplets.
+

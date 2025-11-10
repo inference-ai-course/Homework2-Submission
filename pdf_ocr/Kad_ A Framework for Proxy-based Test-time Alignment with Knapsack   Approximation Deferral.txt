@@ -1,0 +1,1990 @@
+arXiv:2510.27017v1 [cs.CL] 30 Oct 2025
+
+KAD: A Framework for Proxy-based Test-time Alignment
+with Knapsack Approximation Deferral
+
+Ayoub Hammal'
+
+Pierre Zweigenbaum!
+
+Caio Corro?
+
+"Université Paris-Saclay, CNRS, LISN
+2INSA Rennes, IRISA, CNRS, Université de Rennes
+
+{ayoub.hammal,pz}@lisn.fr
+
+Abstract
+
+Several previous works concluded that the
+largest part of generation capabilities of large
+language models (LLM) are learned (early) dur-
+ing pre-training. However, LLMs still require
+further alignment to adhere to downstream task
+requirements and stylistic preferences, among
+other desired properties. As LLMs continue to
+scale in terms of size, the computational cost of
+alignment procedures increase prohibitively. In
+this work, we propose a novel approach to cir-
+cumvent these costs via proxy-based test-time
+alignment, i.e. using guidance from a small
+aligned model. Our approach can be described
+as token-specific cascading method, where the
+token-specific deferral rule is reduced to 0-1
+knapsack problem. In this setting, we derive
+primal and dual approximations of the optimal
+deferral decision. We experimentally show the
+benefits of our method both in task performance
+and speculative decoding speed.
+
+1 Introduction
+
+Large language models’ (LLM) alignment! is em-
+ployed for reshaping the pre-trained model’s output
+distribution so that it adheres to expected (human)
+preferences, formatting or instructions, and more
+generally downstream task requirements (Bai et al.,
+2022; Kumar et al., 2025; Ouyang et al., 2022).
+A variety of fine-tuning approaches are employed
+with different computational requirements and over-
+heads, such as reinforcement learning from human
+feedback (RLHF, Ziegler et al., 2020; Rafailov
+etal., 2023; Ethayarajh et al., 2024). The alignment
+phase follows an already costly pre-training phase,
+and alignment costs scale prohibitively with model
+sizes, meaning that tailoring LLMs for diverse real-
+world scenarios is challenging. For example, the
+RLHF stage of Tulu 3 scales from 520 H100 GPU
+
+The term “alignment” has several different meanings in
+the literature. In this work, we call alignment the supervised
+training process of a LLM following the (~unsupervised) pre-
+training phase.
+
+caio.corro@irisa.fr
+
+hours for the 8B model to 2 880 hours for the 70B
+model and to 11 776 hours for the 405B model, fol-
+lowing an exponential trend (Lambert et al., 2025)
+
+To avoid paying the high cost of fine-tuning
+a large model, previous works have proposed to
+adapt the pre-trained model’s output distribution at
+test-time (Welleck et al., 2024), using external guid-
+ance either from a reward signal (Deng and Raffel,
+2023; Troshin et al., 2025), implicitly extracting the
+reward from a small aligned model (Liu et al., 2024;
+Mitchell et al., 2024) or using a mixture of a large
+unaligned model and a small aligned model (Lu
+et al., 2023; Fei et al., 2025). As such, when novel
+alignment specifications are needed, one only need
+to either train a (simple) reward or align a small
+model, drastically reducing alignment time, costs
+and even lowering the hardware requirement.
+
+In this work, we follow the proxy-based align-
+ment methodology where an unaligned large model
+distribution is “distorted” at test-time using a small
+aligned model. One of the motivations of test-time
+alignment is that previous analysis has shown that
+most of a LLM’s generation capabilities is acquired
+during pre-training (Zhou et al., 2023), making the
+following steps mostly intervene on stylistic and
+transitional tokens positions (Chang et al., 2024;
+Hu et al., 2024). Following this observation, Fei
+et al. (2025) proposed to use the large model’s con-
+fidence as an alignment indicator: if the unaligned
+large model distribution has a low-entropy, the next
+token is sampled from it, otherwise the generation
+is deferred to a smaller aligned model that assists
+in “nudging” the response.
+
+Our main contribution is a novel framework for
+proxy-based alignment. Instead of fully deferring
+the decision to the small model when the large one
+has a high entropy, we build a mixture distribution
+of the two models. Our intuition is as follows: we
+should defer the decision to the small model for
+low-probability tokens. We model this deferral rule
+as a binary knapsack problem (Martello and Toth,
+
+
+1990), were one may fix a maximum mass (bud-
+get) of probability whose decision can be deferred
+to the small model. As the binary knapsack prob-
+lem is known to be intractable (Karp, 1972), we
+propose dual and primal approximations of the opti-
+mal deferral condition. Overall, this framework al-
+lows us to derive several deferral rules (depending,
+for example, on the loss function used to measure
+the quality of generations), including the nudging
+model of Fei et al. (2025). Our approach, while
+adding more degrees of freedom to the deferral
+rule, allows to focus deferral on specific uncertain
+tokens, leveraging richer token-level information
+rather than a single global confidence score. We fur-
+thermore show experimentally that token-specific
+deferral decision is faster than distribution-level de-
+cision in comparable speculative decoding setups.
+Our contributions can be summarized as follows:
+(1) we introduce KAD (knapsack approximation
+deferral), a framework for proxy-based alignment;
+(2) we derive several dual and primal approximate
+solutions and provide theoretical guarantees on the
+regret and error-rate achieved by them while link-
+ing our propositions with previous work; (3) we
+experiment with OLMo 2 and Qwen 3, showing
+the performance improvement brought by our ap-
+proach compared to several baselines; and (4) we
+show our method leads to increased generation
+speed when combined with speculative decoding.
+Our implementation is publicly available.
+
+Notations. We write Iverson brackets as [-], tak-
+ing the value 1 if the inner condition is true and 0
+otherwise. For any k € Nx, A(k) is the (k — 1)-
+dimensional simplex. To simplify notations, we
+denote the token vocabulary as V = {1,...,|V|}.
+An autoregressive language model is a condi-
+tional distribution of the next token given the pre-
+viously generated ones. Let p be such a language
+model, we can then write the next token distribution
+as p(x¢|X1.4—1 = @®14—1). To simplify notations,
+we will drop the dependence on history x;.;—1 and
+write the model’s conditional probability distribu-
+tion as a vector p € A(|V|) defined as follows:
+
+Pv = (Xe = V|X14-1 = T1:-1),
+
+i.e. py is the probability of token v given history
+x1.+—1. More generally, all variables and functions
+presented are assumed to be context-dependent un-
+less stated otherwise.
+
+https ://github.com/ayoubhammal/
+knapsack-approximation-deferral
+
+2 Motivations
+
+The term base? language model (LM) refers to an
+LM that has not undergone specific instruction or
+preference tuning via supervised fine-tuning, rein-
+forcement learning from human feedback (RLHF),
+or any other related methods. A model resulting
+from the latter procedures is called an aligned LM.
+
+For the purpose of this paper, we will consider
+models of different sizes and at different training
+stages. We denote p and p* a large LM in its
+base and aligned variants, respectively. Similarly,
+q and gq" refer to small (base and aligned) LMs,
+where “small” means that generation with these
+models is significantly faster than with the large
+ones. Note that p, p*, gq and g* are used to denote
+both language models and associated conditional
+distribution vectors. The only extra assumption we
+introduce is that the large and small LMs share the
+same tokenization vocabulary.
+
+2.1 Background
+
+In order to avoid high alignment costs, there is
+an interest in test-time alignment, where a large
+base LM is guided to achieve desired outputs di-
+rectly during generation, without extra tuning steps.
+Proxy tuning is one such approach, where a small
+language model is aligned and is used to guide the
+large one (Liu et al., 2024; Mitchell et al., 2024).
+
+Interestingly, several authors hypothesized that
+the alignment training phase mainly impacts style,
+discourse structure, and other superficial features,
+but that most of the actual “knowledge” is ac-
+quired during the base model training (Zhou et al.,
+2023; Chang et al., 2024; Hu et al., 2024). Lin
+et al. (2024) showed that the alignment procedure
+changes the base distribution only for a few out-
+put positions. In particular, transitional and struc-
+tural positions are shifted toward more stylistic to-
+kens such as those showing agreement, e.g. “of
+course”, or positivity, e.g. “great question”,
+conveying less information but helping set the tone
+of the response.
+
+Fei et al. (2025) further show that the base
+model’s certainty is tightly related to the agree-
+ment between the base and aligned models’ distri-
+butions: the top predictions of both models tend
+to agree more when the base model’s top probabil-
+ity is higher. From this observation, they propose
+nudging the base model’s generation when its cer-
+tainty falls below a specific threshold A € Rx, that
+
+3Also called pre-trained language model.
+
+
+is, sampling from ¢* only for positions where p is
+uncertain. In other words, the sampling procedure
+for the next token is:*
+
+* if max, p, > A, sample from p;
+* otherwise, sample from ¢*.
+
+2.2 Broader Perspective
+
+Nudging can be interpreted as a specific case of
+model cascades, an ensembling technique that re-
+lies on a sequence of classifiers: each classifier in
+the sequence can choose to either return the predic-
+tion or defer the prediction to the next model in the
+sequence (Narasimhan et al., 2025; Varshney and
+Baral, 2022; Wang et al., 2018; Li et al, 2021).
+
+First, notice that we can rewrite the nudging
+procedure as sampling from a mixture distribution
+¢ € A(|V]) defined as follows:
+
+bo = qa; if max, pw < A, 0)
+! Po otherwise.
+
+The condition max, p,, < A is the position-
+dependent deferral rule, whose value indicates the
+deferral decision, that is when the first model in the
+cascade p must defer the decision to the (single)
+next model g*.
+
+From this perspective, we see that nudging as
+proposed by Fei et al. (2025) is a special case of
+model cascades with a sequence of 2 classifiers,
+where the second model g* is invoked when the
+first p is uncertain, a condition which is imple-
+mented using the so-called Chow’s rule (Chow,
+1970; Jitkrittum et al., 2023; Gupta et al., 2024).
+As such, an obvious question is whether we can
+use different deferral rules.
+
+3 Khnapsack Approximation Deferral
+
+As described in the previous section, the nudging
+technique for proxy-based alignment can be inter-
+preted as a specific case of cascading. Based on this
+observation, we first introduce a framework that al-
+lows to derive token-specific mixtures for test-time
+alignment based on a loss function that measures
+the base model’s uncertainty, and a maximum de-
+ferral budget. Then, we propose two approximation
+methods of the optimal deferral decision.
+
+*In Fei et al. (2025), the nudging step generates the next
+word until the following space instead of a single token.
+
+3.1 Formalization
+
+We seek to build a mixture distribution 7 using
+a token-specific deferral decision d € {0, vi
+(Narasimhan et al., 2025):
+
+Ty = py(l — dy) + go (2)
+
+where « is a normalization term that ensures the
+distribution 7 is well-defined:
+
+a= > Pwd.
+
+weV
+
+The deferral decision d allows to defer decision to
+q independently for each token, and as such gener-
+alizes the nudging procedure described in Sec. 2.2.
+
+We are now left with defining rules used to com-
+pute the deferral decision vector d. As explained
+in Sec. 2.1, alignment seems to only shift the prob-
+ability of a few tokens, especially when the model
+is unsure about an outcome. To measure the un-
+certainty about a specific output, we rely on a loss
+function ¢ : A(k) x V — Rx. We define the risk
+(Shalev-Shwartz and Ben-David, 2014) associated
+with d as:
+
+r(d) = > Pyl(p,v)(1 — dv),
+veV
+
+where P, = P(x; = v|x14-1 = @1.4-1) is the
+(unknown) ground-truth target distribution.
+
+Notice that naive risk minimization leads to a
+trivial deferral decision as (1) = 0, i.e. ignoring
+the base model p and deferring the outcome to g*
+only. Instead, we assume a maximum deferral bud-
+get b > 0, that is the maximum probability mass
+that can be ignored in p. We obtain the following
+constrained risk minimization problem:
+
+(P1) r(d) st > Pud, <b.
+veV
+
+min
+de{0,1}IVI
+
+We denote d an optimal solution of (P1).
+
+Lemma 1. Computing the optimal deferral
+rule d is NP-Hard.
+
+The lemma can be proved by observing that (P1)
+is equivalent to the 0-1 knapsack optimization prob-
+lem, which is known to be NP-Hard (Cacchiani
+et al., 2022). Although exact dynamic program-
+ming algorithms are known for solving this prob-
+lem, their worst-case complexity is exponential
+in the vocabulary size (Martello and Toth, 1990;
+Pisinger, 1997; Martello et al., 1999). Therefore,
+we will instead rely on fast dual and primal approx-
+imations, which are guaranteed to define bounds
+on the optimal risk.
+
+
+
+Figure 1: Illustration of token-specific cascading distribution 7v<* with A = 0.4. The left and center plots show the
+probability mass function (PMF) of p and g*, respectively. The right plot shows the PMF of 7<*, where the blue
+parts shows the mass coming from p and the red parts the one coming from g* (including rescaling by a). Dotted
+bars show that mass from p that was rejected by the deferral decision. We can observe the most probable token of p
+and the one of g* both have high probabilities in the resulting mixture.
+
+3.2 Dual Approximation
+
+In this section, we introduce a first approximation
+based on duality. This approximation does not rely
+on the ground-truth distribution P.
+
+By relaxing the budget constraint, we build the
+following Lagrangian (Lemaréchal, 2001):
+
+wt) = ria) (Ten).
+
+veV
+
+where 11 € Rx is called a Lagrangian multiplier
+or dual variable. In other words, the hard constraint
+has been replaced by a penalty in the objective.
+Our dual approximation is simply defined as a dual
+solution for a given multiplier yu:
+d™ (1) € argmin L(d, pn).
+de{0,1}1V
+
+Note that d~ (11) € RVI may not be primal feasi-
+ble, i.e. it may not satisfy the budget constraint.
+
+Lemma 2. For any dual variable yi > 0, the
+deferral decision vector d~ (pu) is defined as:
+
+YoeV: [dw] = [l(p,v) > pu].
+
+where the right-hand side condition is called
+the deferral condition. Moreover, the follow-
+ing bound on the true risk holds:
+
+L (dw). 0) < r(d).
+
+Proof of Lemma 2 can be found in Appendix A.
+For the negative log-likelihood (or logistic) loss,
+we can rewrite the dual approximation as follows:
+
+[dw] = T-1ogpu > ul = [ps < exp(—p)].
+
+Loss ((p,v) [d=]
+Logistic — log po [pv < exp(—u)]
+Squared (1-pu)? [po < 1-H]
+Perceptron —py + maxy pw [Pv < MaxXw pw — yf
+0-1 [v ¢ argmax,, pw] [po < maxw pu]
+Min-ent. —log max, py [max pw < exp(—u)]
+
+Table 1: Different losses and their associated deferral
+rules in the dual approximation scenario. For the 0-1
+loss, we assume that uu € (0,1).
+
+For any loss of the form ¢(p, v) = f(p,) where f
+is continuous and strictly decreasing, we have:
+
+[dW] =< swl 0G
+
+To simplify notation, we will denote 7<* the dis-
+tribution given by such decision rule:
+
+m5 = pp x [po > A] + gia,
+
+where A = f~1(u). Figure I illustrates such a
+mixture.
+
+Further examples with different losses are pre-
+sented in Table 1 and their derivations in App. B.
+
+Chow’s rule. We now show that our framework
+generalizes the nudging method of Fei et al. (2025).
+Consider the min-entropy loss function (Renner
+and Wolf, 2004) defined as follows:
+
+tp, v) = — log max py.
+
+Note that this loss function is unsupervised, in the
+sense that the loss value does not depend on the
+gold token v. With this loss, the deferral decision
+is:
+
+d (1)| = [maxp, < exp(—p)],
+[4], = Ima
+
+which is Chow’s rule used for nudging, which we
+recover here as a dual approximation.
+
+
+3.3 Primal Approximation
+
+The proposed dual approximation does not depend
+on PP, but requires setting a hyperparameter. In
+this section, we derive a method to build a primal
+feasible solution using the Lagrangian dual prob-
+lem. As computing the solution requires access to
+the ground-truth distribution, we rely on a plug-in
+approximation of IP in practice.
+
+From Lemma 2, we know that for any pn € Rx,
+the Lagrangian gives a lower bound to the optimal
+risk. As such, we seek the dual variable value 1
+that maximizes this bound:
+
+i € arg max Lu),
+n>0
+
+where L(y) = minge gg 13vi L(d, pr).
+
+Lemma 3. Wlog, we assume the vocabulary
+is sorted in increasing loss order, that is:
+Yo,weV: v<w = {(p,v) <{(p,w).
+
+Let k be defined such that the following con-
+dition holds:
+
+vi vi
+dP, She) Pe 4)
+v= +1
+
+Then, we have 1 = Up, k). We call k the
+critical element index.
+
+The proof can be found in Appendix C.
+The primal approximation is then defined as:
+
+d"=d (fj).
+
+As dt = [¢(p,v) > £(p,k)]. and assuming that
+the vocabulary is sorted in increasing loss order,
+we can see that the following inequality holds:
+
+14
+Y diPy= ) PB, <b.
+veV v=k+1
+
+Thus d* is primal feasible, and the following
+bound holds:
+
+~
+
+r(d) < r(d").
+
+Plugin approximation. Unfortunately, comput-
+ing the critical element index [2 requires access
+to the ground-truth data distribution PP, which is
+unknown. Therefore, we follow the methodology
+
+of Narasimhan et al. (2025) and use a plugin ap-
+proximation of PP, that is we rely on p as an ap-
+proximation of P. More precisely, we compute an
+approximation pi of the optimal Lagrangian multi-
+plier using an approximation of the critical index
+element k:
+
+\4! \4!
+i=L0pk) st > py<b<D po
+v=k+1 v=Fk
+
+The primal approximation d+ = d- (1) of the
+deferral rule is defined as follows:>
+
+[¢(p, i) > 1].
+
+3.4 Theoretical Analysis
+
+YvoeV: df =
+
+In this section, we show some theoretical properties
+of primal approximations.
+
+First, it is interesting to note that the previously
+considered decreasing loss functions all produce
+the same primal approximation as per Lemma 4.
+Therefore, although there is an interest of evaluat-
+ing different losses for the dual approximation, the
+primal one always lead to the same deferral rule
+for a wide class of losses (Lemma 4). Second, we
+show that the quality of the approximation using p
+as a plugin estimator depends on the total variation
+distance between p and P (Lemma 5).
+
+Lemma 4. A loss function / is order inverting
+if, Yu, w € V, we have:
+
+w) < {(p,v).
+
+Let /; and ¢> be two order inverting losses.
+Then, ¢; and ¢5 produce the same critical el-
+ement index % and the same approximation
+k. Moreover, they produce the same deferral
+decision dr, and the same approximation dr.
+
+Pv < Pw {(p,
+
+Lemma 5. The following bound on the risk
+holds:
+
+r(@) rd) < tp.) (TR0P)).
+
+where | = min(k, k) + 1 and u = max(k, k).
+Moreover, we have:
+
+r(d*) — r(d) < 4(p, k)P;
+
+Proofs are given in Appendices E and F.
+
+SPseudo-code is given in Appendix G.
+
+
+4 Speculative Decoding
+
+In the nudging approach of Fei et al. (2025), they
+only need to forward in the large model p when
+its certainty is high, and calls to g* are limited to
+a few tokens for which the decision is deferred to
+it, see Equation (1). On the contrary, our mixture
+distribution defined in Equation (2) relies on both
+p and g* as soon as there is a single element of the
+deferral decision equal to 1. Hence, a naive use of
+our approach will lead to a slower generation.
+
+In this section, we propose to accelerate genera-
+tion using speculative decoding (Leviathan et al.,
+2023; Chen et al., 2023), a two step sampling pro-
+cess. First, in the drafting step, a draft model is used
+to samples a draft of v € Z~ tokens. Then, in the
+verification step, token are sequentially accepted
+using a target model, until one token is rejected.
+The resulting sampling process is guaranteed to
+match the target model distribution. In practice,
+the draft model is assumed to be small and fast,
+whereas the target model is large and slow. The
+forward pass in the target model can be efficiently
+parallelized over all tokens in the draft instead of
+generating tokens autoregressively, which leads to
+experimental speed improvement. We refer readers
+to (Leviathan et al., 2023) for further details.
+
+In our case, the target distribution is the mix-
+ture 7r, and the proposal distribution is the aligned
+model g*. The probability a(m,g*) € [0,1] of
+accepting the next token in the draft is equal to:
+
+a(m,q*) =1— Dyy(m,q").
+
+As such, a lower divergence between the target and
+the draft models means a higher acceptance proba-
+bility, and therefore a faster speculative procedure.
+
+Lemma 6. The following bound on
+Drv (7, g*) holds:
+
+where 8 =)" dyqj.
+Moreover, if the following condition are
+satisfied:
+
+I. maxyey py > A,
+2. Voip, <A = py, < ag,
+
+then, the following bound holds:
+
+The proof can be found in Appendix H. Lemma 6
+shows that even if our mixture distribution 7<* is
+more expressive than the nudging distribution ¢,
+the speculative decoding process will only have
+a slightly lower acceptance rate, as a(1—f) <
+1. The second part of theorem even show that
+in many cases, the acceptance will be at least as
+good, and even better. We will confirm these results
+experimentally in Section 6.
+
+5 Related work
+
+Test-time alignment. To avoid the high cost of
+LLM alignment via parameter fine-tuning, differ-
+ent previous work considered to leverage a reward
+signal to steer the generation of the base model. Un-
+like our approach, these methods require a specif-
+ically trained reward model to evaluate partial se-
+quences to guide the decoding step from the base
+model (Khanov et al., 2024; Deng and Raffel, 2023;
+Troshin et al., 2025). Mitchell et al. (2024) and
+Liu et al. (2024) proposed extracting the partial
+reward from a smaller aligned model, but their
+approach requires both the base and aligned check-
+points of the smaller model. Alternatively, Faria
+and Smith (2025) proposed a Metropolis-Hastings
+sampling approach that can use a more standard
+reward model defined on complete outputs.
+
+Our test-time alignment method is more straight-
+forward as it only requires the aligned small model
+and isolates its contribution to the final mixture dis-
+tribution to the weak components of p. Addition-
+ally, it does not require sampling several responses
+for each prediction.
+
+Model cascading. Model cascading is a popular
+technique used in computer vision (Wang et al.,
+2018) and natural language processing (Varshney
+and Baral, 2022; Li et al., 2021), with an emphasis
+on reducing generation cost by evaluating larger
+models only when necessary. By design, cascading
+can only defer to larger models using information
+about the the smaller model outputs. For text gen-
+eration, Narasimhan et al. (2025) proposed to mix
+cascading and speculative decoding to build defer-
+ral rules based on larger model outputs while en-
+suring fast generation. Our work differ in its goal,
+that is proxy-based test-time alignment of a large
+base model, which leads to a different definition of
+the deferral rule and resulting output distributions.
+
+Knapsack formulation. Nishikawa et al. (2014)
+and Tonglet et al. (2023) proposed reductions to
+
+
+Figure 2: Empirical acceptance rate per model in specu-
+lative generation schema. In brown the dual approxima-
+tion w<* with A = 0.4, in blue the primal approxima-
+tion with b = 0.9 and in red Nudging with A = 0.4.
+
+the 0-1 knapsack problem for summarization and
+in-context examples selection, respectively.
+
+6 Experiment
+
+Datasets. We evaluate our method on three math
+reasoning datasets, GSM8K (Cobbe et al., 2021),
+MATHS00 (Lightman et al., 2023) and SVAMP
+(Patel et al., 2021), and three commonsense reason-
+ing datasets, ARC-Challenge (Clark et al., 2018),
+CommonsenseQA (Talmor et al., 2019) and Truth-
+ful QA (Lin et al., 2022). We use standard prompt-
+ing and evaluation strategies for all datasets. Exam-
+ples are given in Appendix I.
+
+Models. We use two LLM famillies for experi-
+ments. First, OLMo 2 (OLMo et al., 2025), which
+is a fully open source model family. Second, Qwen
+3 (Yang et al., 2025), which is relatively closed
+source. We select 2 contrasting sizes of each fam-
+ily on which we carry out our experiments. The
+choice of the model families is based on the avail-
+able model sizes and checkpoints.
+
+Unlike Fei et al. (2025), we do not employ
+greedy decoding. Instead, we sample from the
+unmodified distributions with temperature 0.7 as
+recommended for each model to isolate the benefits
+of our method.
+
+All the experiments where run on single Nvidia
+A100-80GB GPUs. The evaluation of each dataset
+was parallelized on 8-GPU nodes.
+
+Test-time methods. For our approach, we eval-
+uate both with dual and primal approximations.
+
+For the dual approximation case, we test 3 loss
+functions. For the primal approximation case, we
+shown that all (non-degenerated) losses lead to the
+same deferral rule, therefore will only test with the
+negative log-likelihood.
+
+We compare our approach against two baselines:
+(1) nudging (Fei et al., 2025), and (2) the implicit re-
+ward approach introduced by Mitchell et al. (2024)
+and Liu et al. (2024). The implicit reward builds a
+mixture in which the probability of token v € V is
+proportional to p, i Note this approach requires
+access to both g* and gq, whereas nudging and ours
+only require access to g*
+
+Hyperparameters. For our mixture =<", we fol-
+
+low Fei et al. (2025) and set A € {0.3,0.4}. We
+do not explore further specific tuning for our token-
+specific deferral rule, showing that it can serve as a
+plug-in replacement for the distribution-level defer-
+ral rule with no further hyperparameter search. As
+for the other deferral rules, we performed a quick
+hyperparameter scan on a small data subset and
+selected promising hyperparameter values, that is
+be {0.6,0.9} and i € {0.05,0.1}.
+
+6.1 Performance evaluation
+
+The main experimental results are summarized in
+Table 2. As expected, an aligned model always
+performs better than its base model, and a larger
+base (resp. aligned) model always performs bet-
+ter than its smaller base (resp. aligned) model.
+With OLMo 2, g* is nearly always better than
+the larger base model p, whereas this only hap-
+pens in two out of six datasets for Qwen 3. For a
+given model, scores vary widely across datasets,
+e.g. from 9.4 (MATH500) to 57.6 (SVAMP) for the
+base OLMo 2. Therefore, it is convenient to focus
+on average scores over the six datasets.
+
+All test-time alignment methods in the table con-
+sistently reach an average performance above that
+of the base p and q and of the small aligned g*
+model: in other words, they all play the expected
+role. While our dual approximation allows to re-
+covers Chow’s rule used in the nudging method
+of Fei et al. (2025), our other proposed generaliza-
+tions approximations obtain average scores that are
+always above that of the nudging method. They
+are also always above that of the implicit reward
+method except once (primal approximation with
+OLMo 2 and b = 0.6 results in lower accuracy than
+implicit reward).
+
+Overall, our approach obtains the highest av-
+
+
+GMSSK MATH SVAMP ARC CSQA TQA
+
+Avg. GMSSK MATH SVAMP ARC CSQA TQA Avg.
+
+OLMo 2 (1B and 13B)
+
+Qwen 3 (1.7B and 14B)
+
+Building blocks
+
+p 54.5 09.4 57.6 29.6 194 29.3 33.3 75.5 51.8 80.0 86.6 76.9 57.8 71.4
+q* 62.5 16.4 70.3 43.8 48.4 22.3 43.9 75.3 53.0 86.6 82.9 68.7 43.2 68.2
+Nudging (Fei et al., 2025)
+
+A=0.3 60.3 13.8 67.3 53.7 33.4 38.5 44.5 78.1 52.8 85.0 88.8 785 57.0 73.3
+A=04 61.9 18.8 66.6 57.8 46.3 38.5 48.3 79.5 57.8 87.3 89.6 79.3 60.7 75.7
+Our work: dual approximation
+
+— 0-1 loss
+
+we (0,1) 68.8 24.6 74.3 58.9 48.7 38.3 52.2 81.7 59.2 89.6 921 82.0 581 77.1
+— perceptron loss
+
+nw =0.05 68.2 22.0 74.3 55.8 46.1 37.6 50.6 82.4 59.6 89.6 914 814 60.0 774
+nw=0.1 67.7 21.4 73.6 57.3 44.6 39.2 50.6 82.0 60.0 89.0 921 81.9 58.6 77.2
+<M with A = f~(p)
+
+A=0.3 69.5 22.8 76.6 61.6 52.3 42.8 54.2 81.3 59.6 89.0 914 81.3 59.6 77.0
+A=04 72.3 23.4 75.3 61.9 55.6 40.2 54.7 81.7 60.6 87.3 91.5 80.7 58.3 76.6
+Our work: primal approximation
+
+b=0.6 65.5 21.0 74.3 54.9 42.8 38.1 494 81.6 59.8 87.6 91.3 81.4 583 76.6
+b=0.9 68.3 23.8 70.6 59.0 49.2 38.6 51.5 81.6 60.6 88.6 90.7 81.5 59.7 77.1
+For reference
+
+p* 84.3 39.6 87.6 82.5 76.9 53.6 70.7 82.4 64.0 88.3 93.8 83.1 70.1 80.2
+q 14.4 01.0 176 19.6 15.8 18.8 14.5 21.9 12.2 25.3 47.1 29.5 15.0 25.1
+Imp. reward 58.4 18.2 73.0 63.3 55.8 30.1 49.8 80.7 60.6 89.0 88.9 781 552 75.4
+
+Table 2: Model’s accuracy. Best results on each column are in bold, second best are underlined.
+
+erage accuracy for OLMo 2 and also the highest
+average over OLMo 2 and Qwen 3.
+
+For Qwen 3, each primal approximation obtains
+at least one average score within the small range
+[77.0,77.4]. This plateau effect might be related
+to the relatively small distance between p (71.4)
+and p* (80.2), where the base model p already per-
+forms fairly high, and to the fact that the small
+aligned model g* does not outperform the larger
+base model p, hence possibly making it more diffi-
+cult to provide relevant guidance to it. In contrast,
+for OLMo-2, the best average score of each pri-
+mal approximation varies within the larger range
+[50.6,54.7]. This might be linked to the much
+larger gap between p (33.3) and p* (70.7) and to
+the fact that the small aligned model g* performs
+better than the larger base model p.
+
+Further experimental analysis and motivation are
+presented in Appendix J.
+
+6.2 Speed evaluation
+
+Figure 2 shows the empirically calculated accep-
+tance rates for ¢» and 7<* across different specu-
+lative window sizes vy € {3,5,7}. We can see in
+
+this figure that 7v<* always achieve higher accep-
+tance rates than ¢ across the 3 window sizes, with
+our dual approximation achieving slightly higher
+acceptance rates than the primal approximation.
+
+This higher acceptance rate for 7<* translates
+into higher throughput in speculative generation
+mode as shown in Table 4 in Appendix K.
+
+7 Conclusion
+
+In this paper, we introduce a novel framework for
+test-time alignment based on a 0-1 knapsack prob-
+lem. This framework allows to derive several dual
+and primal approximations, that all take the form of
+a token-specific deferral rules similar to cascading
+(Narasimhan et al., 2025). We proposed differ-
+ent instances of these deferral rules, generalizing
+existing work, and evaluated experimentally their
+performance against strong baselines.
+
+Limitations
+
+While our approach cuts training costs by a consid-
+erable margin, it draws its guidance from a smaller
+less capable model and it slightly underperforms
+the larger aligned model p*. Although hyperpa-
+
+
+rameters choices such as that of the budget b and
+the threshold A does not heavily influence the mix-
+ture performance, they still need to be tuned indi-
+vidually for each model and dataset on a separate
+validation set. We however show in this paper that
+a fixed hyperparameter choice can safely be car-
+ried between models and datasets with marginal
+performance degradation.
+
+Acknowledgments
+
+We thank Miguel Couceiro for his comments and
+suggestions.
+
+This work is supported by the SEMIAMOR
+(CE23-2023-0005) and InExtenso (ANR-23-IAS1-
+0004) project grants given by the French National
+Research Agency (ANR). This work was granted
+access to the HPC resources of IDRIS under the
+allocation 2024-AD011015801 made by GENCI.
+
+References
+
+Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda
+Askell, Anna Chen, Nova DasSarma, Dawn Drain,
+Stanislav Fort, Deep Ganguli, Tom Henighan,
+Nicholas Joseph, Saurav Kadavath, Jackson Kernion,
+Tom Conerly, Sheer El Showk, Nelson Elhage, Zac
+Hatfield-Dodds, Danny Hernandez, Tristan Hume,
+and 12 others. 2022. Training a helpful and harmless
+assistant with reinforcement learning from human
+feedback. CoRR, abs/2204.05862.
+
+Amir Beck. 2017. First-order methods in optimization.
+SIAM.
+
+Stephen P Boyd and Lieven Vandenberghe. 2004. Con-
+vex optimization. Cambridge university press.
+
+Valentina Cacchiani, Manuel Iori, Alberto Locatelli,
+and Silvano Martello. 2022. Knapsack problems —
+an overview of recent advances. part i: Single knap-
+sack problems. Computers & Operations Research,
+143:105692.
+
+Hoyeon Chang, Jinho Park, Seonghyeon Ye, Sohee
+Yang, Youngkyung Seo, Du-Seong Chang, and Min-
+joon Seo. 2024. How do large language models ac-
+quire factual knowledge during pretraining? In The
+Thirty-eighth Annual Conference on Neural Informa-
+tion Processing Systems.
+
+Charlie Chen, Sebastian Borgeaud, Geoffrey Irving,
+Jean-Baptiste Lespiau, Laurent Sifre, and John
+Jumper. 2023. Accelerating large language model
+decoding with speculative sampling. Preprint,
+arXiv:2302.01318.
+
+C. Chow. 1970. On optimum recognition error and
+reject tradeoff. IEEE Transactions on Information
+Theory, 16(1):41-46.
+
+Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot,
+Ashish Sabharwal, Carissa Schoenick, and Oyvind
+Tafjord. 2018. Think you have solved question
+answering? try arc, the ai2 reasoning challenge.
+arXiv:1803.05457v1.
+
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,
+Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias
+Plappert, Jerry Tworek, Jacob Hilton, Reiichiro
+Nakano, Christopher Hesse, and John Schulman.
+2021. Training verifiers to solve math word prob-
+lems. Preprint, arXiv:2110.14168.
+
+Haikang Deng and Colin Raffel. 2023. Reward-
+augmented decoding: Efficient controlled text gener-
+ation with a unidirectional reward model. In Proceed-
+ings of the 2023 Conference on Empirical Methods in
+Natural Language Processing, pages 11781-11791,
+Singapore. Association for Computational Linguis-
+tics.
+
+Kawin Ethayarajh, Winnie Xu, Niklas Muennighoff,
+Dan Jurafsky, and Douwe Kiela. 2024. Model align-
+ment as prospect theoretic optimization. In Proceed-
+ings of the 41st International Conference on Machine
+Learning, volume 235 of Proceedings of Machine
+Learning Research, pages 12634-12651. PMLR.
+
+Gongalo Faria and Noah A. Smith. 2025. Sample, don’t
+search: Rethinking test-time alignment for language
+models. Preprint, arXiv:2504.03790.
+
+Yu Fei, Yasaman Razeghi, and Sameer Singh. 2025.
+Nudging: Inference-time alignment of LLMs via
+guided decoding. In Proceedings of the 63rd An-
+nual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), pages 12702—
+12739, Vienna, Austria. Association for Computa-
+tional Linguistics.
+
+Neha Gupta, Harikrishna Narasimhan, Wittawat Jitkrit-
+tum, Ankit Singh Rawat, Aditya Krishna Menon,
+and Sanjiv Kumar. 2024. Language model cascades:
+Token-level uncertainty and beyond. In The Twelfth
+International Conference on Learning Representa-
+tions.
+
+Xuming Hu, Junzhe Chen, Xiaochuan Li, Yufei Guo,
+Lijie Wen, Philip S. Yu, and Zhijiang Guo. 2024.
+Towards understanding factual knowledge of large
+language models. In The Twelfth International Con-
+ference on Learning Representations.
+
+Wittawat Jitkrittum, Neha Gupta, Aditya K Menon,
+Harikrishna Narasimhan, Ankit Rawat, and Sanjiv
+Kumar. 2023. When does confidence-based cascade
+deferral suffice? In Advances in Neural Information
+Processing Systems, volume 36, pages 9891-9906.
+Curran Associates, Inc.
+
+Richard M. Karp. 1972. Reducibility among Combina-
+torial Problems, pages 85-103. Springer US, Boston,
+MA.
+
+Maxim Khanov, Jirayu Burapacheep, and Yixuan Li.
+2024. ARGS: Alignment as reward-guided search.
+
+
+In The Twelfth International Conference on Learning
+Representations.
+
+Komal Kumar, Tajamul Ashraf, Omkar Thawakar,
+Rao Muhammad Anwer, Hisham Cholakkal,
+Mubarak Shah, Ming-Hsuan Yang, Phillip H. S. Torr,
+Fahad Shahbaz Khan, and Salman Khan. 2025. LIm
+post-training: A deep dive into reasoning large lan-
+guage models. Preprint, arXiv:2502.21321.
+
+Nathan Lambert, Jacob Morrison, Valentina Pyatkin,
+Shengyi Huang, Hamish Ivison, Faeze Brahman,
+Lester James Validad Miranda, Alisa Liu, Nouha
+Dziri, Xinxi Lyu, Yuling Gu, Saumya Malik, Victoria
+Graf, Jena D. Hwang, Jiangjiang Yang, Ronan Le
+Bras, Oyvind Tafjord, Christopher Wilhelm, Luca
+Soldaini, and 4 others. 2025. Tulu 3: Pushing fron-
+tiers in open language model post-training. In Second
+Conference on Language Modeling.
+
+Claude Lemaréchal. 2001. Lagrangian relaxation. In
+Michael Jiinger and Denis Naddef, editors, Compu-
+tational Combinatorial Optimization: Optimal or
+Provably Near-Optimal Solutions, pages 112-156.
+Springer Berlin Heidelberg, Berlin, Heidelberg.
+
+Yaniv Leviathan, Matan Kalman, and Yossi Matias.
+2023. Fast inference from transformers via spec-
+ulative decoding. Preprint, arXiv:2211.17192.
+
+Lei Li, Yankai Lin, Deli Chen, Shuhuai Ren, Peng Li,
+Jie Zhou, and Xu Sun. 2021. CascadeBERT: Ac-
+celerating inference of pre-trained language models
+via calibrated complete models cascade. In Find-
+ings of the Association for Computational Linguis-
+tics: EMNLP 2021, pages 475-486, Punta Cana, Do-
+minican Republic. Association for Computational
+Linguistics.
+
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri
+Edwards, Bowen Baker, Teddy Lee, Jan Leike,
+John Schulman, Ilya Sutskever, and Karl Cobbe.
+2023.  Let’s verify step by step. Preprint,
+arXiv:2305.20050.
+
+Bill Yuchen Lin, Abhilasha Ravichander, Ximing Lu,
+Nouha Dziri, Melanie Sclar, Khyathi Chandu, Chan-
+dra Bhagavatula, and Yejin Choi. 2024. The unlock-
+ing spell on base LLMs: Rethinking alignment via
+in-context learning. In The Twelfth International
+Conference on Learning Representations.
+
+Stephanie Lin, Jacob Hilton, and Owain Evans. 2022.
+Truthful QA: Measuring how models mimic human
+falsehoods. In Proceedings of the 60th Annual Meet-
+ing of the Association for Computational Linguistics
+(Volume 1: Long Papers), pages 3214-3252, Dublin,
+Ireland. Association for Computational Linguistics.
+
+Alisa Liu, Xiaochuang Han, Yizhong Wang, Yulia
+Tsvetkov, Yejin Choi, and Noah A. Smith. 2024. Tun-
+ing language models by proxy. In First Conference
+on Language Modeling.
+
+Ximing Lu, Faeze Brahman, Peter West, Jachun Jung,
+Khyathi Chandu, Abhilasha Ravichander, Prithviraj
+
+Ammanabrolu, Liwei Jiang, Sahana Ramnath, Nouha
+Dziri, Jillian Fisher, Bill Lin, Skyler Hallinan, Lian-
+hui Qin, Xiang Ren, Sean Welleck, and Yejin Choi.
+2023. Inference-time policy adapters (IPA): Tailoring
+extreme-scale LMs without fine-tuning. In Proceed-
+ings of the 2023 Conference on Empirical Methods
+in Natural Language Processing, pages 6863-6883,
+Singapore. Association for Computational Linguis-
+tics.
+
+Silvano Martello, David Pisinger, and Paolo Toth. 1999.
+Dynamic programming and strong bounds for the 0-1
+knapsack problem. Management Science, 45(3):414—
+424.
+
+Silvano Martello and Paolo Toth. 1990. Knapsack prob-
+lems: algorithms and computer implementations.
+
+John Wiley & Sons, Inc., USA.
+
+Eric Mitchell, Rafael Rafailov, Archit Sharma, Chelsea
+Finn, and Christopher D Manning. 2024. An em-
+ulator for fine-tuning large language models using
+small language models. In The Twelfth International
+Conference on Learning Representations.
+
+Harikrishna Narasimhan,  Wittawat Jitkrittum,
+Ankit Singh Rawat, Seungyeon Kim, Neha Gupta,
+Aditya Krishna Menon, and Sanjiv Kumar. 2025.
+Faster cascades via speculative decoding. In The
+Thirteenth International Conference on Learning
+Representations.
+
+Hitoshi Nishikawa, Kazuho Arita, Katsumi Tanaka, Tsu-
+tomu Hirao, Toshiro Makino, and Yoshihiro Matsuo.
+2014. Learning to generate coherent summary with
+discriminative hidden semi-Markov model. In Pro-
+ceedings of COLING 2014, the 25th International
+Conference on Computational Linguistics: Technical
+Papers, pages 1648-1659, Dublin, Ireland. Dublin
+City University and Association for Computational
+Linguistics.
+
+Team OLMo, Pete Walsh, Luca Soldaini, Dirk Groen-
+eveld, Kyle Lo, Shane Arora, Akshita Bhagia, Yuling
+Gu, Shengyi Huang, Matt Jordan, Nathan Lambert,
+Dustin Schwenk, Oyvind Tafjord, Taira Anderson,
+David Atkinson, Faeze Brahman, Christopher Clark,
+Pradeep Dasigi, Nouha Dziri, and 21 others. 2025. 2
+OLMo 2 furious. Preprint, arXiv:2501.00656.
+
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida,
+Carroll Wainwright, Pamela Mishkin, Chong Zhang,
+Sandhini Agarwal, Katarina Slama, Alex Ray, John
+Schulman, Jacob Hilton, Fraser Kelton, Luke Miller,
+Maddie Simens, Amanda Askell, Peter Welinder,
+Paul F Christiano, Jan Leike, and Ryan Lowe. 2022.
+Training language models to follow instructions with
+human feedback. In Advances in Neural Information
+Processing Systems, volume 35, pages 27730-27744.
+Curran Associates, Inc.
+
+Arkil Patel, Satwik Bhattamishra, and Navin Goyal.
+2021. Are NLP models really able to solve simple
+math word problems? In Proceedings of the 2021
+Conference of the North American Chapter of the
+
+
+Association for Computational Linguistics: Human
+Language Technologies, pages 2080-2094, Online.
+Association for Computational Linguistics.
+
+David Pisinger. 1997. A minimal algorithm for the 0-1
+knapsack problem. Operations Research, 45(5):758-
+767.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Christo-
+pher D Manning, Stefano Ermon, and Chelsea Finn.
+2023. Direct preference optimization: Your language
+model is secretly a reward model. In Thirty-seventh
+Conference on Neural Information Processing Sys-
+tems.
+
+R. Renner and S. Wolf. 2004. Smooth renyi entropy and
+applications. In International Symposium onlnforma-
+tion Theory, 2004. ISIT 2004. Proceedings., pages
+233-.
+
+Shai Shalev-Shwartz and Shai Ben-David. 2014. Un-
+derstanding machine learning: From theory to algo-
+rithms. Cambridge university press.
+
+Alon Talmor, Jonathan Herzig, Nicholas Lourie, and
+Jonathan Berant. 2019. CommonsenseQA: A ques-
+tion answering challenge targeting commonsense
+knowledge. In Proceedings of the 2019 Conference
+of the North American Chapter of the Association for
+Computational Linguistics: Human Language Tech-
+nologies, Volume I (Long and Short Papers), pages
+4149-4158, Minneapolis, Minnesota. Association for
+Computational Linguistics.
+
+Jonathan Tonglet, Manon Reusens, Philipp Borchert,
+and Bart Baesens. 2023. SEER : A knapsack ap-
+proach to exemplar selection for in-context Hy-
+bridQA. In Proceedings of the 2023 Conference
+on Empirical Methods in Natural Language Process-
+ing, pages 13569-13583, Singapore. Association for
+Computational Linguistics.
+
+Sergey Troshin, Vlad Niculae, and Antske Fokkens.
+2025. On the low-rank parametrization of reward
+models for controlled language generation. Transac-
+tions on Machine Learning Research.
+
+Neeraj Varshney and Chitta Baral. 2022. Model cas-
+cading: Towards jointly improving efficiency and
+accuracy of NLP systems. In Proceedings of the
+2022 Conference on Empirical Methods in Natu-
+ral Language Processing, pages 11007-11021, Abu
+Dhabi, United Arab Emirates. Association for Com-
+putational Linguistics.
+
+Xin Wang, Yujia Luo, Daniel Crankshaw, Alexey Tu-
+manov, Fisher Yu, and Joseph E. Gonzalez. 2018.
+Idk cascades: Fast deep learning by learning not to
+overthink. Preprint, arXiv:1706.00885.
+
+Sean Welleck, Amanda Bertsch, Matthew Finlayson,
+Hailey Schoelkopf, Alex Xie, Graham Neubig, Ilia
+Kulikov, and Zaid Harchaoui. 2024. From decoding
+to meta-generation: Inference-time algorithms for
+large language models. Transactions on Machine
+Learning Research. Survey Certification.
+
+11
+
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+Chengen Huang, Chenxu Lv, Chujie Zheng, Day-
+iheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao
+Ge, Haoran Wei, Huan Lin, Jialong Tang, and 41
+others. 2025. Qwen3 technical report. Preprint,
+arXiv:2505.09388.
+
+Chunting Zhou, Pengfei Liu, Puxin Xu, Srinivasan Iyer,
+Jiao Sun, Yuning Mao, Xuezhe Ma, Avia Efrat, Ping
+Yu, Lili Yu, Susan Zhang, Gargi Ghosh, Mike Lewis,
+Luke Zettlemoyer, and Omer Levy. 2023. Lima: Less
+is more for alignment. In Advances in Neural Infor-
+mation Processing Systems, volume 36, pages 55006—
+55021. Curran Associates, Inc.
+
+Daniel M. Ziegler, Nisan Stiennon, Jeffrey Wu, Tom B.
+Brown, Alec Radford, Dario Amodei, Paul Chris-
+tiano, and Geoffrey Irving. 2020. Fine-tuning lan-
+guage models from human preferences. Preprint,
+arXiv:1909.08593.
+
+
+A Proof of Lemma 2
+
+Proof. The Lagrangian can be rewritten as follows:
+
+L(d, p) =r(d) +p > Pid; — ')
+
+eV
+= > dy Py (1 - {(p, v))
+veV
++3 Bubp, v) — pi,
+veV
+
+where only the first sum depends on d. Therefore,
+computing the dual approximation can be rewritten
+as:
+
+d (pn) € argmin Y_ d,P,(u— (pv),
+de{0, 1} oy
+
+where, for all v € V, P, > 0 and ¢(p,v) > 0 by
+definition. Therefore, to minimize the sum in the
+objective, we must set d, = 1 if pu — £(p,v) < 0,
+and 0 otherwise. As such, we can write:
+
+dw] = ep. 0) > pl
+
+—
+d= (pn) € argmin L(d, 1).
+de{0,1}IVI
+
+Note that if we use the condition:
+[dw] =1ew.0) = ul.
+
+although it does not change the objective value, it
+increases the probability of violating the budget
+constraint.
+
+The bound on the true risk follows standard lin-
+ear optimization properties (Lemaréchal, 2001).
+As d satisfy the budget constraint, we have
+> ve] P,d, — b <0, therefore:
+
+rd Soro
+
+veV
+
+We derive a lower bound on this term by minimiz-
+ing on the deferral decision, which leads to the
+desired bound:
+
+> min
+
+Ld,
+= defo,1}VI (dn)
+
+= L(d™ (kn), 1).
+
+B Deferral Rules for Dual Approximation
+
+The deferral rule for dual approximation has the
+following form:
+
+[dn], = [tp v) > pl.
+
+We derive the particular form of this rule for the
+losses that are summarized in Table 1.
+
+Negative log-likelihood (logistic). Let ¢ be de-
+
+fined as:
+{(p,v) = — log py.
+
+Then we can rewrite the deferral condition as:
+
+lp, v) > pu,
+— log py, > pu,
+Po < exp(—p),
+
+which shows in this case the rule defer to g* for
+low probability tokens.
+
+Squared. Let / be defined as:
+
+Up,v) = (1 pv)’
+
+Then we can rewrite the deferral condition as:
+
+tp, v) > p,
+(1— py)? >
+1—py > NIT
+py < 1-1/1.
+
+which shows in this case the rule defer to g* for
+low probability tokens.
+
+Note the similarity with the condition of the lo-
+gistic loss. Given fi, pi € Rg, and the two condi-
+tions:
+
+pv < exp(—p) ©)
+and po <1—/1. (6)
+
+If the following condition holds:
+p=—log (1- Vi), )
+or equivalently:
+
+p= (1 —exp(—p))?, (8)
+
+then the two deferral rules are equivalent.
+
+
+Perceptron. Let ¢ be defined as:
+Up, v) = —po + maxpy
+
+Then we can rewrite the deferral condition as:
+
+t(p,v) > p,
+
+—Py + MAX Py > [4
+weV
+Py < Max py — 4,
+weV
+
+which shows in this case the rule defer to g* for
+tokens whose probability is lower than the max
+
+token probability minus a margin given by the dual
+variable pu.
+
+Let ¢ be defined as:
+
+{(p,v) =
+
+Zero-one.
+[v ¢ arg max py]
+weV
+
+and since © € (0,1) and ¢(p,v) € {0,1},
+a (1)] = 1if and only if {(p,v) = 1 which
+is the case when v ¢ argmax,,cy py Or equiva-
+lently when p, < maxyecy Pw.
+
+C Proof of Lemma 3
+
+Proof. First, note that L is a concave function
+since it is a pointwise minimum over a family of
+affine functions (Boyd and Vandenberghe, 2004,
+Sec. 3.2.3):
+
+L(y) = P )(1—
+(n)= min 2 op, v)(1 — dy)
+
+de{0,1}
++ pu (Sra)
+
+veV
+
+Per Lemma 2, for a given dual variable pn € Rx,
+the optimal minimizer is given by d(x) defined
+as:
+
+[dw] = Tep,v) > ul
+
+We observe that the value of L changes at break-
+points given by 4(p,v), Vv € V. The subdiffer-
+ential set at © € R, is given by (Beck, 2017,
+Thm. 3.50):
+
+OL(p) =
+
+> Po-b > P-b|,
+
+v:l(p,v)>p vil(p,v)>p
+
+which is the convex hull of derivatives of functions
+attaining the minimum.
+
+A sufficient condition for i € R>( to maximize
+Lis that 0 € OL(j). Assuming that the vocabulary
+is sorted in increasing loss order and knowing that
+% is defined as per condition (4), we have
+
+14 14
+
+SY P,-b>0 > P,—b<o.
+oh
+
+v=k+1
+
+and
+
+Thus, 12 = ¢(p, k).
+
+D Primal Approximation with the 0-1
+Loss
+
+Let ¢(p,v) be the 0-1 loss function, that is:
+
+{(p,v) = [v ¢ arg max py].
+weV
+
+As the optimal Lagrangian multiplier has the form:
+
+fi = U(p,k), ©)
+
+where k is the critical index element, therefore we
+know that zz € {0,1}.
+If iz = 1, then we have:
+
+Ci
+v
+
+as, by definition, the 0-1 loss cannot be strictly
+greater than 1. In other word, we defer all the
+
+decision to p.
+If io = 0, then we have:
+
+4], -
+
+that is, we keep from p only the mass of the most
+probable element.
+
+We are left with finding when we have 1 = 0.
+By Eq. equation 9 and the definition of the 0-1 loss,
+this can only happen if k = 1. Remember that
+the critical index element k is defined such that it
+satisfies the following conditions:
+
+[¢(p,v) > 1] =0,
+
+[¢(p,v) > 0] = [v ¢ argmax py],
+weV
+
+[V] [V]
+> po <b< 2 Pv-
+v=k+1
+
+Hence, to have k= 1, we must have p; > 1 —b.
+We end up with the rule:
+
+#1,
+
+[pr > 1—bAv¢argmax py].
+w
+
+
+E Proof of Lemma 4
+
+Proof. We give the proof for the primal feasible
+solution d+, and a similar reasoning holds for the
+approximate solution dr.
+
+According to the hypothesis on ¢; and ¢5, sort-
+ing tokens in the increasing order of ¢;(p,v) or
+l5(p,v) result in the same ordering. Therefore,
+they both lead to the same critical element index k,
+which depends only on IP and the ordering (and not
+the particular loss values).
+
+Thus, the optimal Lagrangian multipliers given
+by the two losses are iy = {1 (p, k) and [ip =
+45 (p, k). Since the losses have the same order, it is
+easy to see that for any v € V, we have
+
+[61(p, 0) > pu] = [a(p, v) > pi],
+
+and therefore both losses produces the same primal
+feasible solution d+.
+
+F Proof of Lemma 5
+
+Proof. Let us consider the quantity
+[r(d*) = r(d*)].
+
+Assuming that vocabulary is sorted in increasing
+loss order, we can see that
+
+r(dt) —r(d")]
+=|r(d"(R)) — r(d” (1)
+< 3 Pp.) [ld (@)] — ld (i).
+
+~
+
+Since d~ (12) and d- (1) agree on all positions ex-
+cept {min(k, k) + 1,..., max(k, k)}
+
+max (kk)
+= > P,l(p,v).
+
+v=min(k,k)+1
+
+Let us define | = min(k, k) + 1 and u =
+max(k, k), remember that the vocabulary is sorted
+in increasing loss order:
+
+v=l
+
+Let us consider the second factor in the left side of
+the inequality
+
+u 1 vi 1 vi
+> P, = p) > (Py — Py) + p) > po
+v=I[ v=1 v=1
+1 1 Vi
+32k 2B
+v=l v=1:w¢[u,l]
+1 u vi
++51 Yro— > PB
+v=l v=1w¢{u,...l}
+
+u
+= Dov(P,p) +) Py,
+
+v=l
+
+where Dv is the total-variation distance. Going
+back to our initial bound
+
+r(dh) —r(dh)| <
+v=Il
+
+As for the second part of the Lemma, we have
+L(A) = L(d*, A)
+eV
+< r(d).
+
+From the last inequality, we have
+
+r(dt)—r(d) <i ( — >r
+
+eV
+< (p, k)P;.
+
+Since b < SVL P, = b— >
+
+i P; < Pr.
+
+
+
+G Primal Approximation Algorithm
+
+Algorithm 1 shows a simple sorting-based proce-
+dure for calculating the primal approximation de-
+ferral rule.
+
+H Proof of lemma 6
+
+Proof. For the first part of the lemma, notice that
+if max, py < AthenVv € V,p, < Aandd =1
+giving ¢ = w<* = ¢* (trivial case). On the other
+hand, if max, p,, > A then ¢» = p and we have:
+
+320
+
+di)lpi + gi a — 7
+
+< 33 = dlp —
+gad
+
+1 «1 x
+<q 2 lpm dil= yd divi
+11 .
++a 5a) did
+1
+
+= = Drpvy( p,q
+
+Using this result we derive
+* 1 *k
+q*) = 5 2 dild;
+1
+F(1—di)lpi + gia — gj
+EL pi = g
+(3
+1 * 1 *k
++5) dia] — 50) dig;
+i i
+
+Dry (m=, - q; of
+
+< Drv(p,q¥)
+
+- 5 Edin q; |
+Fya—aY di +53 da
+1 [3
+
+= Drv(p, q¥)
+
+0g Xin q;|
+aX dia +5 > dlp + af]
+i i
+
+Drv ( p,q
+
+A
+
+< — a) qd + > dip; + Drv(p, q°)
+i i
+
+i) + Dov ( p,q ),
+
+which shows that Dpy (7
+
+>_147di) + Drv (eo, q).
+For the second part of the lemma, remember
+
+We have Drv (m<,¢*) < Drv(p,q*) is
+equivalent to
+
+> min(r;t,g}) >> min(po, gj)
+v v
+
+which is equivalent to
+
+> ( min(p, + aq, qa) - min (p,, a) )
+veA
+
++) (ag; — min(py,¢})) > 0,
+veB
+
+(10)
+
+where A={veV :p, >and B={veV:
+pu < A}. Suppose that the conditions of the lemma
+hold, then:
+
+* Forv € A, if min(p,, ¢) = ¢, then min(p,+
+aqs,qy) = ¢. Otherwise if min(p,, ¢}) =
+py then min(p, + aq}, q}) > p,. Hence
+min(p, + ogy, ¢;) — min(py, ¢;) = 0.
+
+* Forv € B : p, < aq implies min(p,, ¢}}) =
+pv and min(my, ¢) = min(agy, 3) = ogy.
+Thus
+
+ag, —min(py, q,) = aq; — py = 0.
+
+Summing the nonnegative coordinate differences
+
+over A and B gives the left hand side of (10) is > 0.
+
+Hence Dry (7<*, q*) < Drv (p, q*).
+
+I Dataset Examples
+
+Following previous work, we rely on regular ex-
+pressions to extract the final response form the
+LLM generation. In the case of GSM8K and
+SVAMP, we extract the last number in the model’s
+response. In the case of MATHS500, we extract the
+
+
+Algorithm 1: Returns the deferral rule using primal approximation.
+
+Data: Budget b € [0, 1], distribution p.
+Result: Deferral rule d € {0,1}V.
+
+begin
+v + —plogp /* Values, p is a plug-in estimator for P x/
+wp /* Weights, p is a plug-in estimator for P */
+
+c + v/w which is equal to — log p
+
+s «+ argsort_descending(c)
+
+d+ 0
+
+V0
+
+11
+
+while i <V and V/ + ws, < bdo
+ds, +1
+Vb + ws,
+
+end
+
+return d
+
+end
+
+last \boxed{ } number in the model’s response. In
+the multiple-choice question tasks, we extract the
+last capital letter from A to J in the response.
+
+The models are evaluated on the question
+prompts alone, with no additional few-shot exam-
+ples. For each task, we use the extracted answer’s
+accuracy to evaluate the model’s performance. We
+also evaluate the generation throughput as the aver-
+age number of tokens generated by the model each
+
+second.
+The following system prompt was used in all
+tasks:
+
+Answer the question by walking through
+the reasoning step by step.
+
+MATHS00. Here is an example of a question/an-
+swer from MATHS00 dataset:
+
+{
+
+"role": "user",
+"content": "Convert the point $(0,3)$ in
+rectangular coordinates to polar coordinates.
+Enter your answer in the form $(r,\\theta),$
+where $r > 0% and $0 \\le \\theta < 2 \\pi.$
+\n\nPresent the answer in LaTex format:
+\\boxed{Your answer}"
+
+1,
+
+{
+
+"role": "assistant",
+
+"content": "We have that $r = \\sqrt{0"2
+
++ 372} = 3.% Also, if we draw the line
+connecting the origin and $(0,3),$ this line
+makes an angle of $\\frac{\\pi}{2}$ with the
+positive $x$-axis.\n\n[asy]\nunitsize(0.8 cm);
+\n\ndraw((-0.5,0)--(3.5,0));\ndraw((0,-0.5)
+--(0,3.5)); \ndraw(arc((0,9),3,0,90),red,
+Arrow(6));\n\ndot((@,3), red);\nlabel(\"$(0,3)$
+
+16
+
+/* Densities x/
+
+\", (0,3), W;\ndot((3,0), red); \n[/asy]
+
+\n\nTherefore, the polar coordinates are
+
+$\\boxed{\\1left( 3, \\frac{\\pi}{2} \\right)}.$"
+}
+
+The following instruction is appended at the end of
+the user’s query :
+
+\n\nPresent the answer in LaTex format:
+\\boxed{{Your answer}}
+
+GSMS8K. Here is an example of a question/an-
+swer from GSMS8K dataset:
+
+{
+"role": "user",
+"content": "Janet\u2019s ducks lay 16 eggs per day.
+She eats three for breakfast every morning and bakes
+muffins for her friends every day with four. She
+sells the remainder at the farmers' market daily
+for $2 per fresh duck egg. How much in dollars does
+she make every day at the farmers' market?”
+
+3,
+
+{
+
+"role": "assistant",
+"content": "How many eggs does Janet sell? *x Janet
+sells 16 - 3 - 4 = <<16-3-4=9>>9 duck eggs a day.
+\nHow much does Janet make at the farmers' market?
+** She makes 9 x 2 = $<<9*2=18>>18 every day at the
+farmer\u2019s market.
+\n####t 18"
+
+}
+
+ARC. Here is an example of a question/answer
+from ARC dataset:
+
+{
+
+"role": "user",
+
+"content": "Choose the correct answer to the
+following multiple-choice question.
+\n\nQuestion: An astronomer observes that a
+planet rotates faster after a meteorite impact.
+Which is the most likely effect of this increase
+
+
+in rotation?\n\nA). Planetary density will
+decrease. \nB). Planetary years will become longer.
+\nC). Planetary days will become shorter.
+\nD). Planetary gravity will become stronger.
+\n\nProvide your reasoning about the answer and
+finish your answer with the letter corresponding
+to the correct option (e.g., A, B, C, or D).\n\n"
+1,
+{
+
+"role": "assistant",
+
+"content": "\nAnswer: C\n\n"
+}
+
+The following prefix is prepended to the user’s
+query
+Choose the correct answer to the following
+multiple-choice question.\n\n
+
+Q
+Q
+=
+5
+=
+he)
+he]
+>
+o
+9)
+=
+[=
+[8a]
+
+Figure 3: Entropy different H [(p,d)'p©d] —
+H [(p*, d)~lp*o d] for different values of \. We re-
+. . ort mean differences evaluated on OLMo-2 1B and
+The following suffix is appended to the user’s query 3p on MATH500
+
+\nProvide your reasoning about the answer and finish
+your answer with the letter corresponding to the
+correct option (e.g., A, B, C, or D).\n\n
+
+11 —d |x 0 =1 =2 =3
+J Further Analysis 9.5% 88.6% 1.9% 0%
+Conditional distribution entropy. The Shannon 11 — df 0.5) 1 =0 1 2 3
+
+entropy is defined as follows:
+0.0% 99.9% 0.1% 0%
+
+Jh=0 =1 =2 =3
+0.0% 90.7% 6.3% 1.5%
+
+Hp] = — > Pu log py. 11 — digg
+veV
+
+Entropy is a measure of uncertainty, i.e. high en-
+
+tropy means high uncertainty. In the following Table 3: Proportions of the number of selected token-
+we consider entropies of conditional distributions, ~~ probabilities from p using a threshold of A = 0.4 for
+where we condition the distribution on sampling el-  @~ and a budget of b € {0.6,0.9} for d*. Evaluated
+ement that are deferred in 7v<*, for different values ©" OLMo-2 1B and 13b on MATHS00.
+
+of \, which we write as follows:
+
+[(p,d)"'pod] v p-selection proportion. Table 3 shows the pro-
+
+xt € {v € V|d, = 1}, portions of tokens whose mass from p is kept in
+
+=P (x =v ) ) the mixture, i.e. the number of non-deferred tokens.
+
+We show statistics for 7<* with A = 0.4, and for
+
+where © is the element-wise multiplication, (-,-) primal approximation with a budget of {0.6,0.9}.
+is the dot product. We define a similar conditional =~ We can see that those rules select probabilities from
+
+X1:t—1 = L1:t—1
+
+distribution for p*. p according to their contribution, measured either
+When the following inequality holds: with a threshold or a budget, and this contribution
+can be split over 1 or more tokens. For example,
+
+H((p.d)"'pod| > H[(p*,d) 'p*@d], decreasing the budget b of the primal approxima-
+
+tion will spread the contribution of p across more
+the low probability elements of p has a higher un- than one token.
+certainty than the same elements of p*. To check
+if this is true empirically, we plot on Figure 3 the
+difference of entropy between the conditional dis- Budget selection. Setting a high budget does not
+tributions based on p and p*, for different values ~~ mean that it will necessarily be fully met, as the re-
+of A. We can see the the entropy of the conditional maining unfilled budget depends on the size of the
+distribution based on p is much higher than that of critical element, i.e. the larger the critical element
+its aligned version p*. This motivates the need to is, the smaller the actually filled budget can be. An
+mask those parts of p and replace them with g*. example is shown in Figure 4.
+
+17
+
+
+GMSS8K MATH SVAMP ARC CSQA TQA Avg. GMSS8K MATH SVAMP ARC CSQA TQA Avg.
+OLMo 2 (1B and 13B) Qwen 3 (1.7B and 14B)
+
+Building blocks
+
+p-AR 26.6 26.4 26.3 27.1 271 26.9 26.7 26.8 26.5 26.1 264 26.6 26.5 26.4
+q"-AR 65.8 65.7 64.9 66.5 66.5 65.9 65.8 394 39.0 39.1 39.4 388 39.0 39.1
+Nudging (Fei et al., 2025)
+
+A=04-AR 26.6 26.8 26.7 26.0 24.5 25.5 26.0 26.2 26.1 26.2 26.1 259 26.1 26.0
+A=04,v=3 272 27.1 26.8 25.6 25.3 25.7 26.2 21.5 21.1 21.5 19.7 18.8 19.4 20.3
+A=04,v=5 29.1 28.6 28.5 254 24.8 26.2 27.0 22.7 22.4 22.3 19.2 18.0 18.8 20.5
+A=04,v=T7 285 27.6 26.9 239 228 23.8 25.5 22.0 21.5 21.5 174 159 17.0 19.2
+Our work: dual approximation
+
+<M with A = f~(p)
+
+A=04-AR 19.4 19.3 19.4 19.6 19.3 19.5 194 16.1 16.0 16.0 16.1 16.1 15.9 16.0
+A=04,v=3 28.8 28.6 28.0 27.7 28.2 27.8 28.1 22.1 22.0 222 206 19.8 20.2 21.1
+A=04,y=5 31.9 31.2 30.2 28.9 30.3 29.3 30.3 23.6 23.0 23.2 20.2 19.6 20.3 21.6
+A=04,v=T7 31.7 31.6 30.3 274 27.7 284 29.5 23.1 22.6 229 19.1 17.8 18.8 20.7
+Our work: primal approximation
+
+b=0.9-AR 19.3 19.1 19.4 19.3 19.2 194 19.2 15.8 16.0 15.8 159 159 16.1 15.9
+b=09,y=3 28.7 28.1 28.1 269 26.8 26.8 27.5 22.0 21.7 22.2 200 19.8 20.0 21.9
+b=09,y=5 30.6 30.3 29.8 27.8 25.5 26.6 284 23.5 22.9 23.1 20.2 19.1 19.9 214
+b=09,y=7 30.1 29.8 28.7 246 21.6 224 26.2 23.4 22.4 225 182 174 18.2 20.3
+Table 4: Model’s throughput in tokens per second. “AR” stands for auto-regressive, other lines correspond to
+speculative decoding with a draft size of +. Best results on each column are in bold, second best are underlined.
+
+GMSS8K MATH SVAMP ARC CSQA TQA Avg. GMSS8K MATH SVAMP ARC CSQA TQA Avg.
+OLMo 2 (1B and 13B) Qwen 3 (1.7B and 14B)
+
+Nudging (Fei et al., 2025)
+
+A=04,7v=3 676 69.2 65.9 59.0 56.5 59.3 62.9 78.4 78.1 75.3 65.0 59.5 64.0 70.0
+A=04,y=5 56.5 57.5 53.3 46.7 44.0 48.2 51.0 69.5 69.0 65.9 53.2 47.5 52.2 59.5
+A=04,v=T7 48.0 48.6 43.1 38.6 36.6 38.5 42.2 61.7 60.9 59.2 444 38.6 43.6 514
+Our work: dual approximation
+
+<M with A = f~(p)
+
+A=04,y=3 73.7 75.6 71.4 67.7 69.3 68.8 71.0 81.6 81.3 79.8 69.9 66.2 70.2 74.8
+A=04,7v=5 64.0 65.9 59.3 55.5 60.0 57.3 60.3 73.9 72.5 71.6 59.1 54.7 59.5 65.2
+A=04,y=7 554 57.9 52.3 47.6 48.3 49.8 51.8 67.0 65.3 64.0 50.1 46.0 50.3 57.1
+Our work: primal approximation
+
+b=09,y=3 1735 74.6 68.8 65.5 64.9 64.4 68.6 81.7 80.9 79.8 69.8 66.0 69.4 74.6
+b=09,7v=5 62.0 63.1 57.2 53.0 46.7 49.9 55.3 74.0 72.2 71.3 58.1 53.1 57.6 64.3
+b=09,y=7 53.5 54.5 48.0 41.2 33.8 364 445 66.8 64.3 64.2 48.5 44.1 48.1 56.0
+
+Table 5: Speculative generation empirical acceptance rate. Best results on each column are in bold, second best are
+
+underlined.
+
+K Generation Speed Results
+
+Table 4 shows the throughput for all the tested mod-
+els, both for autoregressive generation and specula-
+tive decoding. Table 5 shows the exact acceptance
+rates.
+
+18
+
+
+Small critical item Critical
+
+PH
+Filled budget Unfilled gap
+Large critical item Critical
+
+7/4
+
+Filled budget aie
+
+Figure 4: Illustration of the effect of the critical element
+size on the filled budget; a bigger critical element can
+leave a bigger unfilled gap.
+
+19
