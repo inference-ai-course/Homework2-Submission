@@ -1,141 +1,84 @@
 # Project Update — Week 2
 
-**Generated:** 2026-04-02 23:31:28
-**Student Name:** [Your Name]
+**Generated:** 2026-05-02 15:15:11
+**Student Name:** Chris
 
 ---
 
 ## Original Project Definition (Week 1)
 
 # My Research Agent Project
-**Created:** 2026-03-21 23:43:09
+**Created:** 2026-04-07 17:24:31
 
 
 # MY RESEARCH AGENT PROJECT
 
 ## 1. PROJECT TITLE
-[Your project name]
+GitHub Insight Agent – README-Based Repository Summarizer
 
 ## 2. THE PROBLEM
-[What research problem are you solving?]
+Developers and researchers often encounter GitHub repositories with long or unclear documentation. 
+Understanding what a repository does, its key features, and whether it is relevant can take significant time.
 
 ## 3. YOUR SOLUTION
-[How will your agent solve this?]
+Build an AI agent that takes a GitHub repository URL and:
+- Extracts the README file using the GitHub API
+- Analyzes the content using an LLM
+- Produces a structured summary including:
+  - Project description
+  - Key features
+  - Tech stack
+  - Use cases
+  - Complexity level
+
+Future extensions may include deeper code analysis and repository comparison.
 
 ## 4. USER WORKFLOW
-[How will someone use it?]
+1. User inputs a GitHub repository URL
+2. Agent parses the URL to identify owner and repository
+3. Agent fetches the README file via GitHub API
+4. Agent generates a structured summary using an LLM
+5. User receives a clean JSON summary
 
 ## 5. COMPONENTS
-[Which course techniques will you use?]
-
-☐ CO-STAR prompting - 
-☐ Structured outputs - 
-☐ Chain-of-thought - 
-☐ Model selection - 
-☐ MCP/Tool use - 
-☐ Multi-step workflow - 
+☑ CO-STAR prompting – for consistent and high-quality summaries  
+☑ Structured outputs – JSON format for reliable downstream use  
+☐ Chain-of-thought – optional (future improvement)  
+☐ Model selection – optional (future optimization)  
+☑ MCP/Tool use – GitHub API for data retrieval  
+☑ Multi-step workflow – URL → README → summary  
 
 ## 6. SUCCESS CRITERIA
-[How will you measure success?]
-
-## 7. SCOPE
-IN SCOPE:
-- 
-- 
-- 
-
-OUT OF SCOPE:
-- 
-- 
-
-## 8. DATA SOURCES
-[Where does your data come from?]
-
-## 9. TECH STACK
-[What tools/libraries?]
-
-## 10. TIMELINE
-Week 1:
-- 
-
-Week 2-3:
-- 
-
-Week 4 (Insight I):
-- 
-
-Week 5-6:
-- 
-
-Week 7 (Insight II):
-- 
-
-Week 8-10:
-- 
-
-## 11. RISKS & MITIGATION
-Risk 1: 
-  Mitigation: 
-
-Risk 2: 
-  Mitigation: 
-
-## 12. STRETCH GOALS
-- 
-- 
-
-
----
-
-## AI Feedback
-
-# Feedback on Your Research Agent Project
-
-I'd love to help you refine your research agent project! However, I notice that your template is still blank - you haven't filled in the specific details yet.
-
-## Here's what I need from you to give meaningful feedback:
-
-**At minimum, please share:**
-1. **Project title** - What are you building?
-2. **The problem** - What research challenge are you addressing?
-3. **Your solution approach** - How will your agent work?
-4. **Which techniques** you're planning to use from the course
-
-## In the meantime, here are some 
+- Produces valid JSON output ≥95% of the time  
+- Accurately captures repository purpose (ma
 
 ---
 
 ## Week 2 Updates
+Consiering the simplicity of the project definition of Week 1, I focused on designing a data strategy that would be practical 
+and aligned with the tools we've covered. I identified radio news transcripts and YouTube lecture transcripts as promising sources of domain-relevant text for a personalized language learning companion. I estimated an initial volume of around 50 documents totaling approximately 50K tokens, which is manageable for experimentation while still providing enough content to work with. 
 
 ### Data Strategy
 
 | Aspect | Plan |
 |---|---|
-| Scraping targets | [] |
-| Expected volume | [e.g., 500 documents, ~200K tokens] |
-| Cleaning concerns | [] |
+| Scraping targets | ['Radio news transcripts for current events vocabulary', 'YouTube lecture transcripts'] |
+| Expected volume | [50 documents, 50K tokens] |
+| Cleaning concerns | ['Duplicate abstracts from cross-posted papers', 'Non-English, Non-French, Non-Chinese content to filter'] |
 | Tokenizer | [tiktoken cl100k_base / HF gpt2 / sentencepiece] |
-| Est. cost per call | [$ per API call] |
-| Approach | [fine-tuning / RAG / prompt engineering / hybrid] |
+| Est. cost per call | [0.1$ per API call] |
+| Approach | [fine-tuning /  prompt engineering / hybrid] |
 
 ### Architecture Constraints
 
-I notice your message contains a placeholder '[YOUR DOMAIN]' that wasn't filled in. I can't give you domain-specific advice without knowing what you're actually building.
+As a systems architect, I will evaluate your Language Learning/Education (EdTech) project through the lens of computational efficiency, linguistic nuance, and scaling costs.
 
-**To get a useful answer, tell me:**
+### 1. Typical Input Lengths in EdTech
+In the education domain, you will encounter three distinct "tiers" of input lengths:
 
-- What is your actual domain? (e.g., legal document review, genomics, customer support, code generation, medical imaging reports, financial analysis)
-- What kind of inputs does your system process? (documents, conversations, structured data, code, etc.)
-- What is your approximate cost budget or infrastructure constraints?
-- What hardware do you have available for potential fine-tuning?
-
----
-
-**Why this matters concretely:**
-
-The answers diverge dramatically by domain. For example:
-
-- **Legal contracts** → inputs routinely hit 50K-200K tokens, RAG is often wrong choice, hierarchical s
+*   **Micro-Interactions (50 – 500 tokens):** Chat-based tutoring, flashcard generation, and grammar corrections. This is 80% of your traffic.
+*   **Assessment & Content (2,000 – 8,000 tokens):** Grading a student’s 1,500-word essay alongside a rubric, or processing a single textbook chapter for reading comprehension questions.
+*   **The "Course-Level" Context (20,000 – 60,000 tokens):** This is unique to EdTech. It involves the student’s entire semester history, past mistakes, and the full curr
 
 ### Key Learnings from Week 2
 

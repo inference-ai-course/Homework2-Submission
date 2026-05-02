@@ -1,6 +1,6 @@
 Week 2 Setup Summary
 ========================================
-Completed: 2026-04-05 16:48:57
-Path: C
-Default model: qwen3.5:27b
+Completed: 2026-04-20 19:02:31
+Path: D
+Default model: gemini-3-flash-preview
 API test: ✓ passed

@@ -1,0 +1,118 @@
+--- PAGE 1 ---
+No Pedestrian Left Behind: Real-Time Detection and Tracking of
+Vulnerable Road Users for Adaptive Traffic Signal Control
+Anas Gamal Aly Hala ElAarag
+Stetson University Stetson University
+DeLand, Florida, USA DeLand, Florida, USA
+agamal@stetson.edu helaarag@stetson.edu
+Abstract 22% of global road fatalities [29]. Urban intersections are particu-
+Current pedestrian crossing signals operate on fixed timing without larly risky because fixed-time pedestrian phases assume uniform
+adjustment to pedestrian behavior, which can leave vulnerable road walking speeds; in reality, speeds vary substantially across individ-
+ico) users (VRUs) such as the elderly, disabled, or distracted pedestrians uals and are often lower for elderly, disabled, or visually impaired
+N stranded when the light changes. We introduce No Pedestrian pedestrians. This creates a risk that some pedestrians are still in
+(as) Left Behind (NPLB), a real-time adaptive traffic signal system the crosswalk when the signal expires. Evaluations of mid-block
+N that monitors VRUs in crosswalks and automatically extends signal pedestrian signals (MPS) have shown measurable reductions in
+y timing when needed. We evaluated five State-of-the-Art object pedestrian—vehicle conflicts, reinforcing that timing aligned to ob-
+o detection models on the BG Vulnerable Pedestrian (BGVP) dataset, served behavior can improve safety [3].
+<x with You Only Look Once (YOLO) v12 achieving the highest mean Abdelrahman et al. [1] introduced Video-to-Text Pedestrian Mon-
+co Average Precision at 50% (mAP@0.5) of 0.756. NPLB integrates our itoring (VTPM), a Large Language Model (LLM) framework that
+N fine-tuned YOLOv12 with ByteTrack multi-object tracking and an generates real-time reports with 0.33 second latency. There are var-
+adaptive controller that extends pedestrian phases when remaining ious machine learning methods that could be applied to Intelligent
+— time falls below a critical threshold. Through 10,000 Monte Carlo Transportation Systems (ITS) [11]. For traffic-flow detection, meth-
+> simulations, we demonstrate that NPLB improves VRU safety by ods such as k-nearest Neighbor (k-NN), support vector regression
+©O 71.4%, reducing stranding rates from 9.10% to 2.60%, while requiring (SVR), SVM, or long short-term memory (LSTM) were used. For
+wn signal extensions in only 12.1% of crossing cycles. accident detection and prevention, methods such as regression tree
+Ss (CART, k-NN) [11] were used. Mohandas et al. [17] defines smart
+Hy CCS Concepts cities as the establishment of all the facilities required in the context
+. . . . . of demand-based needs.
+—_ + Computing methodologies ° Object detection; Tracking; Machine learning methods such as Neural Networks have been
+> + Computer systems organization > Embedded systems; « found to be useful in improving the energy efficiency of street lights
+[™ Applied computing — Transportation; « Mathematics of com- A P 8 ey yee 8
+s 5 and creating weather-aware methods [7, 14, 23]. To implement
+gs puting — Markov-chain Monte Carlo methods. smart city lights, Kama et al. [13] introduced solar street lights
+LO that collect data in real time on an online server to help plan the
+Keywords leaning of
+N . ; ; , cleaning of the solar panels.
+
+° pedestrian detection, vulnerable road users, adaptive traffic signal In this work, we present NPLB (No Pedestrian Left Behind), a
+=u control, computer vision, object tracking, AI for social good, real- real-time adaptive traffic signal system that uses computer vision to
+S time systems detect and track vulnerable road users at crosswalks and automati-
+fan ACM Reference Format: cally extend pedestrian signal phases when needed. We benchmark
+
+** Anas Gamal Aly and Hala ElAarag. 2026. No Pedestrian Left Behind: Real- five State-of-the-Art object detection models on the BG Vulnerable
+. > Time Detection and Tracking of Vulnerable Road Users for Adaptive Traffic Pedestrian (BGVP) dataset to identify the best-performing architec-
+ba Signal Control. In 2026 ACM Southeast Conference (ACMSE 2026), April 23-25, ture for VRU detection, and evaluate the full NPLB system through
+am 2026, Troy, AL, USA. ACM, New York, NY, USA, 9 pages. https://doi.org/10. 10,000 Monte Carlo simulations that incorporate realistic detection
+fae} 1145/3746467.3801496 failure rates. Our results demonstrate that NPLB reduces pedestrian
+stranding rates by 71.4% while requiring signal extensions in only
+1 Introduction 12.1% of crossing cycles, establishing the viability of vision-based
+Pedestrian safety remains a critical challenge for modern cities. adaptive signal control as an equity-focused safety intervention.
+The World Health Organization estimates that more than 270,000
+pedestrians die annually in road traffic crashes, representing nearly 2 Related Works
+———— Adaptive Signal Control. Traditional practice in pedestrian signal
+©0S9 design relies on assumed walking speeds, which often under-serve
+This work is licensed under a Creative Commons Attribution-NonCommercial- slower pedestrians. Muley et al. [19] reviewed global practices and
+NoDerivatives 4.0 International License. highlighted the limitations of fixed-time approaches. Adaptive sig-
+ACMSE 2026, April 23-25, 2026, Troy, AL, USA nal control strategies have been shown to improve multimodal
+ou copyright pad by th % umerauthor() performance; for example, Akyol et al. [4] demonstrated that ad-
+https://doi.org/10.1145/3746467.3801496 justing green times dynamically based on demand improved both
+
+
+--- PAGE 2 ---
+throughput and pedestrian safety. Field evaluations of mid-block
+pedestrian signals (MPS) report reduced probabilities of moderate Perception Layer
+and serious conflicts in before-and-after studies [3]. Networked Oe
+sensor-based adaptive controllers also show potential for scaling —
+adaptive strategies across corridors and cities [27]. Deploying Split
+Cycle Offset Optimisation Technique (SCOOT) algorithm for adap- (ack De or VU) }
+tive signal timings improved the pedestrian travel times by 30% | Detection Layer
+while increasing vehicle delays by 11% [4] | ees |
+lel daily
+Prediction Models for Pedestrian Intention. Several recent studies sate
+move beyond detection to forecasting pedestrian behavior. Ab- |
+delrahman et al. [2] introduced VRUCrossSafe, a framework that So (ru gincont >
+predicts the crossing intention of pedestrians, cyclists, and scooter Reet mugetecte
+riders in real time, achieving high accuracy and inference speed.
+Such predictive models highlight the potential of CV-based moni- ‘ Control Layer
+toring but stop short of integrating predictions into traffic control. .
+Our work builds on this literature by coupling real-time perception ~ ~
+with a rule-based controller that dynamically extends pedestrian
+phases, addressing an important research gap. en
+YOLO (You Only Look Once) models offer fast, accurate pedes-
+trian detection, while trackers such as DeepSORT [28], OC-SORT [8] -
+and ByteTrack [30] maintain consistent pedestrian IDs across frames. { ee
+Together, these tools allow estimation of walking speed and cross-
+ing progress directly from video feeds. Beyond detection, recent
+works have applied CV to predict pedestrian crossing intention, Figure 1: NPLB Architecture
+such as VRUCrossSafe, which achieved 94.7% accuracy at real-time
+speed by leveraging pose and appearance features [2].
+Despite this progress, much of the literature optimizes signals
+primarily for vehicles or focuses on predicting pedestrian behavior The NPLB system addresses a critical gap in pedestrian safety
+without adapting the signal timing itself. Studies on adaptive signal by dynamically adapting traffic signal timing based on real-time
+control emphasize the benefits for traffic throughput and delay detection of vulnerable road users. The system architecture, illus-
+reduction, but few directly extend pedestrian crossing time based on trated in Figure 1, consists of three integrated layers: perception,
+real-time trajectory data. Moreover, vulnerable road users (VRUs), detection, and control.
+such as wheelchair users or visually impaired pedestrians, remain
+underrepresented in such studies [4, 5, 19, 27]. To address this gap, 3.1 System Architecture
+we introduce the following contributions: (1) Perception Layer processes video input through our fine-
+(1) NPLB: An Adaptive Pedestrian-Safety System. A real- tuned YOLOv12 model, which detects VRUs and generates
+time traffic signal architecture (Figure 1) that integrates a bounding boxes with class labels for each frame. These detec-
+fine-tuned VRU YOLOv12 detector with an adaptive signal tions are then passed to ByteTrack, a multi-object tracking
+controller to dynamically extend pedestrian crossing times algorithm that maintains consistent track IDs across frames,
+based on the detection of VRUs. enabling the system to follow individual pedestrians through-
+(2) Comprehensive Benchmarking Of VRU Detection Mod- out their crossing journey.
+els. We conduct a comparative evaluation of State-of-the- (2) Detection Layer filters the tracked objects to identify VRUs
+Art object detectors (YOLOv5, YOLOv11, YOLOv12, SSDLite, specifically, focusing on three vulnerability categories: chil-
+Fas.ter R-CNN) on the BGVP dataset, establishing perfor- dren without disabilities, elderly individuals without disabil-
+mance baselines for VRU detection. ities, and persons with disabilities. This layer maintains a set
+(3) State-of-the-Art YOLOv12 Model For VRU Detection. of unique VRU track IDs and implements a timeout mecha-
+We fine-tune YOLOv12 for VRU detection and achieve an nism to handle temporary occlusions or detection gaps. If no
+mAP@0.5 of 0.756, outperforming all tested models and VRU is detected for 10 consecutive frames (approximately
+demonstrating its suitability for real-time integration within 0.33 seconds at 30 fps), the system resets its VRU tracking
+NPLB due to its speed and accuracy. state to prevent false positives from stale detections.
+. . (3) Control Layer implements the adaptive signal timing logic.
+3 NPLB (No Pedestrian Left Behind) System When a VRU is detected in the crosswalk and the remaining
+Our research explores an approach to improving pedestrian safety signal time falls below a 1; critical threshold (4 seconds),
+through computer vision technology. We focus on enhancing de- the system automatically extends the pedestrian phase by
+tection capabilities specifically for vulnerable road users and imple- a Te predefined extension time (3 seconds). This threshold
+ment proper mitigation through our NPLB system. is based on typical walking speeds and crosswalk widths,

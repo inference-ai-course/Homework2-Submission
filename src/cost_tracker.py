@@ -23,6 +23,8 @@ class CostTracker:
         "claude-opus-4-5-20251101":   {"input": 15.0, "output": 75.0},
         # Ollama (free)
         "ollama": {"input": 0.0, "output": 0.0},
+        # Gemini (free) 100-300
+        "gemini": {"input": 0.0, "output": 0.0},
     }
 
     def __init__(self):

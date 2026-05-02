@@ -9,5 +9,5 @@
 | 4_after_pii | 10 |
 
 **Dedup removed:** 0 documents
-**PII entities anonymised:** 32
-**Final corpus size:** 19,903 chars (~4,975 tokens)
+**PII entities anonymised:** 23
+**Final corpus size:** 19,954 chars (~4,988 tokens)

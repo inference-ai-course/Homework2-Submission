@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tables de multiplication — jusqu’à 20</title>
+  <style>
+    :root {
+      --bg: #e8f4fc;
+      --card: #ffffff;
+      --accent: #1e88e5;
+      --accent-dark: #1565c0;
+      --ok: #2e7d32;
+      --bad: #c62828;
+      --text: #1a237e;
+      --muted: #5c6bc0;
+      --radius: 16px;
+      --shadow: 0 8px 24px rgba(30, 136, 229, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, var(--bg) 0%, #fff8e7 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .panel {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.75rem;
+      max-width: 520px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 0.25rem;
+      font-weight: 700;
+    }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--muted); }
+    input[type="number"], select {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 2px solid #c5cae9;
+      border-radius: 10px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    input[type="number"]:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    .row input[type="range"] { flex: 1; }
+    .range-val { min-width: 2.5rem; font-weight: 700; color: var(--accent-dark); text-align: right; }
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: #e3f2fd;
+      border-radius: 12px;
+      font-size: 0.95rem;
+    }
+    .stats strong { color: var(--accent-dark); }
+    .question {
+      font-size: 2rem;
+      font-weight: 800;
+      text-align: center;
+      margin: 1.25rem 0;
+      letter-spacing: 0.02em;
+    }
+    .feedback {
+      min-height: 3rem;
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    .feedback.ok { color: var(--ok); }
+    .feedback.bad { color: var(--bad); }
+    .btn {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.15s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(30, 136, 229, 0.35);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary {
+      background: #eceff1;
+      color: var(--text);
+      margin-top: 0.5rem;
+    }
+    .hidden { display: none !important; }
+    .summary h2 { margin-top: 0; font-size: 1.2rem; }
+    .big-note {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--accent-dark);
+      text-align: center;
+      margin: 0.5rem 0 1rem;
+    }
+    .summary p { line-height: 1.5; color: var(--muted); }
+    .tables-fieldset {
+      border: 2px solid #c5cae9;
+      border-radius: 12px;
+      padding: 0.65rem 0.85rem 0.85rem;
+      margin: 0 0 1rem;
+    }
+    .tables-fieldset legend {
+      padding: 0 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .tables-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+      gap: 0.35rem 0.5rem;
+    }
+    .table-chk {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.86rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .table-chk input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+    .hint { font-size: 0.8rem; color: var(--muted); margin: -0.5rem 0 1rem; }
+    kbd {
+      font-family: ui-monospace, monospace;
+      font-size: 0.82em;
+      padding: 0.08rem 0.35rem;
+      border-radius: 4px;
+      background: #eceff1;
+      border: 1px solid #b0bec5;
+    }
+    .err-msg { color: var(--bad); font-size: 0.85rem; font-weight: 600; margin: -0.25rem 0 0.75rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main class="panel" id="app">
+    <!-- Setup -->
+    <section id="screen-setup">
+      <h1>Tables de multiplication</h1>
+      <p class="subtitle">Petit facteur (1–9) × table choisie (3–20). Chronomètre, vérification et note sur 20.</p>
+      <p class="hint">Réponse juste → passage tout seul à la suivante. Si erreur : un clic ou <kbd>Entrée</kbd> pour continuer.</p>
+      <fieldset class="tables-fieldset">
+        <legend>Tables à réviser</legend>
+        <div class="tables-actions">
+          <button type="button" class="link-btn" id="btnAllTables">Tout sélectionner</button>
+          <button type="button" class="link-btn" id="btnNoTables">Tout désélectionner</button>
+        </div>
+        <div class="tables-grid" id="tablesGrid"></div>
+      </fieldset>
+      <p class="err-msg" id="setupError" aria-live="polite"></p>
+      <label for="numQuestions">Nombre de questions</label>
+      <input type="number" id="numQuestions" min="5" max="50" value="20" />
+      <label for="timeLimit">Temps limite (toute la partie)</label>
+      <select id="timeLimit">
+        <option value="0">Aucune limite</option>
+        <option value="60">1 minute</option>
+        <option value="120">2 minutes</option>
+        <option value="180">3 minutes</option>
+        <option value="300">5 minutes</option>
+      </select>
+      <button type="button" class="btn btn-primary" id="btnStart">Commencer</button>
+    </section>
+
+    <!-- Play -->
+    <section id="screen-play" class="hidden">
+      <h1>Question <span id="qIndex">1</span> / <span id="qTotal">20</span></h1>
+      <div class="stats">
+        <span>⏱ Temps : <strong id="timerDisplay">0:00</strong></span>
+        <span>✓ <strong id="scoreOk">0</strong> / <strong id="scoreAttempt">0</strong></span>
+      </div>
+      <div class="question" id="questionText">7 × 8 = ?</div>
+      <label for="answerInput">Ta réponse</label>
+      <input type="number" id="answerInput" inputmode="numeric" autocomplete="off" />
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <button type="button" class="btn btn-primary" id="btnCheck">Vérifier</button>
+      <button type="button" class="btn btn-secondary hidden" id="btnNext">Question suivante</button>
+    </section>
+
+    <!-- Summary -->
+    <section id="screen-summary" class="hidden">
+      <h1>Bravo, partie terminée !</h1>
+      <p class="subtitle">Voici ta note et ton temps.</p>
+      <div class="big-note" id="noteDisplay">—</div>
+      <div class="summary">
+        <p id="summaryDetails"></p>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnAgain">Rejouer</button>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const screens = {
+        setup: $("screen-setup"),
+        play: $("screen-play"),
+        summary: $("screen-summary"),
+      };
+
+      const tablesGrid = $("tablesGrid");
+      for (let t = 3; t <= 20; t++) {
+        const lab = document.createElement("label");
+        lab.className = "table-chk";
+        const inp = document.createElement("input");
+        inp.type = "checkbox";
+        inp.value = String(t);
+        inp.checked = true;
+        lab.appendChild(inp);
+        lab.appendChild(document.createTextNode("Table de " + t));
+        tablesGrid.appendChild(lab);
+      }
+
+      function getSelectedTables() {
+        return Array.from(tablesGrid.querySelectorAll("input[type=checkbox]:checked"))
+          .map((el) => parseInt(el.value, 10))
+          .filter((n) => !Number.isNaN(n))
+          .sort((a, b) => a - b);
+      }
+
+      let totalQuestions = 20;
+      let limitSeconds = 0;
+      let questions = [];
+      let currentIndex = 0;
+      let correctCount = 0;
+      let checkedThisQuestion = false;
+      let tickId = null;
+      let deadlineMs = null;
+      let gameStartMs = 0;
+      let gameEnded = false;
+      let autoAdvanceTimer = null;
+
+      function clearAutoAdvance() {
+        if (autoAdvanceTimer) {
+          clearTimeout(autoAdvanceTimer);
+          autoAdvanceTimer = null;
+        }
+      }
+
+      function formatTime(sec) {
+        const s = Math.max(0, Math.floor(sec));
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return m + ":" + String(r).padStart(2, "0");
+      }
+
+      function randomInt(min, max) {
+        return min + Math.floor(Math.random() * (max - min + 1));
+      }
+
+      /** Petit facteur 1–9, table 3–20 (choisie dans la liste). */
+      function buildQuestions(n, tables) {
+        const list = [];
+        if (!tables.length) return list;
+        for (let i = 0; i < n; i++) {
+          const b = tables[randomInt(0, tables.length - 1)];
+          const a = randomInt(1, 9);
+          list.push({ a, b, answer: a * b });
+        }
+        return list;
+      }
+
+      function noteSur20(correct, total) {
+        if (total <= 0) return 0;
+        return Math.round((correct / total) * 20 * 10) / 10;
+      }
+
+      function showScreen(name) {
+        Object.entries(screens).forEach(([k, el]) => {
+          el.classList.toggle("hidden", k !== name);
+        });
+      }
+
+      function stopTimer() {
+        if (tickId) {
+          clearInterval(tickId);
+          tickId = null;
+        }
+      }
+
+      function elapsedSeconds() {
+        const raw = (Date.now() - gameStartMs) / 1000;
+        if (limitSeconds > 0) return Math.min(limitSeconds, raw);
+        return raw;
+      }
+
+      function updateTimerDisplay() {
+        if (gameEnded) return;
+        if (limitSeconds > 0 && deadlineMs != null) {
+          const left = Math.ceil((deadlineMs - Date.now()) / 1000);
+          $("timerDisplay").textContent = formatTime(left);
+          if (left <= 0) finishGame(true);
+        } else {
+          $("timerDisplay").textContent = formatTime(elapsedSeconds());
+        }
+      }
+
+      function startTimer() {
+        stopTimer();
+        gameEnded = false;
+        gameStartMs = Date.now();
+        if (limitSeconds > 0) {
+          deadlineMs = gameStartMs + limitSeconds * 1000;
+        } else {
+          deadlineMs = null;
+        }
+        tickId = setInterval(updateTimerDisplay, 200);
+        updateTimerDisplay();
+      }
+
+      function renderQuestion() {
+        clearAutoAdvance();
+        const q = questions[currentIndex];
+        $("qIndex").textContent = String(currentIndex + 1);
+        $("qTotal").textContent = String(questions.length);
+        $("questionText").textContent = q.a + " × " + q.b + " = ?";
+        $("answerInput").value = "";
+        $("answerInput").disabled = false;
+        $("feedback").textContent = "";
+        $("feedback").className = "feedback";
+        $("btnCheck").classList.remove("hidden");
+        $("btnCheck").disabled = false;
+        $("btnNext").classList.add("hidden");
+        checkedThisQuestion = false;
+        $("scoreOk").textContent = String(correctCount);
+        $("scoreAttempt").textContent = String(currentIndex);
+        $("answerInput").focus();
+        $("answerInput").select();
+      }
+
+      function finishGame(timeUp) {
+        if (gameEnded) return;
+        gameEnded = true;
+        clearAutoAdvance();
+        stopTimer();
+        const total = questions.length;
+        const note = noteSur20(correctCount, total);
+        const nStr = note % 1 === 0 ? String(Math.round(note)) : note.toFixed(1);
+        $("noteDisplay").textContent = nStr + " / 20";
+        const timeStr = formatTime(Math.round(elapsedSeconds()));
+        let detail =
+          "Bonnes réponses : <strong>" +
+          correctCount +
+          "</strong> sur <strong>" +
+          total +
+          "</strong>.<br>Temps : <strong>" +
+          timeStr +
+          "</strong>.";
+        if (timeUp && limitSeconds > 0) {
+          detail += "<br><em>Temps limite atteinte.</em>";
+        }
+        $("summaryDetails").innerHTML = detail;
+        showScreen("summary");
+      }
+
+      function advanceOrEnd() {
+        if (currentIndex >= questions.length - 1) {
+          finishGame(false);
+          return;
+        }
+        currentIndex++;
+        renderQuestion();
+      }
+
+      $("btnAllTables").addEventListener("click", () => {
+        tablesGrid.querySelectorAll("input[type=checkbox]").forEach((el) => {
+          el.checked = true;
+        });
+        $("setupError").textContent = "";
+      });
+
+      $("btnNoTables").addEventListener("click", () => {
+        tablesGrid.querySelectorAll("input[type=checkbox]").forEach((el) => {
+          el.checked = false;
+        });
+      });
+
+      $("btnStart").addEventListener("click", () => {
+        $("setupError").textContent = "";
+        const tables = getSelectedTables();
+        if (!tables.length) {
+          $("setupError").textContent = "Choisis au moins une table (3 à 20).";
+          return;
+        }
+        totalQuestions = Math.min(50, Math.max(5, parseInt($("numQuestions").value, 10) || 10));
+        limitSeconds = parseInt($("timeLimit").value, 10) || 0;
+        questions = buildQuestions(totalQuestions, tables);
+        currentIndex = 0;
+        correctCount = 0;
+        checkedThisQuestion = false;
+        showScreen("play");
+        startTimer();
+        renderQuestion();
+      });
+
+      $("btnCheck").addEventListener("click", () => {
+        if (checkedThisQuestion) return;
+        const q = questions[currentIndex];
+        const raw = $("answerInput").value.trim();
+        if (raw === "") {
+          $("feedback").textContent = "Entre un nombre.";
+          $("feedback").className = "feedback bad";
+          return;
+        }
+        const val = parseInt(raw, 10);
+        if (Number.isNaN(val)) {
+          $("feedback").textContent = "Nombre invalide.";
+          $("feedback").className = "feedback bad";
+          return;
+        }
+        checkedThisQuestion = true;
+        const ok = val === q.answer;
+        if (ok) correctCount++;
+        $("answerInput").disabled = true;
+        $("btnCheck").classList.add("hidden");
+        $("scoreOk").textContent = String(correctCount);
+        $("scoreAttempt").textContent = String(currentIndex + 1);
+        if (ok) {
+          $("feedback").textContent = "Correct !";
+          $("feedback").className = "feedback ok";
+          $("btnNext").classList.add("hidden");
+          autoAdvanceTimer = setTimeout(() => {
+            autoAdvanceTimer = null;
+            checkedThisQuestion = false;
+            advanceOrEnd();
+          }, 500);
+        } else {
+          $("feedback").textContent = "Incorrect. La bonne réponse est " + q.answer + ".";
+          $("feedback").className = "feedback bad";
+          $("btnNext").classList.remove("hidden");
+          $("btnNext").focus();
+        }
+      });
+
+      $("btnNext").addEventListener("click", () => {
+        advanceOrEnd();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        if ($("screen-play").classList.contains("hidden")) return;
+        if (autoAdvanceTimer) {
+          e.preventDefault();
+          return;
+        }
+        e.preventDefault();
+        if (!$("btnNext").classList.contains("hidden")) $("btnNext").click();
+        else $("btnCheck").click();
+      });
+
+      $("btnAgain").addEventListener("click", () => {
+        showScreen("setup");
+      });
+    })();
+  </script>
+</body>
+</html>
